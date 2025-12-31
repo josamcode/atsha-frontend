@@ -1,0 +1,409 @@
+/* Import Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Default Font - Cairo (Arabic) */
+body {
+  font-family: "Cairo", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Arabic Font - Cairo (Default) */
+html[dir="rtl"] body,
+html[dir="rtl"] * {
+  font-family: "Cairo", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* English Font - Inter (Only when LTR) */
+html[dir="ltr"] body,
+html[dir="ltr"] * {
+  font-family: "Inter", "Cairo", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+/* RTL support - Default to RTL */
+html {
+  direction: rtl;
+}
+
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+html[dir="ltr"] {
+  direction: ltr;
+}
+
+/* RTL-specific utilities */
+.rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+html[dir="rtl"] .rtl\:mr-auto {
+  margin-right: auto;
+}
+
+html[dir="rtl"] .rtl\:ml-auto {
+  margin-left: auto;
+}
+
+/* Global RTL Icon-Text Spacing Solution */
+/* These utilities automatically work in both LTR and RTL layouts */
+
+/* Icon spacing using logical properties (works automatically with RTL) */
+.icon-start {
+  margin-inline-end: 0.75rem; /* 12px - LTR: margin-right, RTL: margin-left */
+}
+
+.icon-start-sm {
+  margin-inline-end: 0.5rem; /* 8px */
+}
+
+.icon-start-xs {
+  margin-inline-end: 0.375rem; /* 6px */
+}
+
+.icon-start-lg {
+  margin-inline-end: 1rem; /* 16px */
+}
+
+.icon-end {
+  margin-inline-start: 0.75rem; /* 12px - LTR: margin-left, RTL: margin-right */
+}
+
+.icon-end-sm {
+  margin-inline-start: 0.5rem; /* 8px */
+}
+
+.icon-end-xs {
+  margin-inline-start: 0.375rem; /* 6px */
+}
+
+.icon-end-lg {
+  margin-inline-start: 1rem; /* 16px */
+}
+
+/* Gap-based approach (recommended - works best with RTL) */
+.icon-text-gap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem; /* 12px */
+}
+
+.icon-text-gap-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem; /* 8px */
+}
+
+.icon-text-gap-xs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem; /* 6px */
+}
+
+.icon-text-gap-lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem; /* 16px */
+}
+
+.icon-text-gap-2xl {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem; /* 24px */
+}
+
+/* Flex utilities with proper RTL support using gap */
+.flex-gap-1 {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.flex-gap-2 {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.flex-gap-3 {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.flex-gap-4 {
+  display: flex;
+  gap: 1rem;
+}
+
+.flex-gap-6 {
+  display: flex;
+  gap: 1.5rem;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Custom scrollbar for dropdowns */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f9fafb;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Firefox scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f9fafb;
+}
+
+/* Hidden scrollbar - hide scrollbar but keep scrolling functionality */
+.hidden-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hidden-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+input,
+select,
+textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Enhanced card hover effect */
+.hover\:shadow-xl:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, #d4b900 0%, #b51c20 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Pulse animation for notifications */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Mobile Bottom Nav Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Safe area support for mobile devices with notches */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Backdrop blur support */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ========================================
+   MOBILE-SPECIFIC STYLES & RESPONSIVE TEXT
+   ======================================== */
+
+/*
+ * SMART RESPONSIVE TEXT SOLUTION:
+ * --------------------------------
+ * All large text (h1-h3, .text-xl to .text-6xl) automatically scales down on mobile
+ * using CSS clamp() for fluid typography. No need to manually add responsive classes!
+ * 
+ * USAGE:
+ * 1. Automatic: Just use text-3xl, text-4xl, etc. - they'll auto-scale on mobile
+ * 2. Manual: Use text-responsive-xl, text-responsive-2xl for more control
+ * 
+ * SCALING REFERENCE:
+ * Desktop → Mobile
+ * text-4xl (36px) → 24-36px (fluid)
+ * text-3xl (30px) → 20-30px (fluid)
+ * text-2xl (24px) → 18-24px (fluid)
+ * text-xl  (20px) → 16-20px (fluid)
+ */
+
+@media (max-width: 768px) {
+  /* Touch & Scroll Optimizations */
+  .mobile-nav-item {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Automatic Responsive Text Scaling */
+  h1,
+  .text-4xl,
+  .text-5xl,
+  .text-6xl {
+    font-size: clamp(1.5rem, 4vw, 2.25rem) !important; /* 24px → 36px */
+  }
+
+  h2,
+  .text-3xl {
+    font-size: clamp(1.25rem, 3.5vw, 1.875rem) !important; /* 20px → 30px */
+  }
+
+  h3,
+  .text-2xl {
+    font-size: clamp(1.125rem, 3vw, 1.5rem) !important; /* 18px → 24px */
+  }
+
+  .text-xl {
+    font-size: clamp(1rem, 2.5vw, 1.25rem) !important; /* 16px → 20px */
+  }
+
+  /* Optimize line height for readability on mobile */
+  .text-3xl,
+  .text-4xl {
+    line-height: 1.2;
+  }
+
+  /* Reduce padding on mobile for better space usage */
+  .p-8 {
+    padding: 1.5rem !important;
+  }
+
+  .px-8 {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+
+  .py-8 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  /* Bottom Navigation Spacing Fix */
+  /* Ensure content is not hidden behind fixed bottom nav */
+  main {
+    margin-bottom: 0;
+  }
+
+  /* Add safe spacing at the end of scrollable content */
+  .fade-in {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Desktop: Reset mobile bottom spacing */
+@media (min-width: 768px) {
+  .fade-in {
+    padding-bottom: 2rem !important;
+  }
+}
