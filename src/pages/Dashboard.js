@@ -182,7 +182,12 @@ const Dashboard = () => {
               value={stats?.forms?.today || 0}
               icon={FaFileAlt}
               color="bg-blue-500"
-              link="/forms"
+              link={(() => {
+                const today = new Date();
+                const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                return `/forms?dateFrom=${startOfDay.toISOString()}&dateTo=${endOfDay.toISOString()}`;
+              })()}
             />
             <StatCard
               title={t('dashboard.pendingApprovals')}
@@ -196,7 +201,10 @@ const Dashboard = () => {
               value={stats?.attendance?.today || 0}
               icon={FaCheckCircle}
               color="bg-green-500"
-              link="/attendance"
+              link={(() => {
+                const today = new Date();
+                return `/attendance?month=${today.getMonth()}&year=${today.getFullYear()}&day=${today.getDate()}`;
+              })()}
             />
             <StatCard
               title={t('dashboard.pendingLeaves')}

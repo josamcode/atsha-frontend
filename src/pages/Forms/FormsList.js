@@ -27,10 +27,23 @@ const FormsList = () => {
   const [filters, setFilters] = useState({
     status: searchParams.get('status') || '',
     templateId: searchParams.get('templateId') || '',
-    department: searchParams.get('department') || ''
+    department: searchParams.get('department') || '',
+    dateFrom: searchParams.get('dateFrom') || '',
+    dateTo: searchParams.get('dateTo') || ''
   });
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const { confirmState, confirm, closeConfirm } = useConfirm();
+
+  // Sync filters state with URL params when URL changes
+  useEffect(() => {
+    setFilters({
+      status: searchParams.get('status') || '',
+      templateId: searchParams.get('templateId') || '',
+      department: searchParams.get('department') || '',
+      dateFrom: searchParams.get('dateFrom') || '',
+      dateTo: searchParams.get('dateTo') || ''
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     fetchForms();
@@ -41,9 +54,12 @@ const FormsList = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
+      
       if (filters.status) params.append('status', filters.status);
       if (filters.templateId) params.append('templateId', filters.templateId);
       if (filters.department) params.append('department', filters.department);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
 
       const response = await api.get(`/form-instances?${params.toString()}`);
       setForms(response.data.data);
@@ -80,7 +96,9 @@ const FormsList = () => {
     setFilters({
       status: '',
       templateId: '',
-      department: ''
+      department: '',
+      dateFrom: '',
+      dateTo: ''
     });
     setSearchParams(new URLSearchParams());
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../utils/api';
 import { formatDateWithWeekday, formatTime, getDateTimeInputValue, convertDateTimeLocalToUTC } from '../../utils/dateUtils';
 import Layout from '../../components/Layout/Layout';
@@ -31,6 +32,7 @@ const AttendancePage = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [qrCode, setQrCode] = useState(null);
   const [myAttendance, setMyAttendance] = useState([]);
   const [allAttendance, setAllAttendance] = useState([]);
@@ -38,10 +40,17 @@ const AttendancePage = () => {
   const [loading, setLoading] = useState(true);
   const [scanToken, setScanToken] = useState('');
   const [employees, setEmployees] = useState([]);
+
+  // Check if day filter is provided in URL (for today's attendance)
+  const dayFromUrl = searchParams.get('day');
+  const monthFromUrl = searchParams.get('month');
+  const yearFromUrl = searchParams.get('year');
+
   const [filters, setFilters] = useState({
-    month: new Date().getMonth().toString(),
-    year: new Date().getFullYear().toString(),
-    employee: ''
+    month: monthFromUrl || new Date().getMonth().toString(),
+    year: yearFromUrl || new Date().getFullYear().toString(),
+    employee: '',
+    day: dayFromUrl || ''
   });
   const [sortBy, setSortBy] = useState('date'); // 'date', 'employee', 'checkin'
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
@@ -63,6 +72,22 @@ const AttendancePage = () => {
     }
   }, [user]);
 
+  // Sync URL params with filters state
+  useEffect(() => {
+    const dayParam = searchParams.get('day');
+    const monthParam = searchParams.get('month');
+    const yearParam = searchParams.get('year');
+
+    if (dayParam || monthParam || yearParam) {
+      setFilters(prev => ({
+        ...prev,
+        month: monthParam || prev.month,
+        year: yearParam || prev.year,
+        day: dayParam || ''
+      }));
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     if (isAdmin) {
       fetchAllAttendance();
@@ -70,7 +95,7 @@ const AttendancePage = () => {
     } else {
       fetchMyAttendance();
     }
-  }, [user, filters.month, filters.year, filters.employee]);
+  }, [user, filters.month, filters.year, filters.employee, filters.day]);
 
   const fetchMyAttendance = async () => {
     try {
@@ -109,9 +134,19 @@ const AttendancePage = () => {
   const fetchAllAttendance = async () => {
     try {
       setLoading(true);
-      // Calculate date range for selected month
-      const startDate = new Date(selectedYear, selectedMonth, 1);
-      const endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+
+      // Calculate date range - if day is specified, filter to that specific day only
+      let startDate, endDate;
+      if (filters.day) {
+        // Filter to specific day
+        const day = parseInt(filters.day);
+        startDate = new Date(selectedYear, selectedMonth, day, 0, 0, 0);
+        endDate = new Date(selectedYear, selectedMonth, day, 23, 59, 59);
+      } else {
+        // Filter to entire month (default behavior)
+        startDate = new Date(selectedYear, selectedMonth, 1);
+        endDate = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+      }
 
       const params = {
         startDate: startDate.toISOString(),
@@ -159,8 +194,11 @@ const AttendancePage = () => {
     setFilters({
       month: new Date().getMonth().toString(),
       year: new Date().getFullYear().toString(),
-      employee: ''
+      employee: '',
+      day: ''
     });
+    // Clear URL params
+    setSearchParams(new URLSearchParams());
   };
 
   const generateQRCode = async () => {

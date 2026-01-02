@@ -70,7 +70,7 @@ const FilterBar = ({
         {hasActiveFilters && (
           <button
             onClick={handleReset}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary hover:text-white rounded-lg transition-colors"
           >
             <FaTimes />
             <span>{t('common.clearFilters')}</span>
