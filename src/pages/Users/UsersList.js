@@ -11,6 +11,7 @@ import FilterBar from '../../components/Common/FilterBar';
 import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
+import { getMediaUrl } from '../../utils/media';
 import {
   FaUsers,
   FaUserPlus,
@@ -304,7 +305,7 @@ const UsersList = () => {
                             <div className="flex items-center gap-3">
                               {user.image ? (
                                 <img
-                                  src={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000'}${user.image}`}
+                                  src={getMediaUrl(user.image)}
                                   alt={user.name}
                                   className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                                   onError={(e) => {
@@ -413,7 +414,7 @@ const UsersList = () => {
                         <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
                           {user.image ? (
                             <img
-                              src={`${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000'}${user.image}`}
+                              src={getMediaUrl(user.image)}
                               alt={user.name}
                               className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
                               onError={(e) => {
@@ -914,7 +915,7 @@ const UserModal = ({ user, onClose, onSuccess }) => {
                 {imagePreview && (
                   <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-300 flex-shrink-0">
                     <img
-                      src={imagePreview.startsWith('data:') ? imagePreview : `${(process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000'}${imagePreview}`}
+                      src={getMediaUrl(imagePreview)}
                       alt="User preview"
                       className="w-full h-full object-cover"
                       loading="lazy"

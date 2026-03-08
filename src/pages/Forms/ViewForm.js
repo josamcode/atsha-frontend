@@ -10,6 +10,7 @@ import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import Modal from '../../components/Common/Modal';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
+import { getMediaUrl } from '../../utils/media';
 import {
   FaArrowLeft,
   FaPrint,
@@ -429,7 +430,7 @@ const ViewForm = () => {
                     >
                       <div className="relative overflow-hidden rounded-lg border-2 border-gray-200 hover:border-primary transition-all">
                         <img
-                          src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${image.path}`}
+                          src={getMediaUrl(image.path)}
                           alt={image.filename}
                           className="w-full h-40 object-cover"
                           loading="lazy"
@@ -469,7 +470,7 @@ const ViewForm = () => {
           {selectedImage && (
             <div className="relative">
               <img
-                src={`${process.env.REACT_APP_API_URL?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${selectedImage.path}`}
+                src={getMediaUrl(selectedImage.path)}
                 alt={selectedImage.filename}
                 className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
                 loading="lazy"
@@ -507,4 +508,3 @@ const ViewForm = () => {
 };
 
 export default ViewForm;
-

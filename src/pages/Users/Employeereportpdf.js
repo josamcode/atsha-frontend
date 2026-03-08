@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
 import { showError, showSuccess } from '../../utils/toast';
+import { getMediaUrl } from '../../utils/media';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -342,7 +343,7 @@ const EmployeeReportPDF = () => {
       // First, try to fetch the image as blob
       const response = await fetch(url, {
         method: 'GET',
-        credentials: 'include',
+        credentials: 'omit',
         mode: 'cors'
       });
 
@@ -976,7 +977,7 @@ const EmployeeReportPDF = () => {
                   <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-primary flex items-center justify-center text-white text-4xl font-bold mx-auto mb-4 border-4 border-white shadow-lg">
                     {user.image ? (
                       <img
-                        src={`${((process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000'}${user.image}`}
+                        src={getMediaUrl(user.image)}
                         alt={user.name}
                         className="w-full h-full object-cover rounded-full"
                         crossOrigin="anonymous"

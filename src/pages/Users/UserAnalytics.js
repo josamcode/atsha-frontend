@@ -9,6 +9,7 @@ import Card from '../../components/Common/Card';
 import Button from '../../components/Common/Button';
 import Loading from '../../components/Common/Loading';
 import { showError } from '../../utils/toast';
+import { getMediaUrl } from '../../utils/media';
 import {
   FaArrowLeft,
   FaUser,
@@ -499,7 +500,7 @@ const UserAnalytics = () => {
           <div className="flex items-start gap-6">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white text-4xl font-bold">
               {user.image ? (
-                <img src={`${((process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000').replace(/\/api\/?$/, '') || 'http://localhost:5000'}${user.image}`} alt={user.name} className="w-full h-full object-cover rounded-full" />
+                <img src={getMediaUrl(user.image)} alt={user.name} className="w-full h-full object-cover rounded-full" />
               ) : (
                 <span>{user.name.charAt(0).toUpperCase()}</span>
               )}
@@ -1048,4 +1049,3 @@ const UserAnalytics = () => {
 };
 
 export default UserAnalytics;
-
