@@ -19,7 +19,7 @@ import {
 } from './templateBuilderUtils';
 
 export const EmptyEditorState = ({ title, description }) => (
-  <div className="rounded-[24px] border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+  <div className="rounded-[24px] border border-dashed border-primary/25 bg-primary/5 px-6 py-10 text-center">
     <h3 className="text-lg font-bold text-gray-900">{title}</h3>
     <p className="mt-2 text-sm text-gray-500">{description}</p>
   </div>
@@ -38,7 +38,7 @@ export const TextInput = ({ label, value, onChange, placeholder = '', dir = 'ltr
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       dir={dir}
-      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     />
   </div>
 );
@@ -51,7 +51,7 @@ export const TextAreaInput = ({ label, value, onChange, rows = 3, dir = 'ltr' })
       onChange={(event) => onChange(event.target.value)}
       rows={rows}
       dir={dir}
-      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     />
   </div>
 );
@@ -62,7 +62,7 @@ export const SelectField = ({ label, value, onChange, options, isRTL }) => (
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -82,7 +82,7 @@ export const NumberInput = ({ label, value, onChange, min = 0, max }) => (
       min={min}
       max={max}
       onChange={(event) => onChange(Number(event.target.value))}
-      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+      className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     />
   </div>
 );
@@ -90,7 +90,7 @@ export const NumberInput = ({ label, value, onChange, min = 0, max }) => (
 export const ColorInput = ({ label, value, onChange }) => (
   <div>
     <InputLabel label={label} />
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-300 bg-white px-3 py-2 shadow-sm">
+    <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-white px-3 py-2 shadow-sm">
       <input
         type="color"
         value={value}
@@ -119,14 +119,14 @@ const IconButton = ({ onClick, title, icon: Icon, danger = false }) => (
     type="button"
     onClick={onClick}
     title={title}
-    className={`rounded-xl border px-3 py-2 transition ${danger ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+    className={`rounded-xl border px-3 py-2 transition ${danger ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5 hover:text-primary'}`}
   >
     <Icon className="text-sm" />
   </button>
 );
 
 const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMoveUp, onMoveDown }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-primary/5 p-4 shadow-sm">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h4 className="text-sm font-semibold text-gray-900">
@@ -169,7 +169,7 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
     </div>
 
     {field.type === 'select' && (
-      <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+      <div className="mt-4 rounded-2xl bg-primary/5 p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-sm font-semibold text-gray-900">{isRTL ? 'خيارات القائمة' : 'Select options'}</div>
           <button
@@ -219,7 +219,7 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
     )}
 
     {field.type === 'static_text' && (
-      <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+      <div className="mt-4 rounded-2xl bg-primary/5 p-4">
         <div className="mb-3 text-sm font-semibold text-gray-900">
           {isRTL ? 'محتوى النص الثابت' : 'Fixed text content'}
         </div>
@@ -244,7 +244,7 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
 );
 
 const ColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveDown }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-primary/5 p-4 shadow-sm">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h4 className="text-sm font-semibold text-gray-900">
@@ -285,6 +285,9 @@ const ColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveD
 
 const SectionEditor = ({
   section,
+  sectionIndex = 0,
+  sectionCount = 1,
+  messages = [],
   isRTL,
   onUpdateSection,
   onDuplicateSection,
@@ -305,7 +308,7 @@ const SectionEditor = ({
 
   return (
     <div className="space-y-6">
-      <Card className="border border-gray-100 bg-white/90">
+      <Card className="border border-primary/10 bg-white">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500">
@@ -314,6 +317,11 @@ const SectionEditor = ({
             <h2 className="mt-2 text-2xl font-bold text-gray-900">
               {getLocalizedText(section.label, isRTL, isRTL ? 'قسم جديد' : 'New Section')}
             </h2>
+            <p className="mt-2 text-sm text-gray-500">
+              {isRTL
+                ? `تعمل الآن داخل تبويب مستقل لهذا القسم.${sectionCount > 1 ? ` هذا القسم ${sectionIndex + 1} من ${sectionCount}.` : ''}`
+                : `You are editing this section inside its own tab.${sectionCount > 1 ? ` This is section ${sectionIndex + 1} of ${sectionCount}.` : ''}`}
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -332,6 +340,16 @@ const SectionEditor = ({
           </div>
         </div>
 
+        {messages.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2 rounded-2xl border border-red-200 bg-red-50 p-3">
+            {messages.map((message, index) => (
+              <span key={`${message}_${index}`} className="rounded-full bg-white px-3 py-1 text-sm text-red-700 shadow-sm">
+                {message}
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           <TextInput label={isRTL ? 'اسم القسم بالإنجليزية' : 'English section name'} value={section.label.en} onChange={(value) => onUpdateSection({ ...section, label: mirrorEnglishToArabic(section.label, value) })} />
           <TextInput label={isRTL ? 'اسم القسم بالعربية' : 'Arabic section name'} value={section.label.ar} dir="rtl" onChange={(value) => onUpdateSection({ ...section, label: { ...section.label, ar: value } })} />
@@ -347,7 +365,7 @@ const SectionEditor = ({
         </div>
       </Card>
 
-      <Card className="border border-gray-100 bg-white/90">
+      <Card className="border border-primary/10 bg-white">
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500">{isRTL ? 'التخطيط' : 'Layout'}</p>
           <h3 className="mt-1 text-xl font-bold text-gray-900">
@@ -364,10 +382,10 @@ const SectionEditor = ({
                 key={option.value}
                 type="button"
                 onClick={() => onUpdateSection({ ...section, advancedLayout: { ...section.advancedLayout, layoutType: option.value } })}
-                className={`rounded-[24px] border p-4 text-left transition-all ${isActive ? 'border-gray-900 bg-gray-900 text-white shadow-lg' : 'border-gray-200 bg-white hover:border-gray-400'}`}
+                className={`rounded-[24px] border p-4 text-left transition-all ${isActive ? 'border-primary bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg' : 'border-gray-200 bg-white hover:border-primary/40 hover:shadow-md'}`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${isActive ? 'bg-white/15 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${isActive ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary'}`}>
                     <Icon />
                   </div>
                   {isActive && <FaCheck className="text-sm" />}
@@ -492,7 +510,7 @@ const SectionEditor = ({
                   }
                 })}
               />
-              <div className="rounded-2xl bg-gray-50 p-4">
+              <div className="rounded-2xl bg-primary/5 p-4">
                 <div className="flex flex-wrap gap-4">
                   <Checkbox
                     label={isRTL ? 'إظهار رأس الجدول' : 'Show header'}
@@ -531,7 +549,7 @@ const SectionEditor = ({
         </div>
       </Card>
 
-      <Card className="border border-gray-100 bg-white/90">
+      <Card className="border border-primary/10 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500">
@@ -586,7 +604,7 @@ const SectionEditor = ({
         </div>
       </Card>
 
-      <Card className="border border-gray-100 bg-white/90">
+      <Card className="border border-primary/10 bg-white">
         <div className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500">{isRTL ? 'ستايل القسم' : 'Section Style'}</p>
           <h3 className="mt-1 text-xl font-bold text-gray-900">

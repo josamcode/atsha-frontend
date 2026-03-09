@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaImage, FaPhone, FaQrcode } from 'react-icons/fa';
 import Card from '../../components/Common/Card';
 import { getLocalizedText, getSampleValue, normalizePdfStyle } from './templateBuilderUtils';
 
 const MetadataPill = ({ label, value }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">{label}</div>
+  <div className="rounded-2xl border border-primary/15 bg-white px-4 py-3 shadow-sm">
+    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">{label}</div>
     <div className="mt-1 text-sm font-semibold text-gray-900">{value}</div>
   </div>
 );
 
 const PreviewField = ({ field, isRTL, borderColor, pdfStyle }) => (
-  <div className="rounded-2xl border bg-white/80 p-3" style={{ borderColor }}>
+  <div className="rounded-2xl border bg-white p-3 shadow-sm" style={{ borderColor }}>
     {field.pdfDisplay?.showLabel !== false && (
       <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: pdfStyle.colors.text }}>
         {getLocalizedText(field.label, isRTL, isRTL ? 'حقل' : 'Field')}
@@ -41,6 +41,9 @@ const PreviewSection = ({ section, isRTL, pdfStyle }) => {
   const borderColor = section.advancedLayout?.styling?.borderColor || sectionStyle.borderColor || pdfStyle.colors.border;
   const backgroundColor = sectionStyle.showBackground ? (sectionStyle.backgroundColor || '#ffffff') : '#ffffff';
   const fields = (section.fields || []).filter((field) => field.visible !== false);
+  const titleBackgroundColor = section.sectionType === 'totals'
+    ? pdfStyle.colors.primary
+    : pdfStyle.colors.secondary || pdfStyle.branding.secondaryColor || pdfStyle.colors.primary;
 
   return (
     <section
@@ -55,7 +58,7 @@ const PreviewSection = ({ section, isRTL, pdfStyle }) => {
         <div
           className="px-5 py-4"
           style={{
-            backgroundColor: section.sectionType === 'totals' ? pdfStyle.colors.primary : '#1f2937',
+            backgroundColor: titleBackgroundColor,
             color: '#ffffff'
           }}
         >
@@ -141,27 +144,96 @@ const PreviewSection = ({ section, isRTL, pdfStyle }) => {
   );
 };
 
-const TemplateBuilderPreview = ({ formData, isRTL }) => {
+const TemplateBuilderPreview = ({ formData, isRTL, activeSectionId = null, onSelectSectionId }) => {
   const pdfStyle = normalizePdfStyle(formData.pdfStyle);
-  const sections = formData.sections.filter((section) => section.visible !== false);
+  const sections = useMemo(
+    () => formData.sections.filter((section) => section.visible !== false),
+    [formData.sections]
+  );
+  const previewDate = new Date().toISOString().slice(0, 10);
+  const [previewTab, setPreviewTab] = useState('all');
+
+  useEffect(() => {
+    if (activeSectionId && sections.some((section) => section.id === activeSectionId)) {
+      setPreviewTab(activeSectionId);
+      return;
+    }
+
+    if (previewTab !== 'all' && !sections.some((section) => section.id === previewTab)) {
+      setPreviewTab('all');
+    }
+  }, [activeSectionId, previewTab, sections]);
+
+  const sectionsToRender = previewTab === 'all'
+    ? sections
+    : sections.filter((section) => section.id === previewTab);
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-[#f8f5ec] via-white to-[#f3f7ff]">
+    <Card className="overflow-hidden border border-primary/10 bg-gradient-to-br from-primary/5 via-white to-primary/10">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-500">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
             {isRTL ? 'معاينة مباشرة' : 'Live Preview'}
           </p>
           <h3 className="mt-1 text-xl font-bold text-gray-900">
             {getLocalizedText(formData.title, isRTL, isRTL ? 'نموذج بدون عنوان' : 'Untitled Template')}
           </h3>
         </div>
-        <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm">
-          {formData.layout.pageSize} • {formData.layout.orientation}
+        <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+          {formData.layout.pageSize} / {formData.layout.orientation}
         </div>
       </div>
 
-      <div className="rounded-[34px] bg-[#e9e6dc] p-4">
+      {sections.length > 0 && (
+        <div className="mb-5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">
+              {previewTab === 'all'
+                ? (isRTL ? 'معاينة الوثيقة كاملة' : 'Previewing the full document')
+                : (isRTL ? 'معاينة قسم واحد داخل تبويبه' : 'Previewing a single section tab')}
+            </p>
+            <div className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-primary shadow-sm">
+              {sections.length} {isRTL ? 'قسم ظاهر' : 'visible sections'}
+            </div>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-1 hidden-scrollbar">
+            <button
+              type="button"
+              onClick={() => setPreviewTab('all')}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                previewTab === 'all'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:text-primary'
+              }`}
+            >
+              {isRTL ? 'كل الأقسام' : 'All Sections'}
+            </button>
+
+            {sections.map((section, index) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => {
+                  setPreviewTab(section.id);
+                  if (onSelectSectionId) {
+                    onSelectSectionId(section.id);
+                  }
+                }}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  previewTab === section.id
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:text-primary'
+                }`}
+              >
+                {getLocalizedText(section.label, isRTL, isRTL ? `قسم ${index + 1}` : `Section ${index + 1}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-[34px] bg-gradient-to-br from-primary/10 via-white to-primary/5 p-4 ring-1 ring-primary/10">
         <div className="mx-auto overflow-hidden rounded-[28px] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
           {pdfStyle.header.enabled && (
             <div
@@ -176,7 +248,7 @@ const TemplateBuilderPreview = ({ formData, isRTL }) => {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
                   {pdfStyle.header.showLogo && (
-                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white/80 text-sm font-bold text-gray-500 shadow-sm">
+                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/60 bg-white/85 text-sm font-bold text-gray-500 shadow-sm">
                       {pdfStyle.branding.logoUrl ? (
                         <img src={pdfStyle.branding.logoUrl} alt="Logo" className="h-full w-full object-contain" />
                       ) : (
@@ -209,7 +281,7 @@ const TemplateBuilderPreview = ({ formData, isRTL }) => {
                   )}
                   {pdfStyle.header.showDate !== false && (
                     <div className="text-xs uppercase tracking-[0.2em] opacity-70">
-                      {isRTL ? 'التاريخ: 2026-03-09' : 'Date: 2026-03-09'}
+                      {isRTL ? `التاريخ: ${previewDate}` : `Date: ${previewDate}`}
                     </div>
                   )}
                 </div>
@@ -228,7 +300,7 @@ const TemplateBuilderPreview = ({ formData, isRTL }) => {
             }}
           >
             {pdfStyle.metadata?.enabled !== false && (
-              <div className="grid gap-3 rounded-[28px] border border-dashed border-gray-300 bg-[#fafaf5] p-5 md:grid-cols-3">
+              <div className="grid gap-3 rounded-[28px] border border-dashed border-primary/20 bg-white/80 p-5 md:grid-cols-3">
                 {pdfStyle.metadata.showFormId !== false && (
                   <MetadataPill label={isRTL ? 'رقم النموذج' : 'Form ID'} value="TMP-001" />
                 )}
@@ -242,11 +314,11 @@ const TemplateBuilderPreview = ({ formData, isRTL }) => {
             )}
 
             {sections.length === 0 ? (
-              <div className="rounded-[28px] border border-dashed border-gray-300 bg-white/70 px-6 py-12 text-center text-gray-500">
+              <div className="rounded-[28px] border border-dashed border-primary/20 bg-white/70 px-6 py-12 text-center text-gray-500">
                 {isRTL ? 'أضف قسمًا لرؤية تصميم الـ PDF.' : 'Add a section to see the PDF layout.'}
               </div>
             ) : (
-              sections.map((section) => (
+              sectionsToRender.map((section) => (
                 <PreviewSection key={section.id} section={section} isRTL={isRTL} pdfStyle={pdfStyle} />
               ))
             )}

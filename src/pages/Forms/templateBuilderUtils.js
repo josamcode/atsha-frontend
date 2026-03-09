@@ -194,6 +194,11 @@ export const THEMES = {
   }
 };
 
+const DEFAULT_PRIMARY_COLOR = '#d4b900';
+const DEFAULT_SECONDARY_COLOR = '#9e8b00';
+
+const getDefaultBrandingName = (branding = {}) => branding?.displayName || branding?.shortName || 'Atsha';
+
 export const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
 export const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -325,91 +330,98 @@ export const getDefaultSectionPdfStyle = () => ({
   showBackground: false
 });
 
-export const getDefaultPdfStyle = () => ({
-  branding: {
-    primaryColor: '#c99027',
-    secondaryColor: '#8f3b1f',
-    logoUrl: '',
-    companyName: { en: 'Atsha', ar: 'أتشا' },
-    companyAddress: { en: '', ar: '' },
-    companyPhone: '',
-    companyEmail: ''
-  },
-  header: {
-    enabled: true,
-    showLogo: true,
-    showTitle: true,
-    showSubtitle: false,
-    showDate: true,
-    showCompanyName: true,
-    showCompanyAddress: true,
-    layout: 'default',
-    logoPosition: 'right',
-    titleStyle: 'normal',
-    subtitle: { en: '', ar: '' },
-    decorativeLineColor: '#c99027',
-    height: 96,
-    backgroundColor: '#fff7e7',
-    textColor: '#2b2113',
-    titleColor: '#c99027',
-    fontSize: 18,
-    dashedBorder: false,
-    border: {
-      show: true,
-      width: 3,
-      style: 'solid',
-      color: '#c99027',
-      position: 'bottom'
-    }
-  },
-  footer: {
-    enabled: true,
-    showPageNumbers: true,
-    showCompanyInfo: true,
-    showQRCode: false,
-    showPhoneNumber: false,
-    showSocialIcons: false,
-    qrCodePosition: 'center',
-    phoneNumber: '',
-    companyName: 'Atsha',
-    socialIcons: [],
-    height: 56,
-    backgroundColor: '#c99027',
-    textColor: '#ffffff',
-    fontSize: 12,
-    content: { en: '', ar: '' }
-  },
-  metadata: {
-    enabled: true,
-    showFormId: true,
-    showDate: true,
-    showShift: true,
-    showDepartment: true,
-    showFilledBy: true,
-    showSubmittedOn: true,
-    showApprovedBy: true,
-    showApprovalDate: true
-  },
-  fontFamily: 'Helvetica',
-  fontSize: {
-    title: 24,
-    section: 18,
-    field: 14
-  },
-  colors: {
-    primary: '#c99027',
-    text: '#111827',
-    border: '#d1d5db',
-    background: '#ffffff'
-  },
-  spacing: {
-    sectionSpacing: 20,
-    fieldSpacing: 12,
-    lineSpacing: 1.4
-  }
-});
+export const getDefaultPdfStyle = (branding = {}) => {
+  const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY_COLOR;
+  const secondaryColor = branding?.secondaryColor || DEFAULT_SECONDARY_COLOR;
+  const companyName = getDefaultBrandingName(branding);
 
-export const getDefaultTemplate = () => ({
+  return {
+    branding: {
+      primaryColor,
+      secondaryColor,
+      logoUrl: branding?.logoUrl || '',
+      companyAddress: { en: '', ar: '' },
+      companyPhone: '',
+      companyEmail: '',
+      companyName: { en: companyName, ar: companyName }
+    },
+    header: {
+      enabled: true,
+      showLogo: true,
+      showTitle: true,
+      showSubtitle: false,
+      showDate: true,
+      showCompanyName: true,
+      showCompanyAddress: true,
+      layout: 'default',
+      logoPosition: 'right',
+      titleStyle: 'normal',
+      subtitle: { en: '', ar: '' },
+      decorativeLineColor: primaryColor,
+      height: 96,
+      backgroundColor: '#fffbeb',
+      textColor: '#1f2937',
+      titleColor: primaryColor,
+      fontSize: 18,
+      dashedBorder: false,
+      border: {
+        show: true,
+        width: 3,
+        style: 'solid',
+        color: primaryColor,
+        position: 'bottom'
+      }
+    },
+    footer: {
+      enabled: true,
+      showPageNumbers: true,
+      showCompanyInfo: true,
+      showQRCode: false,
+      showPhoneNumber: false,
+      showSocialIcons: false,
+      qrCodePosition: 'center',
+      phoneNumber: '',
+      companyName,
+      socialIcons: [],
+      height: 56,
+      backgroundColor: secondaryColor,
+      textColor: '#ffffff',
+      fontSize: 12,
+      content: { en: '', ar: '' }
+    },
+    metadata: {
+      enabled: true,
+      showFormId: true,
+      showDate: true,
+      showShift: true,
+      showDepartment: true,
+      showFilledBy: true,
+      showSubmittedOn: true,
+      showApprovedBy: true,
+      showApprovalDate: true
+    },
+    fontFamily: 'Helvetica',
+    fontSize: {
+      title: 24,
+      section: 18,
+      field: 14
+    },
+    colors: {
+      primary: primaryColor,
+      secondary: secondaryColor,
+      text: '#111827',
+      border: '#d1d5db',
+      background: '#ffffff'
+    },
+    spacing: {
+      sectionSpacing: 20,
+      fieldSpacing: 12,
+      lineSpacing: 1.4
+    }
+  };
+};
+
+export const getDefaultTemplate = (branding = {}) => ({
   title: { en: '', ar: '' },
   description: { en: '', ar: '' },
   sections: [],
@@ -429,7 +441,7 @@ export const getDefaultTemplate = () => ({
       left: 32
     }
   },
-  pdfStyle: getDefaultPdfStyle()
+  pdfStyle: getDefaultPdfStyle(branding)
 });
 
 export const createField = (overrides = {}) => ({
@@ -633,7 +645,7 @@ export const STARTER_TEMPLATES = [
       en: 'Start empty and build section by section',
       ar: 'ابدأ من الصفر وأنشئ الأقسام خطوة بخطوة'
     },
-    template: () => getDefaultTemplate()
+    template: (branding) => getDefaultTemplate(branding)
   },
   {
     id: 'inspection',
@@ -642,8 +654,8 @@ export const STARTER_TEMPLATES = [
       en: 'Good for audit, checklist, and verification PDFs',
       ar: 'مناسب لتقارير التدقيق والقوائم والفحص'
     },
-    template: () => {
-      const base = getDefaultTemplate();
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
       const sections = [
         createSectionFromPreset('columns'),
         createSectionFromPreset('simple'),
@@ -669,8 +681,8 @@ export const STARTER_TEMPLATES = [
       en: 'Fast starting point for printable tables with columns',
       ar: 'بداية سريعة للجداول القابلة للطباعة'
     },
-    template: () => {
-      const base = getDefaultTemplate();
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
       const sections = [createSectionFromPreset('table'), createSectionFromPreset('signatures')];
       sections[0].label = { en: 'Daily Entries', ar: 'إدخالات يومية' };
       return {
@@ -689,8 +701,8 @@ export const STARTER_TEMPLATES = [
       en: 'Best for branded PDF letters and forms',
       ar: 'مناسب للخطابات والنماذج الرسمية'
     },
-    template: () => {
-      const base = getDefaultTemplate();
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
       const sections = [
         createSectionFromPreset('simple'),
         createSectionFromPreset('notes'),
