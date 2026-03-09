@@ -13,12 +13,19 @@ import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { getMediaUrl } from '../../utils/media';
 import {
+  canManageUsers,
+  canViewUserAnalytics,
+  getAssignableRoleOptions,
+  getDepartmentLabel,
+  getDepartmentOptions,
+  getRoleBadgeColor,
+  getRoleLabel
+} from '../../utils/organizationUi';
+import {
   FaUsers,
   FaUserPlus,
   FaEdit,
   FaTrash,
-  FaSearch,
-  FaFilter,
   FaKey,
   FaUserCheck,
   FaUserTimes,
@@ -29,8 +36,7 @@ import {
 const UsersList = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === 'ar';
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, organization } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +50,10 @@ const UsersList = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const { confirmState, confirm, closeConfirm } = useConfirm();
+  const canManageCurrentUsers = canManageUsers(currentUser);
+  const canOpenAnalytics = canViewUserAnalytics(currentUser);
+  const roleOptions = getAssignableRoleOptions(currentUser, t, i18n.language);
+  const departmentOptions = getDepartmentOptions(organization, t, i18n.language);
 
   useEffect(() => {
     fetchUsers();
@@ -148,23 +158,6 @@ const UsersList = () => {
     }
   };
 
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-primary text-primary-darko';
-      case 'supervisor':
-        return 'bg-blue-100 text-blue-800';
-      case 'employee':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getDepartmentLabel = (dept) => {
-    return t(`departments.${dept}`) || dept;
-  };
-
   if (loading) return <Loading />;
 
   const filteredUsers = users.filter(user =>
@@ -188,7 +181,7 @@ const UsersList = () => {
             </p>
           </div>
 
-          {currentUser?.role === 'admin' && (
+          {canManageCurrentUsers && (
             <Button onClick={openCreateModal} icon={FaUserPlus}>
               {t('users.addUser')}
             </Button>
@@ -210,24 +203,13 @@ const UsersList = () => {
               name: 'role',
               label: t('users.filterByRole'),
               allLabel: t('common.allRoles'),
-              options: [
-                { value: 'admin', label: t('users.admin') },
-                { value: 'supervisor', label: t('users.supervisor') },
-                { value: 'employee', label: t('users.employee') }
-              ]
+              options: roleOptions
             },
             {
               name: 'department',
               label: t('users.filterByDepartment'),
               allLabel: t('common.allDepartments'),
-              options: [
-                { value: 'kitchen', label: t('departments.kitchen') },
-                { value: 'counter', label: t('departments.counter') },
-                { value: 'cleaning', label: t('departments.cleaning') },
-                { value: 'delivery', label: t('departments.delivery') },
-                { value: 'management', label: t('departments.management') },
-                { value: 'other', label: t('departments.other') }
-              ]
+              options: departmentOptions
             }
           ]}
         />
@@ -300,7 +282,7 @@ const UsersList = () => {
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-6 py-4 whitespace-nowrap  cursor-pointer"
-                            onClick={() => currentUser?.role === 'admin' && navigate(`/users/${user._id}/analytics`)}
+                            onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
                           >
                             <div className="flex items-center gap-3">
                               {user.image ? (
@@ -334,12 +316,12 @@ const UsersList = () => {
                             {user.email}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 inline-flex text-xs text-white leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
-                              {t(`users.${user.role}`)}
+                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
+                              {getRoleLabel(user.organizationRole || user.role, t, i18n.language)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getDepartmentLabel(user.department)}
+                            {getDepartmentLabel(user.department, organization, t, i18n.language)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive !== false
@@ -351,7 +333,7 @@ const UsersList = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex items-center gap-2">
-                              {currentUser?.role === 'admin' && (
+                              {canManageCurrentUsers && (
                                 <>
                                   <button
                                     onClick={() => openEditModal(user)}
@@ -407,8 +389,8 @@ const UsersList = () => {
                     {filteredUsers.map((user) => (
                       <div
                         key={user._id}
-                        className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all ${currentUser?.role === 'admin' ? 'cursor-pointer' : ''}`}
-                        onClick={() => currentUser?.role === 'admin' && navigate(`/users/${user._id}/analytics`)}
+                        className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all ${canOpenAnalytics ? 'cursor-pointer' : ''}`}
+                        onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
                       >
                         {/* User Header */}
                         <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
@@ -449,13 +431,15 @@ const UsersList = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-600">{t('users.role')}</span>
-                            <span className={`px-2 py-1 inline-flex text-xs text-white font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
-                              {t(`users.${user.role}`)}
+                            <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
+                              {getRoleLabel(user.organizationRole || user.role, t, i18n.language)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-600">{t('users.department')}</span>
-                            <span className="text-xs font-medium text-gray-900">{getDepartmentLabel(user.department)}</span>
+                            <span className="text-xs font-medium text-gray-900">
+                              {getDepartmentLabel(user.department, organization, t, i18n.language)}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                             <span className="text-xs text-gray-600">{t('users.status')}</span>
@@ -469,7 +453,7 @@ const UsersList = () => {
                         </div>
 
                         {/* Actions */}
-                        {currentUser?.role === 'admin' && (
+                        {canManageCurrentUsers && (
                           <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                             <div className="flex items-center gap-2">
                               <button
@@ -537,6 +521,8 @@ const UsersList = () => {
       {showModal && (
         <UserModal
           user={editingUser}
+          actor={currentUser}
+          organization={organization}
           onClose={() => {
             setShowModal(false);
             setEditingUser(null);
@@ -576,17 +562,20 @@ const UsersList = () => {
 };
 
 // User Modal Component
-const UserModal = ({ user, onClose, onSuccess }) => {
-  const { t } = useTranslation();
+const UserModal = ({ user, actor, organization, onClose, onSuccess }) => {
+  const { t, i18n } = useTranslation();
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const availableRoleOptions = getAssignableRoleOptions(actor, t, i18n.language);
+  const availableDepartmentOptions = getDepartmentOptions(organization, t, i18n.language);
+  const defaultDepartment = availableDepartmentOptions[0]?.value || 'other';
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     password: '',
     phone: user?.phone || '',
-    role: user?.role || 'employee',
-    department: user?.department || 'other',
+    role: user?.organizationRole || user?.role || 'employee',
+    department: user?.department || defaultDepartment,
     languagePreference: user?.languagePreference || 'ar',
     leaveBalance: user?.leaveBalance || 0,
     workDays: user?.workDays || [],
@@ -644,8 +633,8 @@ const UserModal = ({ user, onClose, onSuccess }) => {
         email: user?.email || '',
         password: '',
         phone: user?.phone || '',
-        role: user?.role || 'employee',
-        department: user?.department || 'other',
+        role: user?.organizationRole || user?.role || 'employee',
+        department: user?.department || defaultDepartment,
         languagePreference: user?.languagePreference || 'ar',
         leaveBalance: user?.leaveBalance || 0,
         workDays: Array.isArray(user?.workDays) ? user.workDays : [],
@@ -658,7 +647,7 @@ const UserModal = ({ user, onClose, onSuccess }) => {
       setImagePreview(user?.image || null);
       setImageFile(null);
     }
-  }, [user]);
+  }, [defaultDepartment, user]);
 
   // Helper function to safely get workSchedule value
   const getScheduleValue = (day, field, defaultValue = '09:00') => {
@@ -946,9 +935,11 @@ const UserModal = ({ user, onClose, onSuccess }) => {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="employee">{t('users.employee')}</option>
-                <option value="supervisor">{t('users.supervisor')}</option>
-                <option value="admin">{t('users.admin')}</option>
+                {availableRoleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -962,12 +953,11 @@ const UserModal = ({ user, onClose, onSuccess }) => {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               >
-                <option value="kitchen">{t('departments.kitchen')}</option>
-                <option value="counter">{t('departments.counter')}</option>
-                <option value="cleaning">{t('departments.cleaning')}</option>
-                <option value="delivery">{t('departments.delivery')}</option>
-                <option value="management">{t('departments.management')}</option>
-                <option value="other">{t('departments.other')}</option>
+                {availableDepartmentOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 

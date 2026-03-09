@@ -1,40 +1,44 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import NotificationDropdown from '../Common/NotificationDropdown';
 import {
-  FaUser,
+  FaChevronDown,
   FaCog,
-  FaSignOutAlt,
   FaGlobe,
-  FaChevronDown
+  FaSignOutAlt,
+  FaUser
 } from 'react-icons/fa';
+import { getUserOrganizationRole, roleMatches } from '../../utils/organization';
+import { getRoleLabel } from '../../utils/organizationUi';
 
 const Navbar = () => {
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, organization, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isLangOpen, setIsLangOpen] = useState(false);
+  const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const profileRef = useRef(null);
-  const langRef = useRef(null);
+  const languageRef = useRef(null);
   const isRTL = i18n.language === 'ar';
+  const showNotifications = roleMatches(user, ['platform_admin', 'organization_admin']);
+  const showSettingsLink = roleMatches(user, ['platform_admin', 'organization_admin']);
 
-  const changeLanguage = (lang) => {
-    i18n.changeLanguage(lang);
-    localStorage.setItem('language', lang);
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    setIsLangOpen(false);
+  const changeLanguage = (language) => {
+    i18n.changeLanguage(language);
+    localStorage.setItem('language', language);
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    setIsLanguageOpen(false);
   };
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileRef.current && !profileRef.current.contains(event.target)) {
         setIsProfileOpen(false);
       }
-      if (langRef.current && !langRef.current.contains(event.target)) {
-        setIsLangOpen(false);
+
+      if (languageRef.current && !languageRef.current.contains(event.target)) {
+        setIsLanguageOpen(false);
       }
     };
 
@@ -44,36 +48,34 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 z-40">
-      <div className="max-w-8xl mx-auto px-4 ">
+      <div className="max-w-8xl mx-auto px-4">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2 group">
+          <Link to="/dashboard" className="flex items-center gap-3 group min-w-0">
             <img
               src="/logo.png"
-              alt="Atsha"
+              alt={organization?.name || 'Atsha'}
               className="h-12 w-32 group-hover:scale-105 transition-transform"
             />
+            <div className="hidden lg:block min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{organization?.name || 'Atsha'}</p>
+              <p className="text-xs text-gray-500 truncate">{organization?.slug || 'organization'}</p>
+            </div>
           </Link>
 
-          {/* Right Side - Actions */}
           <div className="flex items-center gap-2">
-            {/* Notifications - All Devices (Admin Only) */}
-            {user?.role === 'admin' && (
-              <NotificationDropdown />
-            )}
+            {showNotifications && <NotificationDropdown />}
 
-            {/* Language Switcher - Desktop */}
-            <div ref={langRef} className="relative hidden md:block">
+            <div ref={languageRef} className="relative hidden md:block">
               <button
-                onClick={() => setIsLangOpen(!isLangOpen)}
+                onClick={() => setIsLanguageOpen((previous) => !previous)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <FaGlobe className="text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">{i18n.language.toUpperCase()}</span>
-                <FaChevronDown className={`text-xs text-gray-500 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-gray-500 transition-transform ${isLanguageOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {isLangOpen && (
+              {isLanguageOpen && (
                 <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} mt-2 w-40 bg-white rounded-xl shadow-lg py-1 border border-gray-100 animate-fadeIn`}>
                   <button
                     onClick={() => changeLanguage('en')}
@@ -91,16 +93,15 @@ const Navbar = () => {
                       : 'text-gray-700 hover:bg-gray-50'
                       }`}
                   >
-                    العربية
+                    Arabic
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Profile Dropdown */}
             <div ref={profileRef} className="relative">
               <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                onClick={() => setIsProfileOpen((previous) => !previous)}
                 className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center font-semibold text-sm">
@@ -108,7 +109,9 @@ const Navbar = () => {
                 </div>
                 <div className="hidden lg:block text-left rtl:text-right">
                   <p className="text-sm font-semibold text-gray-900 leading-tight">{user?.name}</p>
-                  <p className="text-xs text-gray-500 capitalize leading-tight">{user?.role}</p>
+                  <p className="text-xs text-gray-500 leading-tight">
+                    {getRoleLabel(getUserOrganizationRole(user), t, i18n.language)}
+                  </p>
                 </div>
                 <FaChevronDown className={`text-xs text-gray-500 transition-transform hidden lg:block ${isProfileOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -118,6 +121,7 @@ const Navbar = () => {
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
                     <p className="text-xs text-gray-500">{user?.email}</p>
+                    <p className="text-xs text-gray-400 mt-1 truncate">{organization?.name}</p>
                   </div>
 
                   <Link
@@ -129,14 +133,16 @@ const Navbar = () => {
                     <span>{t('nav.myProfile')}</span>
                   </Link>
 
-                  <Link
-                    to="/settings"
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    onClick={() => setIsProfileOpen(false)}
-                  >
-                    <FaCog className="text-primary flex-shrink-0" />
-                    <span>{t('nav.settings')}</span>
-                  </Link>
+                  {showSettingsLink && (
+                    <Link
+                      to="/organization"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <FaCog className="text-primary flex-shrink-0" />
+                      <span>{t('nav.settings')}</span>
+                    </Link>
+                  )}
 
                   <div className="my-1 border-t border-gray-100"></div>
 
@@ -161,4 +167,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

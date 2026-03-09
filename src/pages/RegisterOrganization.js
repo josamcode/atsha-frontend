@@ -1,29 +1,29 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import {
+  FaBuilding,
+  FaEnvelope,
+  FaLock,
+  FaPhone,
+  FaUser
+} from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
-import { useOrganization } from '../context/OrganizationContext';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
-import {
-  buildPathWithOrganization,
-  getDefaultAuthenticatedPath,
-  getOrganizationSlugFromSearch
-} from '../utils/organization';
+import { getDefaultAuthenticatedPath } from '../utils/organization';
 
-const Login = () => {
+const RegisterOrganization = () => {
   const { t, i18n } = useTranslation();
-  const { login } = useAuth();
-  const { organization, organizationSlug } = useOrganization();
+  const { registerOrganization } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const redirectTarget = new URLSearchParams(location.search).get('redirect');
-  const requestedOrganizationSlug = getOrganizationSlugFromSearch(location.search);
-
   const [formData, setFormData] = useState({
+    organizationName: '',
+    name: '',
     email: '',
-    password: ''
+    phone: '',
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,11 +38,26 @@ const Login = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      setError(t('auth.passwordMismatch'));
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError(t('auth.passwordTooShort'));
+      return;
+    }
+
     setLoading(true);
     setError('');
 
-    const result = await login(formData.email, formData.password, {
-      organizationSlug: requestedOrganizationSlug
+    const result = await registerOrganization({
+      organizationName: formData.organizationName,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password
     });
 
     if (result.success) {
@@ -54,9 +69,9 @@ const Login = () => {
       localStorage.setItem('language', nextLanguage);
       document.documentElement.dir = nextLanguage === 'ar' ? 'rtl' : 'ltr';
 
-      navigate(redirectTarget || getDefaultAuthenticatedPath(result.user), { replace: true });
+      navigate(getDefaultAuthenticatedPath(result.user), { replace: true });
     } else {
-      setError(result.message || t('auth.invalidCredentials'));
+      setError(result.message || t('auth.organizationRegistrationError'));
     }
 
     setLoading(false);
@@ -68,11 +83,9 @@ const Login = () => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   };
 
-  const forgotPasswordPath = buildPathWithOrganization('/forgot-password', organizationSlug);
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
+      <div className="max-w-lg w-full">
         <div className="flex justify-end space-x-2 mb-8">
           <button
             onClick={() => changeLanguage('en')}
@@ -99,17 +112,15 @@ const Login = () => {
             <div className="flex justify-center mb-4">
               <img
                 src="/logo.png"
-                alt={organization?.name || 'Atsha'}
+                alt="Atsha"
                 className="h-16 w-32 group-hover:scale-105 transition-transform"
               />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {t('auth.loginTitle')}
+              {t('auth.registerOrganizationTitle')}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              {organization?.name
-                ? `${t('auth.loginSubtitle')} - ${organization.name}`
-                : t('auth.loginWithEmailPassword')}
+              {t('auth.registerOrganizationSubtitle')}
             </p>
           </div>
 
@@ -120,7 +131,35 @@ const Login = () => {
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative md:col-span-2">
+                <FaBuilding className="absolute left-3 top-10 text-gray-400" />
+                <Input
+                  label={t('auth.organizationName')}
+                  type="text"
+                  name="organizationName"
+                  value={formData.organizationName}
+                  onChange={handleChange}
+                  placeholder="Nile Foods"
+                  required
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="relative md:col-span-2">
+                <FaUser className="absolute left-3 top-10 text-gray-400" />
+                <Input
+                  label={t('auth.name')}
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Admin User"
+                  required
+                  className="pl-10"
+                />
+              </div>
+
               <div className="relative">
                 <FaEnvelope className="absolute left-3 top-10 text-gray-400" />
                 <Input
@@ -129,8 +168,21 @@ const Login = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="example@gmail.com"
+                  placeholder="admin@example.com"
                   required
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="relative">
+                <FaPhone className="absolute left-3 top-10 text-gray-400" />
+                <Input
+                  label={t('auth.phone')}
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+201234567890"
                   className="pl-10"
                 />
               </div>
@@ -148,6 +200,20 @@ const Login = () => {
                   className="pl-10"
                 />
               </div>
+
+              <div className="relative">
+                <FaLock className="absolute left-3 top-10 text-gray-400" />
+                <Input
+                  label={t('auth.confirmPassword')}
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="********"
+                  required
+                  className="pl-10"
+                />
+              </div>
             </div>
 
             <Button
@@ -155,28 +221,20 @@ const Login = () => {
               disabled={loading}
               fullWidth
             >
-              {loading ? t('common.loading') : t('auth.loginButton')}
+              {loading ? t('common.loading') : t('auth.registerOrganizationButton')}
             </Button>
           </form>
 
-          <div className="text-center space-y-2 mt-4">
-            <Link
-              to={forgotPasswordPath}
-              className="text-sm text-primary hover:text-primary-dark"
-            >
-              {t('auth.forgotPassword')}
+          <p className="text-sm text-center text-gray-600">
+            {t('auth.hasAccount')}{' '}
+            <Link to="/login" className="text-primary hover:text-primary-dark font-medium">
+              {t('common.login')}
             </Link>
-            <p className="text-sm text-gray-600">
-              {t('auth.noAccount')}{' '}
-              <Link to="/register" className="text-primary hover:text-primary-dark font-medium">
-                {t('auth.registerOrganization')}
-              </Link>
-            </p>
-          </div>
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default RegisterOrganization;

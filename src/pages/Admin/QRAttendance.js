@@ -11,18 +11,18 @@ import {
   FaSync,
   FaClock,
   FaCheckCircle,
-  FaUsers,
   FaChartLine,
   FaSignOutAlt
 } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
+import { buildPathWithOrganization, isQrManager } from '../../utils/organization';
 
 const QRAttendance = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, organization, organizationSlug, logout } = useAuth();
   const isRTL = i18n.language === 'ar';
-  const isQRManager = user?.role === 'qr-manager';
+  const isQRManager = isQrManager(user);
   const [qrData, setQrData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState(30);
@@ -124,7 +124,10 @@ const QRAttendance = () => {
   if (loading) return <Loading />;
 
   // Generate QR URL for scanning
-  const qrUrl = qrData ? `${window.location.origin}/attend/${qrData.token}` : '';
+  const qrPath = qrData
+    ? buildPathWithOrganization(`/attend/${qrData.token}`, organization?.slug || organizationSlug)
+    : '';
+  const qrUrl = qrPath ? `${window.location.origin}${qrPath}` : '';
 
   return (
     <Layout>

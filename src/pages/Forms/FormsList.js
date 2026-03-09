@@ -12,13 +12,19 @@ import FilterBar from '../../components/Common/FilterBar';
 import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
+import {
+  canDeleteForms,
+  canReviewForms,
+  getDepartmentLabel,
+  getDepartmentOptions
+} from '../../utils/organizationUi';
 import { FaFilePdf, FaCheckCircle, FaTimesCircle, FaTrashAlt, FaPlus, FaEye, FaTh, FaList, FaCalendarAlt, FaPaperPlane } from 'react-icons/fa';
 
 
 const FormsList = () => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [forms, setForms] = useState([]);
@@ -33,6 +39,7 @@ const FormsList = () => {
   });
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const { confirmState, confirm, closeConfirm } = useConfirm();
+  const departmentOptions = getDepartmentOptions(organization, t, i18n.language);
 
   // Sync filters state with URL params when URL changes
   useEffect(() => {
@@ -222,17 +229,11 @@ const FormsList = () => {
                 label: isRTL ? (t.title.ar || t.title.en) : t.title.en
               }))
             },
-            ...(user?.role === 'admin' || user?.role === 'supervisor' ? [{
+            ...(canReviewForms(user) ? [{
               name: 'department',
               label: t('forms.department'),
               allLabel: t('common.allDepartments'),
-              options: [
-                { value: 'kitchen', label: t('departments.kitchen') },
-                { value: 'counter', label: t('departments.counter') },
-                { value: 'cleaning', label: t('departments.cleaning') },
-                { value: 'management', label: t('departments.management') },
-                { value: 'delivery', label: t('departments.delivery') }
-              ]
+              options: departmentOptions
             }] : [])
           ]}
         />
@@ -312,7 +313,9 @@ const FormsList = () => {
                             {form.filledBy?.name || 'N/A'}
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-500">
-                            {form.department ? t(`departments.${form.department}`) : t('common.na')}
+                            {form.department
+                              ? getDepartmentLabel(form.department, organization, t, i18n.language)
+                              : t('common.na')}
                           </td>
                           <td className="px-6 py-4">
                             <span
@@ -358,7 +361,7 @@ const FormsList = () => {
                                 </button>
                               )}
 
-                              {(user?.role === 'admin' || user?.role === 'supervisor') &&
+                              {canReviewForms(user) &&
                                 form.status === 'submitted' && (
                                   <>
                                     <button
@@ -378,7 +381,7 @@ const FormsList = () => {
                                   </>
                                 )}
 
-                              {user?.role === 'admin' && (
+                              {canDeleteForms(user) && (
                                 <button
                                   onClick={() => handleDelete(form._id)}
                                   className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
@@ -431,7 +434,9 @@ const FormsList = () => {
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500">{t(`departments.${form.department}`) || form.department}</span>
+                            <span className="text-xs text-gray-500">
+                              {getDepartmentLabel(form.department, organization, t, i18n.language)}
+                            </span>
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${form.status === 'approved'
                                 ? 'bg-green-100 text-green-800'
@@ -480,8 +485,8 @@ const FormsList = () => {
                               </button>
                             )}
 
-                            {(user?.role === 'admin' || user?.role === 'supervisor') &&
-                              form.status === 'submitted' && (
+                        {canReviewForms(user) &&
+                          form.status === 'submitted' && (
                                 <>
                                   <button
                                     onClick={() => handleApprove(form._id, 'approved')}
@@ -500,8 +505,8 @@ const FormsList = () => {
                                 </>
                               )}
 
-                            {user?.role === 'admin' && (
-                              <button
+                        {canDeleteForms(user) && (
+                          <button
                                 onClick={() => handleDelete(form._id)}
                                 className="text-primary hover:text-primary-darko transition-colors"
                                 title={t('common.delete')}

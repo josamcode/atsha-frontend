@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import Loading from '../../components/Common/Loading';
-import { FaCheckCircle, FaSignOutAlt, FaClock, FaExclamationTriangle } from 'react-icons/fa';
+import { FaCheckCircle, FaSignOutAlt, FaExclamationTriangle } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
+import { buildLoginPath, getUserOrganizationRole } from '../../utils/organization';
 
 const AttendAction = () => {
   const { token } = useParams();
-  const { t, i18n } = useTranslation();
-  const { user, loading: authLoading } = useAuth();
+  const { t } = useTranslation();
+  const { user, organizationSlug, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const isRTL = i18n.language === 'ar';
+  const location = useLocation();
 
   const [validating, setValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -22,69 +23,22 @@ const AttendAction = () => {
   const [todayAttendance, setTodayAttendance] = useState(null);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        // Redirect to login, then back here
-        navigate(`/login?redirect=/attend/${token}`);
-      } else {
-        validateToken();
-      }
-    }
-  }, [authLoading, user, token]);
-
-  useEffect(() => {
-    let interval;
-    if (isValid && countdown > 0) {
-      interval = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            setIsValid(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isValid, countdown]);
-
-  const validateToken = async () => {
-    try {
-      const response = await api.get(`/attendance/validate/${token}`);
-      setIsValid(response.data.data.valid);
-      setQrInfo(response.data.data);
-      setCountdown(response.data.data.expiresIn);
-
-      // Fetch today's attendance status
-      await fetchTodayAttendance();
-    } catch (error) {
-      console.error('Error validating token:', error);
-      setIsValid(false);
-    } finally {
-      setValidating(false);
-    }
-  };
-
-  const fetchTodayAttendance = async () => {
+  const fetchTodayAttendance = useCallback(async () => {
     try {
       setLoadingAttendance(true);
-      // Get today's date in UTC format (YYYY-MM-DD)
       const today = new Date();
       const year = today.getUTCFullYear();
       const month = String(today.getUTCMonth() + 1).padStart(2, '0');
       const day = String(today.getUTCDate()).padStart(2, '0');
       const todayStr = `${year}-${month}-${day}`;
 
-      // Fetch user's attendance for today
       const response = await api.get('/attendance/my-attendance', {
         params: {
           limit: 1
         }
       });
 
-      // Find today's attendance record
-      const todayRecord = response.data.data.find(a => a.date === todayStr);
+      const todayRecord = response.data.data.find((attendance) => attendance.date === todayStr);
       setTodayAttendance(todayRecord || null);
     } catch (error) {
       console.error('Error fetching today attendance:', error);
@@ -92,7 +46,51 @@ const AttendAction = () => {
     } finally {
       setLoadingAttendance(false);
     }
-  };
+  }, []);
+
+  const validateToken = useCallback(async () => {
+    try {
+      const response = await api.get(`/attendance/validate/${token}`);
+      setIsValid(response.data.data.valid);
+      setQrInfo(response.data.data);
+      setCountdown(response.data.data.expiresIn);
+
+      await fetchTodayAttendance();
+    } catch (error) {
+      console.error('Error validating token:', error);
+      setIsValid(false);
+    } finally {
+      setValidating(false);
+    }
+  }, [fetchTodayAttendance, token]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate(buildLoginPath(location, organizationSlug), { replace: true });
+      } else {
+        validateToken();
+      }
+    }
+  }, [authLoading, user, navigate, location, organizationSlug, validateToken]);
+
+  useEffect(() => {
+    let interval;
+    if (isValid && countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown((previousValue) => {
+          if (previousValue <= 1) {
+            setIsValid(false);
+            return 0;
+          }
+
+          return previousValue - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [isValid, countdown]);
 
   const handleAction = async (type) => {
     if (!isValid) {
@@ -175,7 +173,7 @@ const AttendAction = () => {
             <div className="flex-1">
               <p className="font-semibold text-gray-800">{user?.name}</p>
               <p className="text-sm text-gray-600">{user?.email}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.department} • {user?.role}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.department} • {getUserOrganizationRole(user)?.replace(/_/g, ' ')}</p>
             </div>
           </div>
         </div>

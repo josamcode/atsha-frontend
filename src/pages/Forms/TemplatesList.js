@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
@@ -21,12 +21,17 @@ import {
   FaTh,
   FaList
 } from 'react-icons/fa';
+import {
+  canManageTemplates,
+  getDepartmentLabel
+} from '../../utils/organizationUi';
 
 const TemplatesList = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
+  const canManageCurrentTemplates = canManageTemplates(user);
 
   const [templates, setTemplates] = useState([]);
   const [filteredTemplates, setFilteredTemplates] = useState([]);
@@ -134,7 +139,7 @@ const TemplatesList = () => {
               </div>
             </div>
 
-            {user?.role === 'admin' && user?.department === 'management' && (
+            {canManageCurrentTemplates && (
               <Button
                 onClick={() => navigate('/templates/create')}
                 className="bg-white text-primary hover:bg-gray-100"
@@ -167,7 +172,7 @@ const TemplatesList = () => {
             <h3 className="text-xl font-semibold text-gray-700 mb-2">
               {t('forms.noTemplatesFound')}
             </h3>
-            {user?.role === 'admin' && user?.department === 'management' && (
+            {canManageCurrentTemplates && (
               <Button
                 onClick={() => navigate('/templates/create')}
                 className="mt-4"
@@ -188,7 +193,7 @@ const TemplatesList = () => {
                     ? 'bg-white text-primary shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
-                  title="Table View"
+                  title={t('common.tableView')}
                 >
                   <FaList className="text-sm" />
                 </button>
@@ -198,7 +203,7 @@ const TemplatesList = () => {
                     ? 'bg-white text-primary shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                     }`}
-                  title="Cards View"
+                  title={t('common.cardsView')}
                 >
                   <FaTh className="text-sm" />
                 </button>
@@ -255,7 +260,7 @@ const TemplatesList = () => {
                                 key={dept}
                                 className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                               >
-                                {t(`departments.${dept}`)}
+                                {getDepartmentLabel(dept, organization, t, i18n.language)}
                               </span>
                             ))}
                             {template.departments.length > 2 && (
@@ -280,7 +285,7 @@ const TemplatesList = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
-                            {user?.role === 'admin' && user?.department === 'management' && (
+                            {canManageCurrentTemplates && (
                               <>
                                 <button
                                   onClick={() => handleToggleActive(template)}
@@ -375,7 +380,7 @@ const TemplatesList = () => {
                                 key={dept}
                                 className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                               >
-                                {t(`departments.${dept}`)}
+                                {getDepartmentLabel(dept, organization, t, i18n.language)}
                               </span>
                             ))}
                             {template.departments.length > 2 && (
@@ -388,7 +393,7 @@ const TemplatesList = () => {
                       </div>
 
                       {/* Actions */}
-                      {user?.role === 'admin' && user?.department === 'management' && (
+                      {canManageCurrentTemplates && (
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                           <div className="flex items-center gap-2">
                             <button

@@ -89,6 +89,8 @@ const FillForm = () => {
 
   const getDefaultValue = (type) => {
     switch (type) {
+      case 'static_text':
+        return '';
       case 'boolean':
         return false;
       case 'number':
@@ -142,7 +144,7 @@ const FillForm = () => {
 
     template.sections.forEach(section => {
       section.fields.forEach(field => {
-        if (field.required) {
+        if (field.required && field.type !== 'static_text') {
           const key = `${section.id}.${field.key}`;
           const value = formData.values[key];
 
@@ -196,6 +198,15 @@ const FillForm = () => {
       }`;
 
     switch (field.type) {
+      case 'static_text':
+        return (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-gray-700 whitespace-pre-wrap">
+            {(isRTL ? field.defaultValue?.ar : field.defaultValue?.en)
+              || field.defaultValue?.en
+              || field.defaultValue?.ar
+              || label}
+          </div>
+        );
       case 'text':
         return (
           <input
@@ -632,4 +643,3 @@ const FillForm = () => {
 };
 
 export default FillForm;
-

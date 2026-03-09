@@ -1,93 +1,267 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import api, { isTokenExpired, refreshAccessToken } from '../utils/api';
+import { useOrganization } from './OrganizationContext';
+import {
+  clearStoredAuthSession,
+  getStoredAccessToken,
+  getStoredOrganization,
+  getStoredRefreshToken,
+  getStoredUser,
+  getTokenOrganizationId,
+  normalizeOrganizationSlug,
+  syncStoredAuthSession
+} from '../utils/organization';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const {
+    organization,
+    organizationSlug,
+    loading: organizationLoading,
+    setOrganizationContext
+  } = useOrganization();
+  const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
+  const resolvedOrganizationId = organization?.id || null;
+
+  const clearSession = (preserveOrganization = true) => {
+    clearStoredAuthSession({ preserveOrganization });
+    setUser(null);
+  };
 
   useEffect(() => {
-    // Validate and refresh tokens on app startup
-    const validateAndRefreshTokens = async () => {
-      const storedUser = localStorage.getItem('user');
-      const accessToken = localStorage.getItem('accessToken');
-      const refreshToken = localStorage.getItem('refreshToken');
+    let ignore = false;
 
-      // If no tokens at all, user is not logged in
+    const hydrateSession = async () => {
+      if (organizationLoading) {
+        return;
+      }
+
+      const storedUser = getStoredUser();
+      const accessToken = getStoredAccessToken();
+      const refreshToken = getStoredRefreshToken();
+      const sessionOrganizationId =
+        getTokenOrganizationId(accessToken) || getTokenOrganizationId(refreshToken);
+
+      if (!resolvedOrganizationId && (accessToken || refreshToken)) {
+        clearSession(true);
+        if (!ignore) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (resolvedOrganizationId && sessionOrganizationId && resolvedOrganizationId !== sessionOrganizationId) {
+        clearSession(true);
+        if (!ignore) {
+          setLoading(false);
+        }
+        return;
+      }
+
       if (!accessToken && !refreshToken) {
-        setLoading(false);
+        if (storedUser) {
+          clearSession(true);
+        }
+
+        if (!ignore) {
+          setLoading(false);
+        }
         return;
       }
 
-      // If we have a user but no access token, try to refresh
-      if (storedUser && !accessToken && refreshToken) {
-        const result = await refreshAccessToken();
-        if (result.success) {
-          // Token refreshed successfully, set user
-          setUser(JSON.parse(storedUser));
-        } else {
-          // Refresh failed, clear everything
-          localStorage.removeItem('user');
-          localStorage.removeItem('refreshToken');
-        }
-        setLoading(false);
-        return;
-      }
+      try {
+        let nextAccessToken = accessToken;
 
-      // If we have access token, check if it's expired
-      if (accessToken) {
-        if (isTokenExpired(accessToken)) {
-          // Access token is expired, try to refresh
-          if (refreshToken && !isTokenExpired(refreshToken)) {
-            // Refresh token is still valid, refresh access token
-            const result = await refreshAccessToken();
-            if (result.success) {
-              // Token refreshed successfully, set user
-              if (storedUser) {
-                setUser(JSON.parse(storedUser));
-              }
-            } else {
-              // Refresh failed, clear everything
-              localStorage.removeItem('user');
-              localStorage.removeItem('accessToken');
-              localStorage.removeItem('refreshToken');
-            }
-          } else {
-            // Refresh token is also expired or doesn't exist, clear everything
-            localStorage.removeItem('user');
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+        if (!nextAccessToken || isTokenExpired(nextAccessToken)) {
+          if (!refreshToken || isTokenExpired(refreshToken)) {
+            throw new Error('Session expired');
           }
-        } else {
-          // Access token is still valid, set user
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
+
+          const refreshResult = await refreshAccessToken();
+          if (!refreshResult.success) {
+            throw new Error(refreshResult.error || 'Unable to refresh session');
+          }
+
+          nextAccessToken = refreshResult.accessToken;
+
+          if (refreshResult.organization) {
+            setOrganizationContext(refreshResult.organization);
           }
         }
-      }
 
-      setLoading(false);
+        const response = await api.get('/auth/me');
+        const nextUser = response.data?.data?.user || storedUser || null;
+        const nextOrganization = response.data?.data?.organization || getStoredOrganization() || null;
+
+        if (ignore) {
+          return;
+        }
+
+        syncStoredAuthSession({
+          user: nextUser,
+          accessToken: nextAccessToken,
+          refreshToken,
+          organization: nextOrganization || undefined
+        });
+
+        if (nextOrganization) {
+          setOrganizationContext(nextOrganization);
+        }
+
+        setUser(nextUser);
+      } catch (error) {
+        if (!ignore) {
+          clearSession(true);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
     };
 
-    validateAndRefreshTokens();
-  }, []);
+    hydrateSession();
 
-  const login = async (email, password) => {
+    return () => {
+      ignore = true;
+    };
+  }, [organizationLoading, resolvedOrganizationId, setOrganizationContext]);
+
+  const login = async (email, password, options = {}) => {
+    const requestedOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
+
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { user, accessToken, refreshToken } = response.data.data;
+      const response = await api.post(
+        '/auth/login',
+        {
+          email,
+          password,
+          organization: requestedOrganizationSlug || undefined
+        },
+        {
+          organizationSlug: requestedOrganizationSlug || undefined,
+          skipOrganizationHeader: !requestedOrganizationSlug
+        }
+      );
 
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      const { user: nextUser, organization: nextOrganization, accessToken, refreshToken } = response.data.data;
 
-      setUser(user);
-      return { success: true, user };
+      syncStoredAuthSession({
+        user: nextUser,
+        accessToken,
+        refreshToken,
+        organization: nextOrganization || undefined
+      });
+
+      if (nextOrganization) {
+        setOrganizationContext(nextOrganization);
+      }
+
+      setUser(nextUser);
+
+      return {
+        success: true,
+        user: nextUser,
+        organization: nextOrganization || null
+      };
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed',
+        message: error.response?.data?.message || 'Login failed'
+      };
+    }
+  };
+
+  const registerOrganization = async (payload) => {
+    try {
+      const response = await api.post(
+        '/auth/register-organization',
+        payload,
+        {
+          skipOrganizationHeader: true
+        }
+      );
+
+      const {
+        user: nextUser,
+        organization: nextOrganization,
+        accessToken,
+        refreshToken
+      } = response.data.data;
+
+      syncStoredAuthSession({
+        user: nextUser,
+        accessToken,
+        refreshToken,
+        organization: nextOrganization || undefined
+      });
+
+      if (nextOrganization) {
+        setOrganizationContext(nextOrganization);
+      }
+
+      setUser(nextUser);
+
+      return {
+        success: true,
+        user: nextUser,
+        organization: nextOrganization || null
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Registration failed'
+      };
+    }
+  };
+
+  const acceptInvitation = async (payload, options = {}) => {
+    const requestedOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
+
+    try {
+      const response = await api.post(
+        '/invitations/accept',
+        {
+          ...payload,
+          organization: requestedOrganizationSlug || undefined
+        },
+        {
+          organizationSlug: requestedOrganizationSlug || undefined,
+          skipOrganizationHeader: !requestedOrganizationSlug
+        }
+      );
+
+      const {
+        user: nextUser,
+        organization: nextOrganization,
+        accessToken,
+        refreshToken
+      } = response.data.data;
+
+      syncStoredAuthSession({
+        user: nextUser,
+        accessToken,
+        refreshToken,
+        organization: nextOrganization || undefined
+      });
+
+      if (nextOrganization) {
+        setOrganizationContext(nextOrganization);
+      }
+
+      setUser(nextUser);
+
+      return {
+        success: true,
+        user: nextUser,
+        organization: nextOrganization || null
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Invitation acceptance failed'
       };
     }
   };
@@ -96,28 +270,36 @@ export const AuthProvider = ({ children }) => {
     try {
       await api.post('/auth/logout');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout should still clear local session state.
     } finally {
-      localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      setUser(null);
+      clearSession(true);
     }
   };
 
   const updateUser = (updatedUser) => {
-    const newUser = { ...user, ...updatedUser };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    const nextUser = { ...user, ...updatedUser };
+    setUser(nextUser);
+
+    syncStoredAuthSession({
+      user: nextUser,
+      accessToken: getStoredAccessToken(),
+      refreshToken: getStoredRefreshToken(),
+      organization
+    });
   };
 
   const value = {
     user,
-    loading,
+    organization,
+    organizationSlug,
+    loading: loading || organizationLoading,
     login,
+    registerOrganization,
+    acceptInvitation,
     logout,
     updateUser,
-    isAuthenticated: !!user,
+    clearSession,
+    isAuthenticated: !!user && !!organization
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -125,9 +307,10 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
   return context;
 };
-

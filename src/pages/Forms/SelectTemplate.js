@@ -5,6 +5,12 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
+import { roleMatches } from '../../utils/organization';
+import {
+  getDepartmentLabel,
+  getDepartmentOptions,
+  templateMatchesManagedDepartments
+} from '../../utils/organizationUi';
 import {
   FaFileAlt,
   FaSearch,
@@ -17,9 +23,12 @@ import {
 
 const SelectTemplate = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
+  const departmentOptions = getDepartmentOptions(organization, t, i18n.language, {
+    includeAll: true
+  });
 
   const [templates, setTemplates] = useState([]);
   const [filteredTemplates, setFilteredTemplates] = useState([]);
@@ -38,29 +47,12 @@ const SelectTemplate = () => {
   const fetchTemplates = async () => {
     try {
       const response = await api.get('/form-templates');
-      // Filter only active templates that user can edit and belong to their department
       const availableTemplates = response.data.data.filter(template => {
-        // Must be active
         if (!template.isActive) return false;
 
-        // User must have edit permission
-        if (!template.editableByRoles.includes(user?.role)) return false;
+        if (!roleMatches(user, template.editableByRoles || [])) return false;
 
-        // Department filter:
-        // - If template is for 'all' departments, show to everyone
-        // - If user is management admin, show all templates
-        // - Otherwise, show only templates for user's department
-        if (template.departments.includes('all')) {
-          return true;
-        }
-
-        // Management admins can see all templates
-        if (user?.role === 'admin' && user?.department === 'management') {
-          return true;
-        }
-
-        // For other users, check if template is for their department
-        return template.departments.includes(user?.department);
+        return templateMatchesManagedDepartments(template, user);
       });
       setTemplates(availableTemplates);
       setFilteredTemplates(availableTemplates);
@@ -82,7 +74,6 @@ const SelectTemplate = () => {
       );
     }
 
-    // Department filter
     if (departmentFilter !== 'all') {
       filtered = filtered.filter(template =>
         template.departments.includes(departmentFilter) ||
@@ -105,7 +96,7 @@ const SelectTemplate = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary via-primary-dark to-primary-darko rounded-2xl shadow-lg p-6">
+        <div className="bg-gradient-to-r from-primary via-primary-dark to-primary-dark rounded-2xl shadow-lg p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <FaFileAlt className="text-2xl text-white" />
@@ -144,12 +135,11 @@ const SelectTemplate = () => {
                 onChange={(e) => setDepartmentFilter(e.target.value)}
                 className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent`}
               >
-                <option value="all">{t('common.allDepartments')}</option>
-                <option value="kitchen">{t('departments.kitchen')}</option>
-                <option value="counter">{t('departments.counter')}</option>
-                <option value="cleaning">{t('departments.cleaning')}</option>
-                <option value="management">{t('departments.management')}</option>
-                <option value="delivery">{t('departments.delivery')}</option>
+                {departmentOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -206,7 +196,7 @@ const SelectTemplate = () => {
                         key={dept}
                         className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                       >
-                        {t(`departments.${dept}`)}
+                        {getDepartmentLabel(dept, organization, t, i18n.language)}
                       </span>
                     ))}
                   </div>

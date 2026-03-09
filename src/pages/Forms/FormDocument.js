@@ -584,7 +584,12 @@ const FormDocument = ({
                               lineHeight: fieldLayout.lineSpacing || 1.5
                             }}
                           >
-                            {formatValue(getFieldValue(section.id, field.key), field.type)}
+                            {field.type === 'static_text'
+                              ? ((isRTL ? field.defaultValue?.ar : field.defaultValue?.en)
+                                || field.defaultValue?.en
+                                || field.defaultValue?.ar
+                                || '-')
+                              : formatValue(getFieldValue(section.id, field.key), field.type)}
                           </p>
                         )}
                       </div>
