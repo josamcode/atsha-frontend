@@ -1,28 +1,79 @@
 import React, { useRef } from 'react'
 import { useTranslation } from 'react-i18next';
+import { QRCodeSVG } from 'qrcode.react';
 import { formatDate, formatTime, formatDateTime } from '../../utils/dateUtils';
 import Button from '../../components/Common/Button';
 
 import {
-  FaArrowLeft,
-  FaPrint,
-  FaFilePdf,
   FaCheckCircle,
-  FaTimesCircle,
-  FaUtensils,
-  FaQrcode,
-  FaPhone,
+  FaDiscord,
   FaEnvelope,
-  FaMobileAlt,
+  FaFacebookF,
   FaGlobe,
-  FaMapMarkerAlt,
-  FaFax,
-  FaImage,
-  FaExpand
+  FaGithub,
+  FaInstagram,
+  FaLinkedinIn,
+  FaPinterestP,
+  FaPhone,
+  FaSnapchatGhost,
+  FaTelegramPlane,
+  FaTiktok,
+  FaTimesCircle,
+  FaTwitter,
+  FaWhatsapp,
+  FaYoutube
 } from 'react-icons/fa';
 
-import CompantStamp from '../../components/Common/CompantStamp';
 import { getLeafTableColumns, normalizeTemplate } from './templateBuilderUtils';
+
+const SOCIAL_ICON_MAP = {
+  website: FaGlobe,
+  email: FaEnvelope,
+  facebook: FaFacebookF,
+  instagram: FaInstagram,
+  linkedin: FaLinkedinIn,
+  youtube: FaYoutube,
+  whatsapp: FaWhatsapp,
+  telegram: FaTelegramPlane,
+  x: FaTwitter,
+  tiktok: FaTiktok,
+  snapchat: FaSnapchatGhost,
+  discord: FaDiscord,
+  pinterest: FaPinterestP,
+  github: FaGithub
+};
+
+const buildSocialHref = (type, value) => {
+  const trimmedValue = String(value || '').trim();
+
+  if (!trimmedValue) {
+    return '';
+  }
+
+  if (type === 'email') {
+    return trimmedValue.startsWith('mailto:') ? trimmedValue : `mailto:${trimmedValue}`;
+  }
+
+  if (/^(https?:|mailto:|tel:)/i.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  return `https://${trimmedValue}`;
+};
+
+const clampNumber = (value, fallback, min, max) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, numericValue));
+};
+
+const resolveFooterTemplate = (value) => (
+  ['classic', 'centered', 'contact', 'minimal'].includes(value) ? value : 'classic'
+);
 
 const FormDocument = ({
   formInstance,
@@ -189,15 +240,36 @@ const FormDocument = ({
           textAlign: defaultTextAlign
         }}
       >
-        {/* Watermark - Logo behind content */}
-        <div className="watermark absolute inset-0 flex items-center justify-center pointer-events-none z-0" style={{ opacity: 0.05 }}>
-          <img
-            src="/logo.png"
-            alt="Watermark"
-            className="w-full max-w-2xl h-auto transform rotate-[10deg]"
-            style={{ maxHeight: '90%', objectFit: 'contain' }}
-          />
-        </div>
+        {/* Watermark */}
+        {(() => {
+          const branding = normalizedTemplate.pdfStyle?.branding || {};
+          const watermarkUrl = branding.watermarkUrl || branding.logoUrl || '/logo.png';
+          const watermarkSize = clampNumber(branding.watermarkSize, 55, 20, 100);
+          const watermarkOpacity = clampNumber(branding.watermarkOpacity, 5, 0, 100) / 100;
+
+          if (!watermarkUrl) {
+            return null;
+          }
+
+          return (
+            <div
+              className="watermark absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+              style={{ opacity: watermarkOpacity }}
+            >
+              <img
+                src={watermarkUrl}
+                alt="Watermark"
+                className="h-auto object-contain"
+                style={{
+                  width: `${watermarkSize}%`,
+                  maxWidth: '100%',
+                  maxHeight: '90%',
+                  transform: 'rotate(10deg)'
+                }}
+              />
+            </div>
+          );
+        })()}
 
         {/* Header with dashed border (PDF style) */}
         <div className="relative z-10">
@@ -214,6 +286,7 @@ const FormDocument = ({
               const headerBgColor = headerConfig.backgroundColor || '#ffffff';
               const headerTextColor = headerConfig.textColor || '#000000';
               const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || 'atsha';
+              const logoSize = clampNumber(headerConfig.logoSize, 64, 24, 160);
               const companyAddress = branding.companyAddress?.[i18n.language] || branding.companyAddress?.en || (isRTL ? 'مصر' : 'Egypt');
 
               if (headerConfig.enabled === false) return null;
@@ -268,11 +341,12 @@ const FormDocument = ({
                       <div className="flex items-center gap-4">
                         {headerConfig.showLogo !== false && (
                           <img
-                            src={branding.logoUrl || "/logo.png"}
+                            src={branding.logoUrl || branding.watermarkUrl || "/logo.png"}
                             alt={companyName}
-                            className="h-16 w-auto flex-shrink-0"
+                            className="w-auto flex-shrink-0 object-contain"
+                            style={{ height: `${logoSize}px` }}
                           />
-                        )}x
+                        )}
                         {(showCompanyName || showCompanyAddress) && (
                           <div>
                             {showCompanyName && (
@@ -394,9 +468,10 @@ const FormDocument = ({
                       {headerConfig.showLogo !== false && (
                         <div className="flex-shrink-0">
                           <img
-                            src={branding.logoUrl || "/logo.png"}
+                            src={branding.logoUrl || branding.watermarkUrl || "/logo.png"}
                             alt={companyName}
-                            className="h-16 w-auto"
+                            className="w-auto object-contain"
+                            style={{ height: `${logoSize}px` }}
                           />
                         </div>
                       )}
@@ -1069,50 +1144,178 @@ const FormDocument = ({
                 );
               })()}
 
-              {/* Footer with company stamp and QR code */}
-              <div className="mt-24 mb-16">
+              {/* Configured Footer */}
+              {(() => {
+                const pdfStyle = normalizedTemplate.pdfStyle || {};
+                const footerConfig = pdfStyle.footer || {};
+                const branding = pdfStyle.branding || {};
+                const footerEnabled = footerConfig.enabled !== false;
 
-                <CompantStamp color="blue" />
+                if (!footerEnabled) {
+                  return null;
+                }
 
-                {/* Contact Info and QR - Bottom Center */}
-                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2">
-                  <div className="relative">
-                    {/* Large QR Code - Positioned above container */}
-                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10">
-                      <div className="w-20 h-20 bg-white rounded-lg shadow-lg border-2 border-gray-300 flex items-center justify-center">
-                        <FaQrcode className="text-primary text-4xl" />
-                      </div>
-                    </div>
+                const footerBgColor = footerConfig.backgroundColor || pdfStyle.colors?.secondary || '#b51c20';
+                const footerTextColor = footerConfig.textColor || '#ffffff';
+                const footerBorderColor = pdfStyle.colors?.border || 'rgba(255,255,255,0.2)';
+                const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || '';
+                const footerText = footerConfig.content?.[i18n.language] || footerConfig.content?.en || '';
+                const phoneNumber = footerConfig.phoneNumber || branding.companyPhone || '';
+                const showPhone = footerConfig.showPhoneNumber && phoneNumber;
+                const qrCodeValue = String(footerConfig.qrCodeValue || '').trim();
+                const showQRCode = footerConfig.showQRCode && qrCodeValue;
+                const qrPosition = footerConfig.qrCodePosition || 'center';
+                const qrCodeSize = clampNumber(footerConfig.qrCodeSize, 84, 48, 160);
+                const footerTemplate = resolveFooterTemplate(footerConfig.template);
+                const socialLinks = footerConfig.showSocialIcons
+                  ? (Array.isArray(footerConfig.socialLinks) ? footerConfig.socialLinks.filter((link) => String(link?.url || '').trim()) : [])
+                  : [];
+                const showCompanyInfo = footerConfig.showCompanyInfo !== false;
+                const infoAlignmentClass = footerTemplate === 'centered' ? 'text-center' : (isRTL ? 'text-right' : 'text-left');
+                const socialAlignmentClass = footerTemplate === 'centered'
+                  ? 'justify-center'
+                  : (isRTL ? 'justify-end' : 'justify-start md:justify-end');
 
-                    {/* Contact Container */}
-                    <div className="bg-primary text-white px-8 py-3 rounded-t-lg shadow-lg pt-2">
-                      <div className="flex items-center justify-center gap-28 flex-row-reverse">
-                        {/* Phone Number */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-3xl">{t('users.companyPhone') || '0123456789'}</span>
-                          <FaPhone className="text-white w-6 h-6 text-lg border-2 border-white rounded-full p-1" />
-                        </div>
-
-                        {/* Company Name and Icons */}
-                        <div className="text-center">
-                          <div className="font-bold text-xl mb-1">{t('users.atsha') || 'Atsha'}</div>
-                          <div className="flex items-center justify-center gap-2 text-sm">
-                            <FaEnvelope className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                            <FaMobileAlt className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                            <FaGlobe className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                            <FaMapMarkerAlt className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                            <FaPhone className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                            <FaFax className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                const infoBlock = (showCompanyInfo || showPhone) ? (
+                  <div className={`space-y-2 ${infoAlignmentClass}`}>
+                    {showCompanyInfo && companyName && (
+                      <div className="text-lg font-bold">{companyName}</div>
+                    )}
+                    {showCompanyInfo && footerText && (
+                      <div className="text-sm opacity-90">{footerText}</div>
+                    )}
+                    {showPhone && (
+                      <a
+                        href={`tel:${String(phoneNumber).replace(/\s+/g, '')}`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold transition hover:underline"
+                        style={{ color: footerTextColor }}
+                      >
+                        <FaPhone />
+                        <span>{phoneNumber}</span>
+                      </a>
+                    )}
                   </div>
-                </div>
+                ) : null;
 
-                {/* Spacer to ensure proper spacing */}
-                <div className="h-24"></div>
-              </div>
+                const socialBlock = socialLinks.length > 0 ? (
+                  <div className={`flex flex-wrap gap-3 ${socialAlignmentClass}`}>
+                    {socialLinks.map((link) => {
+                      const href = buildSocialHref(link.type, link.url);
+                      const Icon = SOCIAL_ICON_MAP[link.type] || FaGlobe;
+                      const isExternalLink = /^https?:/i.test(href);
+
+                      return (
+                        <a
+                          key={link.id || `${link.type}_${link.url}`}
+                          href={href}
+                          target={isExternalLink ? '_blank' : undefined}
+                          rel={isExternalLink ? 'noreferrer' : undefined}
+                          title={link.url}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-white/10 text-base transition hover:bg-white/20"
+                          style={{ color: footerTextColor }}
+                        >
+                          <Icon />
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : null;
+
+                const qrBlock = showQRCode ? (
+                  <div className="inline-flex rounded-2xl bg-white p-3 shadow-sm">
+                    <QRCodeSVG
+                      value={qrCodeValue}
+                      size={qrCodeSize}
+                      bgColor="#ffffff"
+                      fgColor={pdfStyle.colors?.primary || branding.primaryColor || '#111827'}
+                    />
+                  </div>
+                ) : null;
+
+                if (!infoBlock && !socialBlock && !qrBlock) {
+                  return null;
+                }
+
+                const classicBlocks = [];
+                if (qrBlock && qrPosition === 'left') {
+                  classicBlocks.push({ key: 'qr-left', className: 'shrink-0', node: qrBlock });
+                }
+                if (infoBlock) {
+                  classicBlocks.push({ key: 'info', className: 'min-w-[220px] flex-1', node: infoBlock });
+                }
+                if (qrBlock && qrPosition === 'center') {
+                  classicBlocks.push({ key: 'qr-center', className: 'shrink-0', node: qrBlock });
+                }
+                if (socialBlock) {
+                  classicBlocks.push({ key: 'social', className: 'min-w-[180px]', node: socialBlock });
+                }
+                if (qrBlock && qrPosition === 'right') {
+                  classicBlocks.push({ key: 'qr-right', className: 'shrink-0', node: qrBlock });
+                }
+
+                const renderFooterBody = () => {
+                  if (footerTemplate === 'centered') {
+                    return (
+                      <div className="flex flex-col items-center gap-4 p-6 text-center">
+                        {qrBlock}
+                        {infoBlock && (
+                          <div className="w-full max-w-2xl text-center">
+                            {infoBlock}
+                          </div>
+                        )}
+                        {socialBlock && (
+                          <div className="flex justify-center">
+                            {socialBlock}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (footerTemplate === 'contact') {
+                    return (
+                      <div className="flex flex-col gap-5 p-6 md:flex-row md:items-center">
+                        {infoBlock && <div className="min-w-[240px] flex-1">{infoBlock}</div>}
+                        {qrBlock && <div className="flex shrink-0 justify-center">{qrBlock}</div>}
+                        {socialBlock && <div className="min-w-[180px] md:ml-auto">{socialBlock}</div>}
+                      </div>
+                    );
+                  }
+
+                  if (footerTemplate === 'minimal') {
+                    return (
+                      <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+                        {infoBlock && <div className="flex-1">{infoBlock}</div>}
+                        {(socialBlock || qrBlock) && (
+                          <div className={`flex flex-wrap items-center gap-4 ${isRTL ? 'justify-end' : 'justify-start md:justify-end'}`}>
+                            {socialBlock}
+                            {qrBlock}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
+                      {classicBlocks.map((block) => (
+                        <div key={block.key} className={block.className}>
+                          {block.node}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div
+                    className="mt-12 overflow-hidden rounded-[28px] border shadow-sm"
+                    style={{ borderColor: footerBorderColor, backgroundColor: footerBgColor, color: footerTextColor }}
+                  >
+                    {renderFooterBody()}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

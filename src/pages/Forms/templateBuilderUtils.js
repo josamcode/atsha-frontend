@@ -194,10 +194,48 @@ export const THEMES = {
   }
 };
 
+export const SOCIAL_LINK_TYPE_OPTIONS = [
+  { value: 'website', label: 'Website', labelAr: 'الموقع' },
+  { value: 'email', label: 'Email', labelAr: 'البريد الإلكتروني' },
+  { value: 'facebook', label: 'Facebook', labelAr: 'فيسبوك' },
+  { value: 'instagram', label: 'Instagram', labelAr: 'إنستغرام' },
+  { value: 'linkedin', label: 'LinkedIn', labelAr: 'لينكدإن' },
+  { value: 'youtube', label: 'YouTube', labelAr: 'يوتيوب' },
+  { value: 'whatsapp', label: 'WhatsApp', labelAr: 'واتساب' },
+  { value: 'telegram', label: 'Telegram', labelAr: 'تيليجرام' },
+  { value: 'x', label: 'X / Twitter', labelAr: 'إكس / تويتر' },
+  { value: 'tiktok', label: 'TikTok', labelAr: 'تيك توك' },
+  { value: 'snapchat', label: 'Snapchat', labelAr: 'سناب شات' },
+  { value: 'discord', label: 'Discord', labelAr: 'ديسكورد' },
+  { value: 'pinterest', label: 'Pinterest', labelAr: 'بينترست' },
+  { value: 'github', label: 'GitHub', labelAr: 'جيت هب' }
+];
+
+export const FOOTER_TEMPLATE_OPTIONS = [
+  { value: 'classic', label: 'Classic', labelAr: 'كلاسيكي' },
+  { value: 'centered', label: 'Centered', labelAr: 'متمركز' },
+  { value: 'contact', label: 'Contact Bar', labelAr: 'شريط تواصل' },
+  { value: 'minimal', label: 'Minimal', labelAr: 'بسيط' }
+];
+
 const DEFAULT_PRIMARY_COLOR = '#d4b900';
 const DEFAULT_SECONDARY_COLOR = '#9e8b00';
+const FOOTER_TEMPLATE_VALUES = FOOTER_TEMPLATE_OPTIONS.map((option) => option.value);
 
 const getDefaultBrandingName = (branding = {}) => branding?.displayName || branding?.shortName || 'Atsha';
+const clampNumber = (value, fallback, min, max) => {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, numericValue));
+};
+
+const normalizeFooterTemplate = (value) => (
+  FOOTER_TEMPLATE_VALUES.includes(value) ? value : 'classic'
+);
 
 export const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
@@ -244,6 +282,41 @@ export const mirrorArabicToEnglish = (currentValue, nextArabic) => {
   return {
     en: englishWasMirrored ? nextArabic : current.en,
     ar: nextArabic
+  };
+};
+
+export const createSocialLink = (overrides = {}) => ({
+  id: generateId('social'),
+  type: 'website',
+  url: '',
+  ...overrides
+});
+
+const normalizeSocialLink = (link, index) => {
+  const normalizedType = typeof link?.type === 'string' && SOCIAL_LINK_TYPE_OPTIONS.some((option) => option.value === link.type)
+    ? link.type
+    : 'website';
+
+  return {
+    ...createSocialLink(),
+    ...link,
+    id: link?.id || generateId(`social_${index}`),
+    type: normalizedType,
+    url: typeof link?.url === 'string' ? link.url : ''
+  };
+};
+
+const finalizeSocialLinkForSave = (link, index) => {
+  const normalized = normalizeSocialLink(link, index);
+  const trimmedUrl = normalized.url.trim();
+
+  if (!trimmedUrl) {
+    return null;
+  }
+
+  return {
+    ...normalized,
+    url: trimmedUrl
   };
 };
 
@@ -350,9 +423,12 @@ export const getDefaultPdfStyle = (branding = {}) => {
       primaryColor,
       secondaryColor,
       logoUrl: branding?.logoUrl || '',
+      watermarkUrl: branding?.watermarkUrl || '',
+      watermarkSize: 55,
+      watermarkOpacity: 5,
       companyAddress: { en: '', ar: '' },
       companyPhone: '',
-      companyEmail: '',
+      companyEmail: branding?.supportEmail || '',
       companyName: { en: companyName, ar: companyName }
     },
     header: {
@@ -369,6 +445,7 @@ export const getDefaultPdfStyle = (branding = {}) => {
       subtitle: { en: '', ar: '' },
       decorativeLineColor: primaryColor,
       height: 96,
+      logoSize: 64,
       backgroundColor: '#fffbeb',
       textColor: '#1f2937',
       titleColor: primaryColor,
@@ -390,9 +467,12 @@ export const getDefaultPdfStyle = (branding = {}) => {
       showPhoneNumber: false,
       showSocialIcons: false,
       qrCodePosition: 'center',
+      qrCodeSize: 84,
+      template: 'classic',
       phoneNumber: '',
+      qrCodeValue: '',
+      socialLinks: [],
       companyName,
-      socialIcons: [],
       height: 56,
       backgroundColor: secondaryColor,
       textColor: '#ffffff',
@@ -907,12 +987,15 @@ export const normalizePdfStyle = (pdfStyle) => {
     branding: {
       ...defaults.branding,
       ...(pdfStyle?.branding || {}),
+      watermarkSize: clampNumber(pdfStyle?.branding?.watermarkSize, defaults.branding.watermarkSize, 20, 100),
+      watermarkOpacity: clampNumber(pdfStyle?.branding?.watermarkOpacity, defaults.branding.watermarkOpacity, 0, 100),
       companyName: normalizeLocalizedValue(pdfStyle?.branding?.companyName || defaults.branding.companyName),
       companyAddress: normalizeLocalizedValue(pdfStyle?.branding?.companyAddress || defaults.branding.companyAddress)
     },
     header: {
       ...defaults.header,
       ...(pdfStyle?.header || {}),
+      logoSize: clampNumber(pdfStyle?.header?.logoSize, defaults.header.logoSize, 24, 160),
       subtitle: normalizeLocalizedValue(pdfStyle?.header?.subtitle || defaults.header.subtitle),
       border: {
         ...defaults.header.border,
@@ -922,7 +1005,12 @@ export const normalizePdfStyle = (pdfStyle) => {
     footer: {
       ...defaults.footer,
       ...(pdfStyle?.footer || {}),
-      content: normalizeLocalizedValue(pdfStyle?.footer?.content || defaults.footer.content)
+      qrCodeSize: clampNumber(pdfStyle?.footer?.qrCodeSize, defaults.footer.qrCodeSize, 48, 160),
+      template: normalizeFooterTemplate(pdfStyle?.footer?.template),
+      content: normalizeLocalizedValue(pdfStyle?.footer?.content || defaults.footer.content),
+      socialLinks: Array.isArray(pdfStyle?.footer?.socialLinks)
+        ? pdfStyle.footer.socialLinks.map(normalizeSocialLink)
+        : defaults.footer.socialLinks
     },
     metadata: {
       ...defaults.metadata,
@@ -1056,7 +1144,10 @@ export const finalizeTemplateForSave = (template) => {
       },
       footer: {
         ...pdfStyle.footer,
-        content: finalizeLocalizedValue(template.pdfStyle?.footer?.content)
+        content: finalizeLocalizedValue(template.pdfStyle?.footer?.content),
+        socialLinks: (pdfStyle.footer?.socialLinks || [])
+          .map(finalizeSocialLinkForSave)
+          .filter(Boolean)
       }
     }
   };

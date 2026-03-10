@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaArrowLeft, FaEye, FaEyeSlash, FaMagic, FaSave } from 'react-icons/fa';
+import { FaArrowLeft, FaEye, FaEyeSlash, FaMagic, FaPlus, FaSave, FaTrash, FaUpload } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import api from '../../utils/api';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/Common/Button';
@@ -13,17 +14,21 @@ import SectionEditor, {
   ColorInput,
   EmptyEditorState,
   NumberInput,
+  SelectField,
   TextAreaInput,
   TextInput
 } from './TemplateBuilderEditor';
 import TemplateBuilderPreview from './TemplateBuilderPreview';
 import {
   SECTION_PRESETS,
+  FOOTER_TEMPLATE_OPTIONS,
+  SOCIAL_LINK_TYPE_OPTIONS,
   STARTER_TEMPLATES,
   THEMES,
   cloneData,
   createColumn,
   createField,
+  createSocialLink,
   createSectionFromPreset,
   finalizeTemplateForSave,
   generateId,
@@ -68,40 +73,80 @@ const WorkspaceTabButton = ({ active, label, subtitle, onClick, hasError = false
 const TemplateBuilder = () => {
   const { i18n } = useTranslation();
   const { organization } = useAuth();
+  const { setOrganizationContext } = useOrganization();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
   const isRTL = i18n.language === 'ar';
+  const initializedBuilderKeyRef = useRef('');
+  const builderInitializationKey = isEditMode ? `edit:${id}` : `new:${organization?._id || 'none'}`;
 
   const [formData, setFormData] = useState(() => normalizeTemplate(getDefaultTemplate(organization?.branding)));
-  const [loading, setLoading] = useState(isEditMode);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [activeTab, setActiveTab] = useState(DEFAULT_WORKSPACE_TAB);
   const [errors, setErrors] = useState({});
+  const [brandingUploads, setBrandingUploads] = useState({ logo: false, watermark: false });
+
+  const seedTemplateWithPdfStyle = (template, sourcePdfStyle) => normalizeTemplate({
+    ...template,
+    pdfStyle: normalizePdfStyle(sourcePdfStyle || template?.pdfStyle)
+  });
 
   useEffect(() => {
-    if (!isEditMode) {
+    if (initializedBuilderKeyRef.current === builderInitializationKey) {
       return;
     }
 
     let mounted = true;
+    initializedBuilderKeyRef.current = builderInitializationKey;
 
-    const fetchTemplate = async () => {
+    const initializeTemplateBuilder = async () => {
+      setLoading(true);
+
       try {
-        const response = await api.get(`/form-templates/${id}`);
+        if (isEditMode) {
+          const response = await api.get(`/form-templates/${id}`);
+          if (!mounted) {
+            return;
+          }
+
+          const normalized = normalizeTemplate(response.data.data);
+          const firstSectionId = normalized.sections[0]?.id || null;
+          setFormData(normalized);
+          setSelectedSectionId(firstSectionId);
+          setActiveTab(firstSectionId ? getSectionTabId(firstSectionId) : DEFAULT_WORKSPACE_TAB);
+          return;
+        }
+
+        const response = await api.get('/form-templates');
         if (!mounted) {
           return;
         }
 
-        const normalized = normalizeTemplate(response.data.data);
-        const firstSectionId = normalized.sections[0]?.id || null;
-        setFormData(normalized);
-        setSelectedSectionId(firstSectionId);
-        setActiveTab(firstSectionId ? getSectionTabId(firstSectionId) : DEFAULT_WORKSPACE_TAB);
+        const latestTemplate = Array.isArray(response.data?.data) ? response.data.data[0] : null;
+        const seededTemplate = seedTemplateWithPdfStyle(
+          getDefaultTemplate(organization?.branding),
+          latestTemplate?.pdfStyle
+        );
+
+        setFormData(seededTemplate);
+        setSelectedSectionId(seededTemplate.sections[0]?.id || null);
+        setActiveTab(DEFAULT_WORKSPACE_TAB);
       } catch (error) {
-        console.error('Error fetching template:', error);
-        showError(isRTL ? 'تعذر تحميل القالب.' : 'Unable to load the template.');
+        console.error('Error initializing template builder:', error);
+
+        if (mounted) {
+          if (isEditMode) {
+            showError(isRTL ? 'تعذر تحميل القالب.' : 'Unable to load the template.');
+          }
+
+          const fallbackTemplate = normalizeTemplate(getDefaultTemplate(organization?.branding));
+          setFormData(fallbackTemplate);
+          setSelectedSectionId(fallbackTemplate.sections[0]?.id || null);
+          setActiveTab(DEFAULT_WORKSPACE_TAB);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -109,12 +154,12 @@ const TemplateBuilder = () => {
       }
     };
 
-    fetchTemplate();
+    initializeTemplateBuilder();
 
     return () => {
       mounted = false;
     };
-  }, [id, isEditMode, isRTL]);
+  }, [builderInitializationKey, id, isEditMode, isRTL, organization?.branding]);
 
   useEffect(() => {
     if (selectedSectionId && formData.sections.some((section) => section.id === selectedSectionId)) {
@@ -290,7 +335,7 @@ const TemplateBuilder = () => {
       return;
     }
 
-    const template = normalizeTemplate(starter.template(organization?.branding));
+    const template = seedTemplateWithPdfStyle(starter.template(organization?.branding), formData.pdfStyle);
     const firstSectionId = template.sections[0]?.id || null;
     setFormData(template);
     setSelectedSectionId(firstSectionId);
@@ -671,6 +716,32 @@ const TemplateBuilder = () => {
     }));
   };
 
+  const updateBrandingConfig = (patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      pdfStyle: normalizePdfStyle({
+        ...prev.pdfStyle,
+        branding: {
+          ...prev.pdfStyle.branding,
+          ...patch
+        }
+      })
+    }));
+  };
+
+  const updateFooterConfig = (patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      pdfStyle: normalizePdfStyle({
+        ...prev.pdfStyle,
+        footer: {
+          ...prev.pdfStyle.footer,
+          ...patch
+        }
+      })
+    }));
+  };
+
   const updateSignatureConfig = (patch) => {
     setFormData((prev) => ({
       ...prev,
@@ -682,6 +753,71 @@ const TemplateBuilder = () => {
         }
       })
     }));
+  };
+
+  const handleBrandingAssetUpload = async (assetType, file) => {
+    if (!file) {
+      return;
+    }
+
+    setBrandingUploads((prev) => ({ ...prev, [assetType]: true }));
+
+    try {
+      const payload = new FormData();
+      payload.append('image', file);
+
+      const response = await api.post(`/organizations/current/settings/branding-assets/${assetType}`, payload, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const updatedOrganization = response.data?.data || null;
+      const brandingField = assetType === 'watermark' ? 'watermarkUrl' : 'logoUrl';
+      const nextUrl = updatedOrganization?.branding?.[brandingField] || '';
+
+      if (updatedOrganization) {
+        setOrganizationContext(updatedOrganization);
+      }
+
+      updateBrandingConfig({ [brandingField]: nextUrl });
+      showSuccess(
+        assetType === 'watermark'
+          ? (isRTL ? 'تم حفظ العلامة المائية بنجاح.' : 'Watermark saved successfully.')
+          : (isRTL ? 'تم حفظ الشعار بنجاح.' : 'Logo saved successfully.')
+      );
+    } catch (error) {
+      showError(error.response?.data?.message || (isRTL ? 'تعذر رفع الصورة.' : 'Unable to upload the image.'));
+    } finally {
+      setBrandingUploads((prev) => ({ ...prev, [assetType]: false }));
+    }
+  };
+
+  const addFooterSocialLink = () => {
+    updateFooterConfig({
+      socialLinks: [...(formData.pdfStyle.footer?.socialLinks || []), createSocialLink()]
+    });
+  };
+
+  const updateFooterSocialLink = (linkId, patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      pdfStyle: normalizePdfStyle({
+        ...prev.pdfStyle,
+        footer: {
+          ...prev.pdfStyle.footer,
+          socialLinks: (prev.pdfStyle.footer?.socialLinks || []).map((link) => (
+            link.id === linkId ? { ...link, ...patch } : link
+          ))
+        }
+      })
+    }));
+  };
+
+  const deleteFooterSocialLink = (linkId) => {
+    updateFooterConfig({
+      socialLinks: (formData.pdfStyle.footer?.socialLinks || []).filter((link) => link.id !== linkId)
+    });
   };
 
   const renderDetailsPanel = () => (
@@ -951,242 +1087,390 @@ const TemplateBuilder = () => {
     </Card>
   );
 
-  const renderBrandingPanel = () => (
-    <Card title={isRTL ? 'الهوية والألوان' : 'Branding and Colors'} className="border border-primary/10 bg-white">
-      <div className="grid gap-3 md:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => applyThemeConfig(systemTheme)}
-          className="rounded-[22px] border border-primary/20 bg-primary/5 p-4 text-left transition hover:border-primary hover:shadow-md"
-        >
-          <div className="flex items-center gap-2">
-            {[systemTheme.colors.primary, systemTheme.colors.secondary, systemTheme.footer.backgroundColor].map((color) => (
-              <span key={`system_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
-            ))}
-          </div>
-          <div className="mt-3 font-semibold text-gray-900">{systemTheme.label}</div>
-        </button>
-        {Object.entries(THEMES).map(([themeKey, theme]) => (
+  const renderBrandingPanel = () => {
+    const currentLogoUrl = formData.pdfStyle.branding?.logoUrl || organization?.branding?.logoUrl || '';
+    const currentWatermarkUrl = formData.pdfStyle.branding?.watermarkUrl || organization?.branding?.watermarkUrl || currentLogoUrl || '';
+    const socialLinks = formData.pdfStyle.footer?.socialLinks || [];
+    const logoSize = formData.pdfStyle.header?.logoSize || 64;
+    const watermarkSize = formData.pdfStyle.branding?.watermarkSize || 55;
+    const watermarkOpacity = formData.pdfStyle.branding?.watermarkOpacity || 5;
+    const qrCodeSize = formData.pdfStyle.footer?.qrCodeSize || 84;
+
+    const renderAssetCard = ({ assetType, title, description, previewUrl, previewClassName = '', previewStyle = {} }) => (
+      <div className="rounded-3xl border border-primary/10 bg-primary/5 p-5">
+        <div>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
+        </div>
+        <div className="mt-4 flex min-h-[190px] items-center justify-center rounded-2xl border border-dashed border-primary/20 bg-white p-4">
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={title}
+              className={`max-h-40 w-full rounded-xl object-contain ${previewClassName}`}
+              style={previewStyle}
+            />
+          ) : (
+            <div className="text-center text-sm text-gray-500">
+              {isRTL ? 'لا توجد صورة محفوظة بعد.' : 'No saved image yet.'}
+            </div>
+          )}
+        </div>
+        <label className={`mt-4 inline-flex cursor-pointer items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition ${brandingUploads[assetType] ? 'cursor-wait opacity-70' : 'hover:border-primary hover:shadow-md'}`}>
+          <FaUpload />
+          <span>
+            {brandingUploads[assetType]
+              ? (isRTL ? 'جارٍ الرفع...' : 'Uploading...')
+              : (isRTL ? 'رفع صورة' : 'Upload image')}
+          </span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/jpg"
+            className="hidden"
+            disabled={brandingUploads[assetType]}
+            onChange={(event) => {
+              const nextFile = event.target.files?.[0];
+              handleBrandingAssetUpload(assetType, nextFile);
+              event.target.value = '';
+            }}
+          />
+        </label>
+        <p className="mt-3 text-xs text-gray-500">
+          {isRTL
+            ? 'تُحفظ هذه الصورة في إعدادات المؤسسة وتظهر تلقائياً عند إنشاء قالب جديد.'
+            : 'This image is saved in organization branding and will appear again in new templates.'}
+        </p>
+      </div>
+    );
+
+    return (
+      <Card title={isRTL ? 'الهوية والألوان' : 'Branding and Colors'} className="border border-primary/10 bg-white">
+        <div className="grid gap-3 md:grid-cols-2">
           <button
-            key={themeKey}
             type="button"
-            onClick={() => applyTheme(themeKey)}
-            className="rounded-[22px] border border-gray-200 bg-white p-4 text-left transition hover:border-primary hover:shadow-md"
+            onClick={() => applyThemeConfig(systemTheme)}
+            className="rounded-[22px] border border-primary/20 bg-primary/5 p-4 text-left transition hover:border-primary hover:shadow-md"
           >
             <div className="flex items-center gap-2">
-              {[theme.colors.primary, theme.colors.secondary, theme.footer.backgroundColor].map((color) => (
-                <span key={`${themeKey}_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
+              {[systemTheme.colors.primary, systemTheme.colors.secondary, systemTheme.footer.backgroundColor].map((color) => (
+                <span key={`system_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
               ))}
             </div>
-            <div className="mt-3 font-semibold text-gray-900">{isRTL ? theme.labelAr : theme.label}</div>
+            <div className="mt-3 font-semibold text-gray-900">{systemTheme.label}</div>
           </button>
-        ))}
-      </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <ColorInput
-          label={isRTL ? 'اللون الرئيسي' : 'Primary color'}
-          value={formData.pdfStyle.branding?.primaryColor || organization?.branding?.primaryColor || '#d4b900'}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: { ...prev.pdfStyle.branding, primaryColor: value },
-              colors: { ...prev.pdfStyle.colors, primary: value }
-            })
-          }))}
-        />
-        <ColorInput
-          label={isRTL ? 'لون النص' : 'Body text color'}
-          value={formData.pdfStyle.colors?.text || '#111827'}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              colors: { ...prev.pdfStyle.colors, text: value }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'اسم الشركة بالإنجليزية' : 'Company name in English'}
-          value={formData.pdfStyle.branding?.companyName?.en || ''}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: {
-                ...prev.pdfStyle.branding,
-                companyName: { ...prev.pdfStyle.branding.companyName, en: value }
+          {Object.entries(THEMES).map(([themeKey, theme]) => (
+            <button
+              key={themeKey}
+              type="button"
+              onClick={() => applyTheme(themeKey)}
+              className="rounded-[22px] border border-gray-200 bg-white p-4 text-left transition hover:border-primary hover:shadow-md"
+            >
+              <div className="flex items-center gap-2">
+                {[theme.colors.primary, theme.colors.secondary, theme.footer.backgroundColor].map((color) => (
+                  <span key={`${themeKey}_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
+                ))}
+              </div>
+              <div className="mt-3 font-semibold text-gray-900">{isRTL ? theme.labelAr : theme.label}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <ColorInput
+                label={isRTL ? 'اللون الرئيسي' : 'Primary color'}
+                value={formData.pdfStyle.branding?.primaryColor || organization?.branding?.primaryColor || '#d4b900'}
+                onChange={(value) => setFormData((prev) => ({
+                  ...prev,
+                  pdfStyle: normalizePdfStyle({
+                    ...prev.pdfStyle,
+                    branding: { ...prev.pdfStyle.branding, primaryColor: value },
+                    colors: { ...prev.pdfStyle.colors, primary: value }
+                  })
+                }))}
+              />
+              <ColorInput
+                label={isRTL ? 'لون النص' : 'Body text color'}
+                value={formData.pdfStyle.colors?.text || '#111827'}
+                onChange={(value) => setFormData((prev) => ({
+                  ...prev,
+                  pdfStyle: normalizePdfStyle({
+                    ...prev.pdfStyle,
+                    colors: { ...prev.pdfStyle.colors, text: value }
+                  })
+                }))}
+              />
+              <TextInput
+                label={isRTL ? 'اسم الشركة بالإنجليزية' : 'Company name in English'}
+                value={formData.pdfStyle.branding?.companyName?.en || ''}
+                onChange={(value) => updateBrandingConfig({
+                  companyName: { ...formData.pdfStyle.branding.companyName, en: value }
+                })}
+              />
+              <TextInput
+                label={isRTL ? 'اسم الشركة بالعربية' : 'Company name in Arabic'}
+                value={formData.pdfStyle.branding?.companyName?.ar || ''}
+                dir="rtl"
+                onChange={(value) => updateBrandingConfig({
+                  companyName: mirrorArabicToEnglish(formData.pdfStyle.branding.companyName, value)
+                })}
+              />
+              <TextInput
+                label={isRTL ? 'رقم الهاتف' : 'Phone number'}
+                value={formData.pdfStyle.footer?.phoneNumber || formData.pdfStyle.branding?.companyPhone || ''}
+                onChange={(value) => setFormData((prev) => ({
+                  ...prev,
+                  pdfStyle: normalizePdfStyle({
+                    ...prev.pdfStyle,
+                    branding: { ...prev.pdfStyle.branding, companyPhone: value },
+                    footer: { ...prev.pdfStyle.footer, phoneNumber: value }
+                  })
+                }))}
+              />
+              <TextInput
+                label={isRTL ? 'عنوان الشركة بالإنجليزية' : 'Company address in English'}
+                value={formData.pdfStyle.branding?.companyAddress?.en || ''}
+                onChange={(value) => updateBrandingConfig({
+                  companyAddress: { ...formData.pdfStyle.branding.companyAddress, en: value }
+                })}
+              />
+              <TextInput
+                label={isRTL ? 'عنوان الشركة بالعربية' : 'Company address in Arabic'}
+                value={formData.pdfStyle.branding?.companyAddress?.ar || ''}
+                dir="rtl"
+                onChange={(value) => updateBrandingConfig({
+                  companyAddress: mirrorArabicToEnglish(formData.pdfStyle.branding.companyAddress, value)
+                })}
+              />
+              <TextInput
+                label={isRTL ? 'نص QR أو الرابط' : 'QR / barcode text or URL'}
+                value={formData.pdfStyle.footer?.qrCodeValue || ''}
+                onChange={(value) => updateFooterConfig({ qrCodeValue: value })}
+              />
+              <SelectField
+                label={isRTL ? 'قالب التذييل' : 'Footer template'}
+                value={formData.pdfStyle.footer?.template || 'classic'}
+                onChange={(value) => updateFooterConfig({ template: value })}
+                options={FOOTER_TEMPLATE_OPTIONS}
+                isRTL={isRTL}
+              />
+              <SelectField
+                label={isRTL ? 'موضع QR' : 'QR position'}
+                value={formData.pdfStyle.footer?.qrCodePosition || 'center'}
+                onChange={(value) => updateFooterConfig({ qrCodePosition: value })}
+                options={[
+                  { value: 'left', label: 'Left', labelAr: 'يسار' },
+                  { value: 'center', label: 'Center', labelAr: 'وسط' },
+                  { value: 'right', label: 'Right', labelAr: 'يمين' }
+                ]}
+                isRTL={isRTL}
+              />
+              <NumberInput
+                label={isRTL ? 'حجم الشعار (px)' : 'Logo size (px)'}
+                value={logoSize}
+                min={24}
+                max={160}
+                onChange={(value) => setFormData((prev) => ({
+                  ...prev,
+                  pdfStyle: normalizePdfStyle({
+                    ...prev.pdfStyle,
+                    header: { ...prev.pdfStyle.header, logoSize: value }
+                  })
+                }))}
+              />
+              <NumberInput
+                label={isRTL ? 'حجم العلامة المائية (%)' : 'Watermark size (%)'}
+                value={watermarkSize}
+                min={20}
+                max={100}
+                onChange={(value) => updateBrandingConfig({ watermarkSize: value })}
+              />
+              <NumberInput
+                label={isRTL ? 'شفافية العلامة المائية (%)' : 'Watermark opacity (%)'}
+                value={watermarkOpacity}
+                min={0}
+                max={100}
+                onChange={(value) => updateBrandingConfig({ watermarkOpacity: value })}
+              />
+              <NumberInput
+                label={isRTL ? 'حجم QR (px)' : 'QR size (px)'}
+                value={qrCodeSize}
+                min={48}
+                max={160}
+                onChange={(value) => updateFooterConfig({ qrCodeSize: value })}
+              />
+              <TextAreaInput
+                label={isRTL ? 'نص التذييل بالإنجليزية' : 'Footer text in English'}
+                value={formData.pdfStyle.footer?.content?.en || ''}
+                rows={2}
+                onChange={(value) => updateFooterConfig({
+                  content: { ...formData.pdfStyle.footer.content, en: value }
+                })}
+              />
+              <TextAreaInput
+                label={isRTL ? 'نص التذييل بالعربية' : 'Footer text in Arabic'}
+                value={formData.pdfStyle.footer?.content?.ar || ''}
+                rows={2}
+                dir="rtl"
+                onChange={(value) => updateFooterConfig({
+                  content: mirrorArabicToEnglish(formData.pdfStyle.footer.content, value)
+                })}
+              />
+            </div>
+
+            <div className="rounded-3xl border border-primary/10 bg-primary/5 p-5">
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-gray-900">
+                  {isRTL ? 'إعدادات العرض والتذييل' : 'Display and Footer Controls'}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isRTL
+                    ? 'تحكم في إظهار الشعار والعنوان وQR والهاتف وروابط التواصل في العرض النهائي.'
+                    : 'Control logo, title, QR, phone, and social links in the final document.'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <Checkbox
+                  label={isRTL ? 'تفعيل الرأس' : 'Enable header'}
+                  checked={formData.pdfStyle.header.enabled}
+                  onChange={(checked) => setFormData((prev) => ({
+                    ...prev,
+                    pdfStyle: normalizePdfStyle({
+                      ...prev.pdfStyle,
+                      header: { ...prev.pdfStyle.header, enabled: checked }
+                    })
+                  }))}
+                />
+                <Checkbox
+                  label={isRTL ? 'تفعيل التذييل' : 'Enable footer'}
+                  checked={formData.pdfStyle.footer.enabled}
+                  onChange={(checked) => updateFooterConfig({ enabled: checked })}
+                />
+                <Checkbox
+                  label={isRTL ? 'إظهار الشعار' : 'Show logo'}
+                  checked={formData.pdfStyle.header.showLogo !== false}
+                  onChange={(checked) => setFormData((prev) => ({
+                    ...prev,
+                    pdfStyle: normalizePdfStyle({
+                      ...prev.pdfStyle,
+                      header: { ...prev.pdfStyle.header, showLogo: checked }
+                    })
+                  }))}
+                />
+                <Checkbox
+                  label={isRTL ? 'إظهار عنوان النموذج' : 'Show template title'}
+                  checked={formData.pdfStyle.header.showTitle !== false}
+                  onChange={(checked) => setFormData((prev) => ({
+                    ...prev,
+                    pdfStyle: normalizePdfStyle({
+                      ...prev.pdfStyle,
+                      header: { ...prev.pdfStyle.header, showTitle: checked }
+                    })
+                  }))}
+                />
+                <Checkbox
+                  label={isRTL ? 'إظهار QR في التذييل' : 'Show QR in footer'}
+                  checked={formData.pdfStyle.footer.showQRCode || false}
+                  onChange={(checked) => updateFooterConfig({ showQRCode: checked })}
+                />
+                <Checkbox
+                  label={isRTL ? 'إظهار الهاتف في التذييل' : 'Show phone in footer'}
+                  checked={formData.pdfStyle.footer.showPhoneNumber || false}
+                  onChange={(checked) => updateFooterConfig({ showPhoneNumber: checked })}
+                />
+                <Checkbox
+                  label={isRTL ? 'إظهار روابط التواصل' : 'Show social icons'}
+                  checked={formData.pdfStyle.footer.showSocialIcons || false}
+                  onChange={(checked) => updateFooterConfig({ showSocialIcons: checked })}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-primary/10 bg-primary/5 p-5">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">
+                    {isRTL ? 'روابط التواصل' : 'Social Links'}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {isRTL
+                      ? 'أضف روابط فيسبوك أو إنستغرام أو الموقع، وستصبح الأيقونات قابلة للنقر في صفحة العرض.'
+                      : 'Add website or social URLs, and the icons will be clickable in the rendered form.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addFooterSocialLink}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-sm font-semibold text-primary shadow-sm transition hover:border-primary hover:shadow-md"
+                >
+                  <FaPlus />
+                  <span>{isRTL ? 'إضافة رابط' : 'Add link'}</span>
+                </button>
+              </div>
+
+              {socialLinks.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-primary/20 bg-white px-4 py-6 text-sm text-gray-500">
+                  {isRTL ? 'لم تتم إضافة أي روابط بعد.' : 'No social links added yet.'}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {socialLinks.map((link) => (
+                    <div key={link.id} className="grid gap-3 rounded-2xl border border-white/70 bg-white p-4 md:grid-cols-[180px_minmax(0,1fr)_52px] md:items-end">
+                      <SelectField
+                        label={isRTL ? 'النوع' : 'Type'}
+                        value={link.type}
+                        onChange={(value) => updateFooterSocialLink(link.id, { type: value })}
+                        options={SOCIAL_LINK_TYPE_OPTIONS}
+                        isRTL={isRTL}
+                      />
+                      <TextInput
+                        label={isRTL ? 'الرابط' : 'URL'}
+                        value={link.url}
+                        onChange={(value) => updateFooterSocialLink(link.id, { url: value })}
+                        placeholder={link.type === 'email' ? 'name@example.com' : 'https://example.com'}
+                        dir="ltr"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => deleteFooterSocialLink(link.id)}
+                        className="inline-flex h-12 items-center justify-center rounded-2xl border border-red-200 text-red-600 transition hover:bg-red-50"
+                        title={isRTL ? 'حذف الرابط' : 'Delete link'}
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {renderAssetCard({
+              assetType: 'logo',
+              title: isRTL ? 'شعار الشركة' : 'Company Logo',
+              description: isRTL ? 'ارفع الشعار مرة واحدة ليُعاد استخدامه في القوالب الجديدة.' : 'Upload once and reuse it in future templates.',
+              previewUrl: currentLogoUrl,
+              previewStyle: { maxHeight: `${logoSize}px` }
+            })}
+            {renderAssetCard({
+              assetType: 'watermark',
+              title: isRTL ? 'الصورة المائية' : 'Watermark Image',
+              description: isRTL ? 'تظهر خلف المستند ويمكن تغييرها لاحقاً بدون إعادة رفعها لكل قالب.' : 'Used behind the document and reused without re-uploading for every template.',
+              previewUrl: currentWatermarkUrl,
+              previewClassName: 'opacity-30',
+              previewStyle: {
+                maxHeight: `${Math.max(48, Math.round((watermarkSize / 100) * 160))}px`,
+                opacity: Math.max(0.05, watermarkOpacity / 100)
               }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'اسم الشركة بالعربية' : 'Company name in Arabic'}
-          value={formData.pdfStyle.branding?.companyName?.ar || ''}
-          dir="rtl"
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: {
-                ...prev.pdfStyle.branding,
-                companyName: mirrorArabicToEnglish(prev.pdfStyle.branding.companyName, value)
-              }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'رابط الشعار' : 'Logo URL'}
-          value={formData.pdfStyle.branding?.logoUrl || ''}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: { ...prev.pdfStyle.branding, logoUrl: value }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'رقم الهاتف' : 'Phone number'}
-          value={formData.pdfStyle.branding?.companyPhone || ''}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: { ...prev.pdfStyle.branding, companyPhone: value },
-              footer: { ...prev.pdfStyle.footer, phoneNumber: value }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'عنوان الشركة بالإنجليزية' : 'Company address in English'}
-          value={formData.pdfStyle.branding?.companyAddress?.en || ''}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: {
-                ...prev.pdfStyle.branding,
-                companyAddress: { ...prev.pdfStyle.branding.companyAddress, en: value }
-              }
-            })
-          }))}
-        />
-        <TextInput
-          label={isRTL ? 'عنوان الشركة بالعربية' : 'Company address in Arabic'}
-          value={formData.pdfStyle.branding?.companyAddress?.ar || ''}
-          dir="rtl"
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              branding: {
-                ...prev.pdfStyle.branding,
-                companyAddress: mirrorArabicToEnglish(prev.pdfStyle.branding.companyAddress, value)
-              }
-            })
-          }))}
-        />
-        <TextAreaInput
-          label={isRTL ? 'نص التذييل بالإنجليزية' : 'Footer text in English'}
-          value={formData.pdfStyle.footer?.content?.en || ''}
-          rows={2}
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              footer: {
-                ...prev.pdfStyle.footer,
-                content: { ...prev.pdfStyle.footer.content, en: value }
-              }
-            })
-          }))}
-        />
-        <TextAreaInput
-          label={isRTL ? 'نص التذييل بالعربية' : 'Footer text in Arabic'}
-          value={formData.pdfStyle.footer?.content?.ar || ''}
-          rows={2}
-          dir="rtl"
-          onChange={(value) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              footer: {
-                ...prev.pdfStyle.footer,
-                content: mirrorArabicToEnglish(prev.pdfStyle.footer.content, value)
-              }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'تفعيل الرأس' : 'Enable header'}
-          checked={formData.pdfStyle.header.enabled}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              header: { ...prev.pdfStyle.header, enabled: checked }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'تفعيل التذييل' : 'Enable footer'}
-          checked={formData.pdfStyle.footer.enabled}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              footer: { ...prev.pdfStyle.footer, enabled: checked }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'إظهار الشعار' : 'Show logo'}
-          checked={formData.pdfStyle.header.showLogo !== false}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              header: { ...prev.pdfStyle.header, showLogo: checked }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'إظهار عنوان النموذج' : 'Show template title'}
-          checked={formData.pdfStyle.header.showTitle !== false}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              header: { ...prev.pdfStyle.header, showTitle: checked }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'إظهار QR في التذييل' : 'Show QR in footer'}
-          checked={formData.pdfStyle.footer.showQRCode || false}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              footer: { ...prev.pdfStyle.footer, showQRCode: checked }
-            })
-          }))}
-        />
-        <Checkbox
-          label={isRTL ? 'إظهار الهاتف في التذييل' : 'Show phone in footer'}
-          checked={formData.pdfStyle.footer.showPhoneNumber || false}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              footer: { ...prev.pdfStyle.footer, showPhoneNumber: checked }
-            })
-          }))}
-        />
-      </div>
-    </Card>
-  );
+            })}
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   const renderPreviewPanel = () => (
     <TemplateBuilderPreview
