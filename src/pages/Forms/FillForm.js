@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -37,13 +37,37 @@ const FillForm = () => {
   });
   const [errors, setErrors] = useState({});
   const [tableRowCounts, setTableRowCounts] = useState({}); // Track number of rows per section
+  const [imageUploads, setImageUploads] = useState({});
+  const [imagePreviews, setImagePreviews] = useState({});
+  const imagePreviewUrlsRef = useRef({});
 
   useEffect(() => {
     fetchTemplate();
   }, [templateId]);
 
+  useEffect(() => () => {
+    Object.values(imagePreviewUrlsRef.current).forEach((url) => {
+      if (typeof url === 'string' && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+  }, []);
+
+  const resetImageSelections = () => {
+    Object.values(imagePreviewUrlsRef.current).forEach((url) => {
+      if (typeof url === 'string' && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+
+    imagePreviewUrlsRef.current = {};
+    setImageUploads({});
+    setImagePreviews({});
+  };
+
   const fetchTemplate = async () => {
     try {
+      resetImageSelections();
       const response = await api.get(`/form-templates/${templateId}`);
       setTemplate(response.data.data);
 
@@ -105,9 +129,23 @@ const FillForm = () => {
         return '';
       case 'datetime':
         return '';
+      case 'image':
+        return '';
       default:
         return '';
     }
+  };
+
+  const clearFieldError = (key) => {
+    if (!errors[key]) {
+      return;
+    }
+
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[key];
+      return newErrors;
+    });
   };
 
   const handleInputChange = (sectionId, fieldKey, value, fieldType) => {
@@ -131,14 +169,69 @@ const FillForm = () => {
       }
     }));
 
-    // Clear error for this field
-    if (errors[key]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[key];
-        return newErrors;
-      });
+    clearFieldError(key);
+  };
+
+  const handleImageChange = (sectionId, fieldKey, file) => {
+    const key = `${sectionId}.${fieldKey}`;
+    const previousPreviewUrl = imagePreviewUrlsRef.current[key];
+
+    if (previousPreviewUrl && previousPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previousPreviewUrl);
     }
+
+    setFormData(prev => ({
+      ...prev,
+      values: {
+        ...prev.values,
+        [key]: ''
+      }
+    }));
+
+    setImageUploads(prev => {
+      const next = { ...prev };
+
+      if (file) {
+        next[key] = file;
+      } else {
+        delete next[key];
+      }
+
+      return next;
+    });
+
+    setImagePreviews(prev => {
+      const next = { ...prev };
+
+      if (file) {
+        next[key] = URL.createObjectURL(file);
+      } else {
+        delete next[key];
+      }
+
+      imagePreviewUrlsRef.current = next;
+      return next;
+    });
+
+    clearFieldError(key);
+  };
+
+  const hasImageValue = (key) => {
+    const currentValue = formData.values[key];
+
+    if (imageUploads[key]) {
+      return true;
+    }
+
+    if (typeof currentValue === 'string') {
+      return currentValue.trim() !== '';
+    }
+
+    if (currentValue && typeof currentValue === 'object') {
+      return Boolean(currentValue.url || currentValue.path);
+    }
+
+    return false;
   };
 
   const validateForm = () => {
@@ -149,6 +242,13 @@ const FillForm = () => {
         if (field.required && field.type !== 'static_text') {
           const key = `${section.id}.${field.key}`;
           const value = formData.values[key];
+
+          if (field.type === 'image') {
+            if (!hasImageValue(key)) {
+              newErrors[key] = t('common.required');
+            }
+            return;
+          }
 
           if (value === undefined || value === null || value === '') {
             newErrors[key] = t('common.required');
@@ -169,14 +269,19 @@ const FillForm = () => {
 
     setSaving(true);
     try {
-      const payload = {
-        templateId: template._id,
-        department: formData.department,
-        date: formData.date,
-        shift: formData.shift,
-        values: formData.values,
-        status
-      };
+      const payload = new FormData();
+      payload.append('templateId', template._id);
+      payload.append('department', formData.department);
+      payload.append('date', formData.date);
+      payload.append('shift', formData.shift);
+      payload.append('status', status);
+      payload.append('values', JSON.stringify(formData.values));
+
+      Object.entries(imageUploads).forEach(([fieldKey, file]) => {
+        if (file) {
+          payload.append(fieldKey, file);
+        }
+      });
 
       await api.post('/form-instances', payload);
       showSuccess(t(status === 'draft' ? 'forms.savedAsDraft' : 'forms.submittedSuccessfully'));
@@ -195,6 +300,8 @@ const FillForm = () => {
     const hasError = !!errors[key];
     const label = isRTL ? field.label.ar : field.label.en;
     const placeholder = field.placeholder ? (isRTL ? field.placeholder.ar : field.placeholder.en) : '';
+    const imagePreview = imagePreviews[key]
+      || (value && typeof value === 'object' ? (value.url || value.path || '') : '');
 
     const baseInputClasses = `w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${hasError ? 'border-primary' : 'border-gray-300'
       }`;
@@ -321,6 +428,51 @@ const FillForm = () => {
             className={baseInputClasses}
             required={field.required}
           />
+        );
+
+      case 'image':
+        return (
+          <div className="space-y-3">
+            {imagePreview && (
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                <img
+                  src={imagePreview}
+                  alt={label}
+                  className="h-56 w-full rounded-xl bg-white object-contain"
+                />
+                <p className={`mt-2 text-xs text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {imageUploads[key]?.name || value?.filename || (isRTL ? 'صورة جاهزة للرفع' : 'Image ready to upload')}
+                </p>
+              </div>
+            )}
+
+            <label className="block cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  handleImageChange(section.id, field.key, e.target.files?.[0] || null);
+                  e.target.value = '';
+                }}
+              />
+              <div className={`flex items-center justify-center rounded-2xl border-2 border-dashed px-4 py-4 text-sm font-semibold transition ${hasError ? 'border-primary bg-primary/5 text-primary' : 'border-gray-300 bg-white text-gray-600 hover:border-primary hover:bg-primary/5 hover:text-primary'}`}>
+                {imagePreview
+                  ? (isRTL ? 'تغيير الصورة' : 'Change image')
+                  : (isRTL ? 'اختر صورة' : 'Choose image')}
+              </div>
+            </label>
+
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={() => handleImageChange(section.id, field.key, null)}
+                className={`text-sm font-semibold text-red-600 hover:text-red-700 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                {isRTL ? 'إزالة الصورة' : 'Remove image'}
+              </button>
+            )}
+          </div>
         );
 
       default:

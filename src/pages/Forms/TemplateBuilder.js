@@ -866,6 +866,7 @@ const TemplateBuilder = () => {
             label={isRTL ? 'إظهار بيانات النموذج' : 'Show metadata block'}
             checked={formData.pdfStyle.metadata?.enabled !== false}
             onChange={(checked) => updateMetadataConfig({ enabled: checked })}
+            isRTL={isRTL}
           />
         </div>
 
@@ -875,41 +876,49 @@ const TemplateBuilder = () => {
               label={isRTL ? 'رقم النموذج' : 'Form ID'}
               checked={formData.pdfStyle.metadata?.showFormId !== false}
               onChange={(checked) => updateMetadataConfig({ showFormId: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'التاريخ' : 'Date'}
               checked={formData.pdfStyle.metadata?.showDate !== false}
               onChange={(checked) => updateMetadataConfig({ showDate: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'الوردية' : 'Shift'}
               checked={formData.pdfStyle.metadata?.showShift !== false}
               onChange={(checked) => updateMetadataConfig({ showShift: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'القسم' : 'Department'}
               checked={formData.pdfStyle.metadata?.showDepartment !== false}
               onChange={(checked) => updateMetadataConfig({ showDepartment: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'تم الملء بواسطة' : 'Filled By'}
               checked={formData.pdfStyle.metadata?.showFilledBy !== false}
               onChange={(checked) => updateMetadataConfig({ showFilledBy: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'تاريخ الإرسال' : 'Submitted On'}
               checked={formData.pdfStyle.metadata?.showSubmittedOn !== false}
               onChange={(checked) => updateMetadataConfig({ showSubmittedOn: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'تم الاعتماد بواسطة' : 'Approved By'}
               checked={formData.pdfStyle.metadata?.showApprovedBy !== false}
               onChange={(checked) => updateMetadataConfig({ showApprovedBy: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'تاريخ الاعتماد' : 'Approval Date'}
               checked={formData.pdfStyle.metadata?.showApprovalDate !== false}
               onChange={(checked) => updateMetadataConfig({ showApprovalDate: checked })}
+              isRTL={isRTL}
             />
           </div>
         )}
@@ -932,6 +941,7 @@ const TemplateBuilder = () => {
             label={isRTL ? 'إظهار قسم التوقيعات' : 'Show signature block'}
             checked={formData.pdfStyle.signature?.enabled !== false}
             onChange={(checked) => updateSignatureConfig({ enabled: checked })}
+            isRTL={isRTL}
           />
         </div>
 
@@ -941,11 +951,13 @@ const TemplateBuilder = () => {
               label={isRTL ? 'تم الإعداد بواسطة' : 'Prepared By'}
               checked={formData.pdfStyle.signature?.showPreparedBy !== false}
               onChange={(checked) => updateSignatureConfig({ showPreparedBy: checked })}
+              isRTL={isRTL}
             />
             <Checkbox
               label={isRTL ? 'تم الاعتماد بواسطة' : 'Approved By'}
               checked={formData.pdfStyle.signature?.showApprovedBy !== false}
               onChange={(checked) => updateSignatureConfig({ showApprovedBy: checked })}
+              isRTL={isRTL}
             />
           </div>
         )}
@@ -1335,6 +1347,7 @@ const TemplateBuilder = () => {
                 <Checkbox
                   label={isRTL ? 'تفعيل الرأس' : 'Enable header'}
                   checked={formData.pdfStyle.header.enabled}
+                  isRTL={isRTL}
                   onChange={(checked) => setFormData((prev) => ({
                     ...prev,
                     pdfStyle: normalizePdfStyle({
@@ -1346,11 +1359,13 @@ const TemplateBuilder = () => {
                 <Checkbox
                   label={isRTL ? 'تفعيل التذييل' : 'Enable footer'}
                   checked={formData.pdfStyle.footer.enabled}
+                  isRTL={isRTL}
                   onChange={(checked) => updateFooterConfig({ enabled: checked })}
                 />
                 <Checkbox
                   label={isRTL ? 'إظهار الشعار' : 'Show logo'}
                   checked={formData.pdfStyle.header.showLogo !== false}
+                  isRTL={isRTL}
                   onChange={(checked) => setFormData((prev) => ({
                     ...prev,
                     pdfStyle: normalizePdfStyle({
@@ -1362,6 +1377,7 @@ const TemplateBuilder = () => {
                 <Checkbox
                   label={isRTL ? 'إظهار عنوان النموذج' : 'Show template title'}
                   checked={formData.pdfStyle.header.showTitle !== false}
+                  isRTL={isRTL}
                   onChange={(checked) => setFormData((prev) => ({
                     ...prev,
                     pdfStyle: normalizePdfStyle({
@@ -1373,16 +1389,19 @@ const TemplateBuilder = () => {
                 <Checkbox
                   label={isRTL ? 'إظهار QR في التذييل' : 'Show QR in footer'}
                   checked={formData.pdfStyle.footer.showQRCode || false}
+                  isRTL={isRTL}
                   onChange={(checked) => updateFooterConfig({ showQRCode: checked })}
                 />
                 <Checkbox
                   label={isRTL ? 'إظهار الهاتف في التذييل' : 'Show phone in footer'}
                   checked={formData.pdfStyle.footer.showPhoneNumber || false}
+                  isRTL={isRTL}
                   onChange={(checked) => updateFooterConfig({ showPhoneNumber: checked })}
                 />
                 <Checkbox
                   label={isRTL ? 'إظهار روابط التواصل' : 'Show social icons'}
                   checked={formData.pdfStyle.footer.showSocialIcons || false}
+                  isRTL={isRTL}
                   onChange={(checked) => updateFooterConfig({ showSocialIcons: checked })}
                 />
               </div>

@@ -42,6 +42,7 @@ const CreateTemplate = () => {
     { value: 'date', label: 'Date' },
     { value: 'time', label: 'Time' },
     { value: 'datetime', label: 'DateTime' },
+    { value: 'image', label: 'Image Upload' },
     { value: 'file', label: 'File Upload' }
   ];
 

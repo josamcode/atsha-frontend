@@ -17,6 +17,7 @@ export const FIELD_TYPE_OPTIONS = [
   { value: 'date', label: 'Date', labelAr: 'تاريخ' },
   { value: 'time', label: 'Time', labelAr: 'وقت' },
   { value: 'datetime', label: 'Date & time', labelAr: 'تاريخ ووقت' },
+  { value: 'image', label: 'Image', labelAr: 'صورة' },
   { value: 'file', label: 'File', labelAr: 'ملف' }
 ];
 
@@ -240,6 +241,29 @@ const normalizeFooterTemplate = (value) => (
 export const cloneData = (value) => JSON.parse(JSON.stringify(value));
 
 export const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const buildSampleImageDataUrl = (isRTL) => {
+  const title = isRTL ? 'معاينة صورة' : 'Image Preview';
+  const subtitle = isRTL ? 'مثال افتراضي' : 'Sample Placeholder';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fff7d6" />
+          <stop offset="100%" stop-color="#f3f4f6" />
+        </linearGradient>
+      </defs>
+      <rect width="640" height="420" rx="28" fill="url(#bg)" />
+      <rect x="32" y="32" width="576" height="356" rx="24" fill="#ffffff" stroke="#d1d5db" stroke-width="3" />
+      <circle cx="190" cy="168" r="46" fill="#d4b900" opacity="0.35" />
+      <path d="M104 302l104-92 72 58 88-96 168 130H104z" fill="#d4b900" opacity="0.7" />
+      <text x="320" y="118" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" font-weight="700" fill="#111827">${title}</text>
+      <text x="320" y="154" text-anchor="middle" font-size="22" font-family="Arial, sans-serif" fill="#6b7280">${subtitle}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
 
 export const getLocalizedText = (value, isRTL, fallback = '') => {
   if (typeof value === 'string') {
@@ -539,6 +563,34 @@ export const getDefaultTemplate = (branding = {}) => ({
   pdfStyle: getDefaultPdfStyle(branding)
 });
 
+export const getDefaultFieldLayout = () => ({
+  width: 'auto',
+  height: 'auto',
+  padding: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  },
+  margin: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0
+  },
+  alignment: 'left',
+  lineSpacing: 1.2,
+  fontSize: 10,
+  imageWidth: 220,
+  imageHeight: 160,
+  objectFit: 'cover',
+  borderRadius: 16,
+  borderWidth: 0,
+  borderColor: '#d1d5db',
+  backgroundColor: '#f8fafc',
+  shadow: false
+});
+
 export const createField = (overrides = {}) => ({
   key: generateId('field'),
   label: { en: '', ar: '' },
@@ -557,7 +609,7 @@ export const createField = (overrides = {}) => ({
     bold: false,
     alignment: 'left'
   },
-  layout: {},
+  layout: getDefaultFieldLayout(),
   ...overrides
 });
 
@@ -848,6 +900,8 @@ export const getSampleValue = (fieldType, isRTL) => {
       return '08:30';
     case 'datetime':
       return '2026-03-09 08:30';
+    case 'image':
+      return buildSampleImageDataUrl(isRTL);
     case 'file':
       return isRTL ? 'مرفق.pdf' : 'attachment.pdf';
     default:
@@ -890,7 +944,16 @@ export const normalizeField = (field, index) => ({
     ...(field?.pdfDisplay || {})
   },
   layout: {
-    ...(field?.layout || {})
+    ...getDefaultFieldLayout(),
+    ...(field?.layout || {}),
+    padding: {
+      ...getDefaultFieldLayout().padding,
+      ...(field?.layout?.padding || {})
+    },
+    margin: {
+      ...getDefaultFieldLayout().margin,
+      ...(field?.layout?.margin || {})
+    }
   }
 });
 

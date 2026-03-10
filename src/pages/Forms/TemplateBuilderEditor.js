@@ -103,17 +103,48 @@ export const ColorInput = ({ label, value, onChange }) => (
   </div>
 );
 
-export const Checkbox = ({ label, checked, onChange }) => (
-  <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(event) => onChange(event.target.checked)}
-      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-    />
-    <span>{label}</span>
-  </label>
-);
+export const Checkbox = ({ label, checked, onChange, isRTL = false, disabled = false }) => {
+  const stateLabel = checked ? (isRTL ? 'مفعل' : 'On') : (isRTL ? 'متوقف' : 'Off');
+  const knobTranslateClass = isRTL
+    ? (checked ? '-translate-x-5' : 'translate-x-0')
+    : (checked ? 'translate-x-5' : 'translate-x-0');
+
+  return (
+    <label
+      dir={isRTL ? 'rtl' : 'ltr'}
+      className={`inline-flex min-w-[180px] cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm transition focus-within:ring-2 focus-within:ring-primary/20 ${checked
+        ? 'border-primary/30 bg-primary/10'
+        : 'border-gray-200 bg-white hover:border-primary/20 hover:bg-primary/5'
+        } ${disabled ? 'cursor-not-allowed opacity-60' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        className="sr-only"
+      />
+      <div className={`min-w-0 flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <span className="block truncate font-semibold text-gray-800">{label}</span>
+      </div>
+      <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <span className={`text-xs font-bold ${checked ? 'text-primary' : 'text-gray-400'}`}>
+          {stateLabel}
+        </span>
+        <span
+          className={`relative inline-flex h-7 w-12 items-center rounded-full p-1 transition-colors ${checked
+            ? 'bg-primary shadow-[0_10px_24px_rgba(212,185,0,0.28)]'
+            : 'bg-slate-300'
+            }`}
+        >
+          <span
+            className={`absolute h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ease-out ${isRTL ? 'right-1' : 'left-1'} ${knobTranslateClass}`}
+          />
+        </span>
+      </div>
+    </label>
+  );
+};
 
 const COLUMN_WIDTH_OPTIONS = [
   { value: 'auto', label: 'Auto', labelAr: 'تلقائي' },
@@ -134,6 +165,16 @@ const COLUMN_ALIGNMENT_OPTIONS = [
   { value: 'center', label: 'Center', labelAr: 'وسط' },
   { value: 'right', label: 'Right', labelAr: 'يمين' }
 ];
+
+const IMAGE_FIT_OPTIONS = [
+  { value: 'cover', label: 'Cover', labelAr: 'تغطية' },
+  { value: 'contain', label: 'Contain', labelAr: 'احتواء' },
+  { value: 'fill', label: 'Fill', labelAr: 'تمدد' }
+];
+
+const TABLE_FIELD_TYPE_OPTIONS = FIELD_TYPE_OPTIONS.filter(
+  (option) => option.value !== 'static_text' && option.value !== 'image'
+);
 
 const getColumnWidthOptions = (value) => (
   COLUMN_WIDTH_OPTIONS.some((option) => option.value === value)
@@ -196,10 +237,10 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
     </div>
 
     <div className="mt-4 flex flex-wrap gap-4">
-      <Checkbox label={isRTL ? 'مطلوب' : 'Required'} checked={field.required || false} onChange={(checked) => onChange({ ...field, required: checked })} />
-      <Checkbox label={isRTL ? 'ظاهر' : 'Visible'} checked={field.visible !== false} onChange={(checked) => onChange({ ...field, visible: checked })} />
-      <Checkbox label={isRTL ? 'إظهار الاسم' : 'Show label'} checked={field.pdfDisplay?.showLabel !== false} onChange={(checked) => onChange({ ...field, pdfDisplay: { ...field.pdfDisplay, showLabel: checked } })} />
-      <Checkbox label={isRTL ? 'قيمة عريضة' : 'Bold value'} checked={field.pdfDisplay?.bold || false} onChange={(checked) => onChange({ ...field, pdfDisplay: { ...field.pdfDisplay, bold: checked } })} />
+      <Checkbox label={isRTL ? 'مطلوب' : 'Required'} checked={field.required || false} onChange={(checked) => onChange({ ...field, required: checked })} isRTL={isRTL} />
+      <Checkbox label={isRTL ? 'ظاهر' : 'Visible'} checked={field.visible !== false} onChange={(checked) => onChange({ ...field, visible: checked })} isRTL={isRTL} />
+      <Checkbox label={isRTL ? 'إظهار الاسم' : 'Show label'} checked={field.pdfDisplay?.showLabel !== false} onChange={(checked) => onChange({ ...field, pdfDisplay: { ...field.pdfDisplay, showLabel: checked } })} isRTL={isRTL} />
+      <Checkbox label={isRTL ? 'قيمة عريضة' : 'Bold value'} checked={field.pdfDisplay?.bold || false} onChange={(checked) => onChange({ ...field, pdfDisplay: { ...field.pdfDisplay, bold: checked } })} isRTL={isRTL} />
     </div>
 
     {field.type === 'select' && (
@@ -274,6 +315,65 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
         </div>
       </div>
     )}
+
+    {field.type === 'image' && (
+      <div className="mt-4 rounded-2xl bg-primary/5 p-4">
+        <div className="mb-3 text-sm font-semibold text-gray-900">
+          {isRTL ? 'إعدادات الصورة' : 'Image settings'}
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <NumberInput
+            label={isRTL ? 'عرض الصورة' : 'Image width'}
+            value={field.layout?.imageWidth ?? 220}
+            min={40}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, imageWidth: value } })}
+          />
+          <NumberInput
+            label={isRTL ? 'ارتفاع الصورة' : 'Image height'}
+            value={field.layout?.imageHeight ?? 160}
+            min={40}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, imageHeight: value } })}
+          />
+          <SelectField
+            label={isRTL ? 'طريقة الملاءمة' : 'Object fit'}
+            value={field.layout?.objectFit || 'cover'}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, objectFit: value } })}
+            options={IMAGE_FIT_OPTIONS}
+            isRTL={isRTL}
+          />
+          <NumberInput
+            label={isRTL ? 'استدارة الحواف' : 'Border radius'}
+            value={field.layout?.borderRadius ?? 16}
+            min={0}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, borderRadius: value } })}
+          />
+          <NumberInput
+            label={isRTL ? 'سمك الإطار' : 'Border width'}
+            value={field.layout?.borderWidth ?? 0}
+            min={0}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, borderWidth: value } })}
+          />
+          <ColorInput
+            label={isRTL ? 'لون الإطار' : 'Border color'}
+            value={field.layout?.borderColor || '#d1d5db'}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, borderColor: value } })}
+          />
+          <ColorInput
+            label={isRTL ? 'لون الخلفية' : 'Background color'}
+            value={field.layout?.backgroundColor || '#f8fafc'}
+            onChange={(value) => onChange({ ...field, layout: { ...field.layout, backgroundColor: value } })}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-4">
+          <Checkbox
+            label={isRTL ? 'ظل خفيف' : 'Soft shadow'}
+            checked={field.layout?.shadow || false}
+            onChange={(checked) => onChange({ ...field, layout: { ...field.layout, shadow: checked } })}
+            isRTL={isRTL}
+          />
+        </div>
+      </div>
+    )}
   </div>
 );
 
@@ -311,7 +411,7 @@ const ChildColumnEditorCard = ({
           label={isRTL ? 'نوع البيانات' : 'Data type'}
           value={column.fieldType || 'text'}
           onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })}
-          options={FIELD_TYPE_OPTIONS.filter((option) => option.value !== 'static_text')}
+          options={TABLE_FIELD_TYPE_OPTIONS}
           isRTL={isRTL}
         />
         <SelectField
@@ -360,7 +460,7 @@ const ColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveD
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={column.label.en} onChange={(value) => onChange({ ...column, label: { ...column.label, en: value } })} />
         <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={column.label.ar} dir="rtl" onChange={(value) => onChange({ ...column, label: mirrorArabicToEnglish(column.label, value) })} />
-        <SelectField label={isRTL ? 'نوع البيانات' : 'Data type'} value={column.fieldType || 'text'} onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })} options={FIELD_TYPE_OPTIONS.filter((option) => option.value !== 'static_text')} isRTL={isRTL} />
+        <SelectField label={isRTL ? 'نوع البيانات' : 'Data type'} value={column.fieldType || 'text'} onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })} options={TABLE_FIELD_TYPE_OPTIONS} isRTL={isRTL} />
         <SelectField
           label={isRTL ? 'محاذاة' : 'Alignment'}
           value={column.alignment || 'left'}
@@ -583,10 +683,10 @@ const SectionEditor = ({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4">
-          <Checkbox label={isRTL ? 'إظهار القسم' : 'Show section'} checked={section.visible !== false} onChange={(checked) => onUpdateSection({ ...section, visible: checked })} />
-          <Checkbox label={isRTL ? 'إظهار عنوان القسم' : 'Show section title'} checked={section.advancedLayout?.styling?.showTitle !== false} onChange={(checked) => onUpdateSection({ ...section, advancedLayout: { ...section.advancedLayout, styling: { ...section.advancedLayout.styling, showTitle: checked } } })} />
-          <Checkbox label={isRTL ? 'إظهار الحدود' : 'Show border'} checked={section.pdfStyle?.showBorder !== false} onChange={(checked) => onUpdateSection({ ...section, pdfStyle: { ...section.pdfStyle, showBorder: checked } })} />
-          <Checkbox label={isRTL ? 'إظهار الخلفية' : 'Show background'} checked={section.pdfStyle?.showBackground || false} onChange={(checked) => onUpdateSection({ ...section, pdfStyle: { ...section.pdfStyle, showBackground: checked } })} />
+          <Checkbox label={isRTL ? 'إظهار القسم' : 'Show section'} checked={section.visible !== false} onChange={(checked) => onUpdateSection({ ...section, visible: checked })} isRTL={isRTL} />
+          <Checkbox label={isRTL ? 'إظهار عنوان القسم' : 'Show section title'} checked={section.advancedLayout?.styling?.showTitle !== false} onChange={(checked) => onUpdateSection({ ...section, advancedLayout: { ...section.advancedLayout, styling: { ...section.advancedLayout.styling, showTitle: checked } } })} isRTL={isRTL} />
+          <Checkbox label={isRTL ? 'إظهار الحدود' : 'Show border'} checked={section.pdfStyle?.showBorder !== false} onChange={(checked) => onUpdateSection({ ...section, pdfStyle: { ...section.pdfStyle, showBorder: checked } })} isRTL={isRTL} />
+          <Checkbox label={isRTL ? 'إظهار الخلفية' : 'Show background'} checked={section.pdfStyle?.showBackground || false} onChange={(checked) => onUpdateSection({ ...section, pdfStyle: { ...section.pdfStyle, showBackground: checked } })} isRTL={isRTL} />
         </div>
       </Card>
 
@@ -740,6 +840,7 @@ const SectionEditor = ({
                   <Checkbox
                     label={isRTL ? 'إظهار رأس الجدول' : 'Show header'}
                     checked={section.advancedLayout?.table?.showHeader !== false}
+                    isRTL={isRTL}
                     onChange={(checked) => onUpdateSection({
                       ...section,
                       advancedLayout: {
@@ -755,6 +856,7 @@ const SectionEditor = ({
                   <Checkbox
                     label={isRTL ? 'إظهار الحدود' : 'Show borders'}
                     checked={section.advancedLayout?.table?.showBorders !== false}
+                    isRTL={isRTL}
                     onChange={(checked) => onUpdateSection({
                       ...section,
                       advancedLayout: {
@@ -781,7 +883,7 @@ const SectionEditor = ({
               {layoutType === 'table' ? (isRTL ? 'أعمدة الجدول' : 'Table Columns') : (isRTL ? 'حقول القسم' : 'Section Fields')}
             </p>
             <h3 className="mt-1 text-xl font-bold text-gray-900">
-              {layoutType === 'table' ? (isRTL ? 'عدّل الأعمدة مباشرة' : 'Edit columns directly') : (isRTL ? 'أضف ونسّق الحقول بسرعة' : 'Add and style fields quickly')}
+              {layoutType === 'table' ? (isRTL ? 'عدّل الأعمدة مباشرة' : 'Edit columns directly') : (isRTL ? 'أضف ونسّق الحقول' : 'Add and style fields')}
             </h3>
           </div>
           {layoutType === 'table' ? (

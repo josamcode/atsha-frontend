@@ -151,6 +151,34 @@ const FormDocument = ({
     return formInstance.values[key];
   };
 
+  const getImageValueUrl = (value) => {
+    if (!value) {
+      return '';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (typeof value === 'object') {
+      return value.url || value.path || '';
+    }
+
+    return '';
+  };
+
+  const getFlexJustifyContent = (textAlign) => {
+    if (textAlign === 'center') {
+      return 'center';
+    }
+
+    if (textAlign === 'right') {
+      return 'flex-end';
+    }
+
+    return 'flex-start';
+  };
+
   // Helper function to format value based on type
   const formatValue = (value, type) => {
     if (value === undefined || value === null || value === '') return '-';
@@ -192,6 +220,8 @@ const FormDocument = ({
         }
       case 'number':
         return typeof value === 'number' ? value.toString() : value;
+      case 'image':
+        return getImageValueUrl(value) ? (value?.filename || (isRTL ? 'صورة' : 'Image')) : '-';
       default:
         return value;
     }
@@ -689,6 +719,14 @@ const FormDocument = ({
                     if (!showLabel && !showValue) return null;
 
                     const textAlign = resolveTextAlign(alignment);
+                    const imageSrc = field.type === 'image' ? getImageValueUrl(getFieldValue(section.id, field.key)) : '';
+                    const imageWidth = Math.max(Number(fieldLayout.imageWidth) || 220, 40);
+                    const imageHeight = Math.max(Number(fieldLayout.imageHeight) || 160, 40);
+                    const imageBorderRadius = Math.max(Number(fieldLayout.borderRadius) || 0, 0);
+                    const imageBorderWidth = Math.max(Number(fieldLayout.borderWidth) || 0, 0);
+                    const imageObjectFit = ['cover', 'contain', 'fill'].includes(fieldLayout.objectFit)
+                      ? fieldLayout.objectFit
+                      : 'cover';
 
                     return (
                       <div
@@ -719,7 +757,45 @@ const FormDocument = ({
                             {field.required && <span className="text-primary ml-1">*</span>}
                           </p>
                         )}
-                        {showValue && (
+                        {showValue && field.type === 'image' ? (
+                          imageSrc ? (
+                            <div
+                              className="flex"
+                              style={{
+                                justifyContent: getFlexJustifyContent(textAlign)
+                              }}
+                            >
+                              <img
+                                src={imageSrc}
+                                alt={isRTL ? field.label.ar : field.label.en}
+                                style={{
+                                  width: `${imageWidth}px`,
+                                  height: `${imageHeight}px`,
+                                  objectFit: imageObjectFit,
+                                  borderRadius: `${imageBorderRadius}px`,
+                                  border: imageBorderWidth > 0
+                                    ? `${imageBorderWidth}px solid ${fieldLayout.borderColor || '#d1d5db'}`
+                                    : 'none',
+                                  backgroundColor: fieldLayout.backgroundColor || '#f8fafc',
+                                  boxShadow: fieldLayout.shadow ? '0 16px 40px rgba(15, 23, 42, 0.14)' : 'none'
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <p
+                              className="whitespace-pre-wrap"
+                              style={{
+                                color: textColor,
+                                fontSize: `${fieldFontSize}px`,
+                                fontWeight: isBold ? 'bold' : 'normal',
+                                textAlign,
+                                lineHeight: fieldLayout.lineSpacing || 1.5
+                              }}
+                            >
+                              {isRTL ? 'لا توجد صورة مرفوعة' : 'No image uploaded'}
+                            </p>
+                          )
+                        ) : showValue ? (
                           <p
                             className="whitespace-pre-wrap"
                             style={{
@@ -737,7 +813,7 @@ const FormDocument = ({
                                 || '-')
                               : formatValue(getFieldValue(section.id, field.key), field.type)}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     );
                   };
