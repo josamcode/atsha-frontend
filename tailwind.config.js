@@ -8,10 +8,10 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#d4b900',
-          light: '#e8d768',
-          dark: '#9e8b00',
-          darko: '#9e8b00',
+          DEFAULT: '#10B981',
+          light: '#6EE7B7',
+          dark: '#059669',
+          darko: '#065F46',
         },
       },
       fontFamily: {

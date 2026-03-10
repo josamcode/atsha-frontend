@@ -7,6 +7,7 @@ import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
 import Button from '../../components/Common/Button';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
+import { getLeafTableColumns } from './templateBuilderUtils';
 import {
   FaFileAlt,
   FaSave,
@@ -60,8 +61,9 @@ const FillForm = () => {
         if (section.advancedLayout?.layoutType === 'table' &&
           section.advancedLayout?.table?.enabled &&
           section.advancedLayout?.table?.columns) {
+          const tableColumns = getLeafTableColumns(section.advancedLayout.table.columns);
           // Initialize only first row
-          section.advancedLayout.table.columns.forEach((col, colIdx) => {
+          tableColumns.forEach((col, colIdx) => {
             const cellKey = `${section.id}.row_0.col_${col.id || `col${colIdx + 1}`}`;
             initialValues[cellKey] = '';
           });
@@ -440,14 +442,14 @@ const FillForm = () => {
                               const currentRowCount = tableRowCounts[section.id] || 1;
                               // Remove this row's data
                               const newValues = { ...formData.values };
-                              section.advancedLayout.table.columns.forEach((col, colIdx) => {
+                              getLeafTableColumns(section.advancedLayout.table.columns).forEach((col, colIdx) => {
                                 const cellKey = `${section.id}.row_${rowIdx}.col_${col.id || `col${colIdx + 1}`}`;
                                 delete newValues[cellKey];
                               });
 
                               // Shift down all rows after this one
                               for (let i = rowIdx + 1; i < currentRowCount; i++) {
-                                section.advancedLayout.table.columns.forEach((col, colIdx) => {
+                                getLeafTableColumns(section.advancedLayout.table.columns).forEach((col, colIdx) => {
                                   const oldKey = `${section.id}.row_${i}.col_${col.id || `col${colIdx + 1}`}`;
                                   const newKey = `${section.id}.row_${i - 1}.col_${col.id || `col${colIdx + 1}`}`;
                                   if (newValues[oldKey] !== undefined) {
@@ -471,7 +473,7 @@ const FillForm = () => {
                         )}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {section.advancedLayout.table.columns.map((col, colIdx) => {
+                        {getLeafTableColumns(section.advancedLayout.table.columns).map((col, colIdx) => {
                           const cellKey = `${section.id}.row_${rowIdx}.col_${col.id || `col${colIdx + 1}`}`;
                           const cellValue = formData.values[cellKey] || '';
                           const colLabel = col.label?.[isRTL ? 'ar' : 'en'] || col.label?.en || col.label?.ar || `Column ${colIdx + 1}`;
@@ -568,7 +570,7 @@ const FillForm = () => {
 
                       // Initialize empty values for the new row
                       const newValues = { ...formData.values };
-                      section.advancedLayout.table.columns.forEach((col, colIdx) => {
+                      getLeafTableColumns(section.advancedLayout.table.columns).forEach((col, colIdx) => {
                         const cellKey = `${section.id}.row_${currentRowCount}.col_${col.id || `col${colIdx + 1}`}`;
                         newValues[cellKey] = '';
                       });

@@ -10,12 +10,13 @@ import {
 import Button from '../../components/Common/Button';
 import Card from '../../components/Common/Card';
 import {
+  createColumn,
   FIELD_TYPE_OPTIONS,
   SECTION_LAYOUT_OPTIONS,
   SECTION_TYPE_OPTIONS,
   WIDTH_OPTIONS,
   getLocalizedText,
-  mirrorEnglishToArabic
+  mirrorArabicToEnglish
 } from './templateBuilderUtils';
 
 export const EmptyEditorState = ({ title, description }) => (
@@ -114,6 +115,39 @@ export const Checkbox = ({ label, checked, onChange }) => (
   </label>
 );
 
+const COLUMN_WIDTH_OPTIONS = [
+  { value: 'auto', label: 'Auto', labelAr: 'تلقائي' },
+  { value: '1fr', label: '1fr', labelAr: '1fr' },
+  { value: '1.5fr', label: '1.5fr', labelAr: '1.5fr' },
+  { value: '2fr', label: '2fr', labelAr: '2fr' },
+  { value: '3fr', label: '3fr', labelAr: '3fr' },
+  { value: '120px', label: '120px', labelAr: '120px' },
+  { value: '160px', label: '160px', labelAr: '160px' },
+  { value: '200px', label: '200px', labelAr: '200px' },
+  { value: '220px', label: '220px', labelAr: '220px' },
+  { value: '260px', label: '260px', labelAr: '260px' },
+  { value: '320px', label: '320px', labelAr: '320px' }
+];
+
+const COLUMN_ALIGNMENT_OPTIONS = [
+  { value: 'left', label: 'Left', labelAr: 'يسار' },
+  { value: 'center', label: 'Center', labelAr: 'وسط' },
+  { value: 'right', label: 'Right', labelAr: 'يمين' }
+];
+
+const getColumnWidthOptions = (value) => (
+  COLUMN_WIDTH_OPTIONS.some((option) => option.value === value)
+    ? COLUMN_WIDTH_OPTIONS
+    : [{ value, label: value, labelAr: value }, ...COLUMN_WIDTH_OPTIONS]
+);
+
+const buildDefaultChildColumn = (index) => createColumn({
+  label: {
+    en: `Sub Column ${index + 1}`,
+    ar: `عمود فرعي ${index + 1}`
+  }
+});
+
 const IconButton = ({ onClick, title, icon: Icon, danger = false }) => (
   <button
     type="button"
@@ -143,8 +177,8 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
     </div>
 
     <div className="mt-4 grid gap-3 md:grid-cols-2">
-      <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={field.label.en} onChange={(value) => onChange({ ...field, label: mirrorEnglishToArabic(field.label, value) })} />
-      <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={field.label.ar} dir="rtl" onChange={(value) => onChange({ ...field, label: { ...field.label, ar: value } })} />
+      <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={field.label.en} onChange={(value) => onChange({ ...field, label: { ...field.label, en: value } })} />
+      <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={field.label.ar} dir="rtl" onChange={(value) => onChange({ ...field, label: mirrorArabicToEnglish(field.label, value) })} />
       <SelectField label={isRTL ? 'نوع الحقل' : 'Field type'} value={field.type} onChange={(value) => onChange({ ...field, type: value })} options={FIELD_TYPE_OPTIONS} isRTL={isRTL} />
       <SelectField label={isRTL ? 'عرض الحقل' : 'Field width'} value={field.width || 'full'} onChange={(value) => onChange({ ...field, width: value })} options={WIDTH_OPTIONS} isRTL={isRTL} />
       <SelectField
@@ -189,7 +223,7 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
                 value={option.en}
                 onChange={(value) => {
                   const options = [...(field.options || [])];
-                  options[optionIndex] = mirrorEnglishToArabic(options[optionIndex], value);
+                  options[optionIndex] = { ...options[optionIndex], en: value };
                   onChange({ ...field, options });
                 }}
               />
@@ -199,7 +233,7 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
                 dir="rtl"
                 onChange={(value) => {
                   const options = [...(field.options || [])];
-                  options[optionIndex] = { ...options[optionIndex], ar: value };
+                  options[optionIndex] = mirrorArabicToEnglish(options[optionIndex], value);
                   onChange({ ...field, options });
                 }}
               />
@@ -228,14 +262,14 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
             label={isRTL ? 'النص بالإنجليزية' : 'English text'}
             value={field.defaultValue?.en || ''}
             rows={4}
-            onChange={(value) => onChange({ ...field, defaultValue: mirrorEnglishToArabic(field.defaultValue, value) })}
+            onChange={(value) => onChange({ ...field, defaultValue: { ...field.defaultValue, en: value } })}
           />
           <TextAreaInput
             label={isRTL ? 'النص بالعربية' : 'Arabic text'}
             value={field.defaultValue?.ar || ''}
             rows={4}
             dir="rtl"
-            onChange={(value) => onChange({ ...field, defaultValue: { ...field.defaultValue, ar: value } })}
+            onChange={(value) => onChange({ ...field, defaultValue: mirrorArabicToEnglish(field.defaultValue, value) })}
           />
         </div>
       </div>
@@ -243,45 +277,236 @@ const FieldEditorCard = ({ field, isRTL, onChange, onDuplicate, onRemove, onMove
   </div>
 );
 
-const ColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveDown }) => (
-  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-primary/5 p-4 shadow-sm">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h4 className="text-sm font-semibold text-gray-900">
-          {getLocalizedText(column.label, isRTL, isRTL ? 'عمود جديد' : 'New column')}
-        </h4>
-        <p className="text-xs text-gray-500">{column.fieldType}</p>
-      </div>
-      <div className="flex items-center gap-1">
-        <IconButton onClick={onMoveUp} title={isRTL ? 'لأعلى' : 'Move up'} icon={FaArrowUp} />
-        <IconButton onClick={onMoveDown} title={isRTL ? 'لأسفل' : 'Move down'} icon={FaArrowDown} />
-        <IconButton onClick={onRemove} title={isRTL ? 'حذف' : 'Delete'} icon={FaTrash} danger />
-      </div>
-    </div>
+const ChildColumnEditorCard = ({
+  column,
+  index,
+  isRTL,
+  onChange,
+  onRemove,
+  onMoveUp,
+  onMoveDown
+}) => {
+  const columnWidthValue = column.width || 'auto';
 
-    <div className="mt-4 grid gap-3 md:grid-cols-2">
-      <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={column.label.en} onChange={(value) => onChange({ ...column, label: mirrorEnglishToArabic(column.label, value) })} />
-      <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={column.label.ar} dir="rtl" onChange={(value) => onChange({ ...column, label: { ...column.label, ar: value } })} />
-      <SelectField label={isRTL ? 'نوع البيانات' : 'Data type'} value={column.fieldType || 'text'} onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })} options={FIELD_TYPE_OPTIONS.filter((option) => option.value !== 'static_text')} isRTL={isRTL} />
-      <SelectField
-        label={isRTL ? 'محاذاة' : 'Alignment'}
-        value={column.alignment || 'left'}
-        onChange={(value) => onChange({ ...column, alignment: value })}
-        options={[
-          { value: 'left', label: 'Left', labelAr: 'يسار' },
-          { value: 'center', label: 'Center', labelAr: 'وسط' },
-          { value: 'right', label: 'Right', labelAr: 'يمين' }
-        ]}
-        isRTL={isRTL}
-      />
-      <TextInput label={isRTL ? 'عرض العمود (مثل 2fr أو 220px)' : 'Column width (eg 2fr or 220px)'} value={column.width === 'auto' ? '' : column.width} onChange={(value) => onChange({ ...column, width: value || 'auto' })} />
-      <div className="grid gap-3 md:grid-cols-2">
-        <ColorInput label={isRTL ? 'لون الرأس' : 'Header background'} value={column.headerStyle?.backgroundColor || '#f3f4f6'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, backgroundColor: value } })} />
-        <ColorInput label={isRTL ? 'لون النص' : 'Header text'} value={column.headerStyle?.textColor || '#111827'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, textColor: value } })} />
+  return (
+    <div className="rounded-2xl border border-dashed border-primary/20 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h5 className="text-sm font-semibold text-gray-900">
+            {getLocalizedText(column.label, isRTL, isRTL ? `عمود فرعي ${index + 1}` : `Sub Column ${index + 1}`)}
+          </h5>
+          <p className="text-xs text-gray-500">{column.fieldType}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <IconButton onClick={onMoveUp} title={isRTL ? 'لأعلى' : 'Move up'} icon={FaArrowUp} />
+          <IconButton onClick={onMoveDown} title={isRTL ? 'لأسفل' : 'Move down'} icon={FaArrowDown} />
+          <IconButton onClick={onRemove} title={isRTL ? 'حذف' : 'Delete'} icon={FaTrash} danger />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={column.label.en} onChange={(value) => onChange({ ...column, label: { ...column.label, en: value } })} />
+        <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={column.label.ar} dir="rtl" onChange={(value) => onChange({ ...column, label: mirrorArabicToEnglish(column.label, value) })} />
+        <SelectField
+          label={isRTL ? 'نوع البيانات' : 'Data type'}
+          value={column.fieldType || 'text'}
+          onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })}
+          options={FIELD_TYPE_OPTIONS.filter((option) => option.value !== 'static_text')}
+          isRTL={isRTL}
+        />
+        <SelectField
+          label={isRTL ? 'محاذاة' : 'Alignment'}
+          value={column.alignment || 'left'}
+          onChange={(value) => onChange({ ...column, alignment: value })}
+          options={COLUMN_ALIGNMENT_OPTIONS}
+          isRTL={isRTL}
+        />
+        <SelectField
+          label={isRTL ? 'عرض العمود الفرعي' : 'Sub-column width'}
+          value={columnWidthValue}
+          onChange={(value) => onChange({ ...column, width: value })}
+          options={getColumnWidthOptions(columnWidthValue)}
+          isRTL={isRTL}
+        />
+        <div className="grid gap-3 md:grid-cols-2">
+          <ColorInput label={isRTL ? 'لون الرأس' : 'Header background'} value={column.headerStyle?.backgroundColor || '#f3f4f6'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, backgroundColor: value } })} />
+          <ColorInput label={isRTL ? 'لون النص' : 'Header text'} value={column.headerStyle?.textColor || '#111827'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, textColor: value } })} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+const ColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveDown }) => {
+  const columnWidthValue = column.width || 'auto';
+  const columnWidthOptions = getColumnWidthOptions(columnWidthValue);
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-primary/5 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900">
+            {getLocalizedText(column.label, isRTL, isRTL ? 'عمود جديد' : 'New column')}
+          </h4>
+          <p className="text-xs text-gray-500">{column.fieldType}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <IconButton onClick={onMoveUp} title={isRTL ? 'لأعلى' : 'Move up'} icon={FaArrowUp} />
+          <IconButton onClick={onMoveDown} title={isRTL ? 'لأسفل' : 'Move down'} icon={FaArrowDown} />
+          <IconButton onClick={onRemove} title={isRTL ? 'حذف' : 'Delete'} icon={FaTrash} danger />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={column.label.en} onChange={(value) => onChange({ ...column, label: { ...column.label, en: value } })} />
+        <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={column.label.ar} dir="rtl" onChange={(value) => onChange({ ...column, label: mirrorArabicToEnglish(column.label, value) })} />
+        <SelectField label={isRTL ? 'نوع البيانات' : 'Data type'} value={column.fieldType || 'text'} onChange={(value) => onChange({ ...column, fieldType: value === 'static_text' ? 'text' : value })} options={FIELD_TYPE_OPTIONS.filter((option) => option.value !== 'static_text')} isRTL={isRTL} />
+        <SelectField
+          label={isRTL ? 'محاذاة' : 'Alignment'}
+          value={column.alignment || 'left'}
+          onChange={(value) => onChange({ ...column, alignment: value })}
+          options={[
+            { value: 'left', label: 'Left', labelAr: 'يسار' },
+            { value: 'center', label: 'Center', labelAr: 'وسط' },
+            { value: 'right', label: 'Right', labelAr: 'يمين' }
+          ]}
+          isRTL={isRTL}
+        />
+        <SelectField
+          label={isRTL ? 'عرض العمود' : 'Column width'}
+          value={columnWidthValue}
+          onChange={(value) => onChange({ ...column, width: value })}
+          options={columnWidthOptions}
+          isRTL={isRTL}
+        />
+        <div className="grid gap-3 md:grid-cols-2">
+          <ColorInput label={isRTL ? 'لون الرأس' : 'Header background'} value={column.headerStyle?.backgroundColor || '#f3f4f6'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, backgroundColor: value } })} />
+          <ColorInput label={isRTL ? 'لون النص' : 'Header text'} value={column.headerStyle?.textColor || '#111827'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, textColor: value } })} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GroupedColumnEditorCard = ({ column, isRTL, onChange, onRemove, onMoveUp, onMoveDown }) => {
+  const childColumns = Array.isArray(column.children) ? column.children : [];
+
+  if (childColumns.length === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-end">
+          <Button
+            onClick={() => onChange({
+              ...column,
+              children: [buildDefaultChildColumn(0), buildDefaultChildColumn(1)]
+            })}
+            variant="outline"
+            className="!px-4 !py-2"
+          >
+            {isRTL ? 'تقسيم إلى أعمدة فرعية' : 'Split Into Sub-columns'}
+          </Button>
+        </div>
+        <ColumnEditorCard
+          column={column}
+          isRTL={isRTL}
+          onChange={onChange}
+          onRemove={onRemove}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+        />
+      </div>
+    );
+  }
+
+  const updateChildren = (nextChildren) => onChange({ ...column, children: nextChildren });
+  const addChildColumn = () => updateChildren([...childColumns, buildDefaultChildColumn(childColumns.length)]);
+  const updateChildColumn = (childIndex, nextChild) => updateChildren(
+    childColumns.map((child, index) => (index === childIndex ? nextChild : child))
+  );
+  const deleteChildColumn = (childIndex) => updateChildren(
+    childColumns.filter((_, index) => index !== childIndex)
+  );
+  const moveChildColumn = (childIndex, direction) => {
+    const targetIndex = direction === 'up' ? childIndex - 1 : childIndex + 1;
+    if (targetIndex < 0 || targetIndex >= childColumns.length) {
+      return;
+    }
+
+    const nextChildren = [...childColumns];
+    const [movedChild] = nextChildren.splice(childIndex, 1);
+    nextChildren.splice(targetIndex, 0, movedChild);
+    updateChildren(nextChildren);
+  };
+
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-primary/5 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900">
+            {getLocalizedText(column.label, isRTL, isRTL ? 'مجموعة أعمدة' : 'Column Group')}
+          </h4>
+          <p className="text-xs text-gray-500">
+            {isRTL ? `${childColumns.length} أعمدة فرعية` : `${childColumns.length} sub-columns`}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          <Button
+            onClick={() => onChange({ ...column, children: [] })}
+            variant="outline"
+            className="!px-3 !py-2"
+          >
+            {isRTL ? 'إلغاء التقسيم' : 'Remove Split'}
+          </Button>
+          <IconButton onClick={onMoveUp} title={isRTL ? 'لأعلى' : 'Move up'} icon={FaArrowUp} />
+          <IconButton onClick={onMoveDown} title={isRTL ? 'لأسفل' : 'Move down'} icon={FaArrowDown} />
+          <IconButton onClick={onRemove} title={isRTL ? 'حذف' : 'Delete'} icon={FaTrash} danger />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <TextInput label={isRTL ? 'الاسم بالإنجليزية' : 'English label'} value={column.label.en} onChange={(value) => onChange({ ...column, label: { ...column.label, en: value } })} />
+        <TextInput label={isRTL ? 'الاسم بالعربية' : 'Arabic label'} value={column.label.ar} dir="rtl" onChange={(value) => onChange({ ...column, label: mirrorArabicToEnglish(column.label, value) })} />
+        <div className="grid gap-3 md:grid-cols-2">
+          <ColorInput label={isRTL ? 'لون الرأس' : 'Header background'} value={column.headerStyle?.backgroundColor || '#f3f4f6'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, backgroundColor: value } })} />
+          <ColorInput label={isRTL ? 'لون النص' : 'Header text'} value={column.headerStyle?.textColor || '#111827'} onChange={(value) => onChange({ ...column, headerStyle: { ...column.headerStyle, textColor: value } })} />
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-primary/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-gray-900">
+              {isRTL ? 'الأعمدة الفرعية' : 'Sub-columns'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {isRTL
+                ? 'أضف أعمدة مثل الاسم والعمر وأي بيانات أخرى داخل هذا العنوان.'
+                : 'Add columns like Name, Age, and any other values inside this grouped header.'}
+            </div>
+          </div>
+          <Button onClick={addChildColumn} icon={FaPlus} variant="outline" className="!px-4 !py-2">
+            {isRTL ? 'إضافة عمود فرعي' : 'Add Sub-column'}
+          </Button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {childColumns.map((childColumn, childIndex) => (
+            <ChildColumnEditorCard
+              key={childColumn.id || childIndex}
+              column={childColumn}
+              index={childIndex}
+              isRTL={isRTL}
+              onChange={(nextChild) => updateChildColumn(childIndex, nextChild)}
+              onRemove={() => deleteChildColumn(childIndex)}
+              onMoveUp={() => moveChildColumn(childIndex, 'up')}
+              onMoveDown={() => moveChildColumn(childIndex, 'down')}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SectionEditor = ({
   section,
@@ -351,8 +576,8 @@ const SectionEditor = ({
         )}
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <TextInput label={isRTL ? 'اسم القسم بالإنجليزية' : 'English section name'} value={section.label.en} onChange={(value) => onUpdateSection({ ...section, label: mirrorEnglishToArabic(section.label, value) })} />
-          <TextInput label={isRTL ? 'اسم القسم بالعربية' : 'Arabic section name'} value={section.label.ar} dir="rtl" onChange={(value) => onUpdateSection({ ...section, label: { ...section.label, ar: value } })} />
+          <TextInput label={isRTL ? 'اسم القسم بالإنجليزية' : 'English section name'} value={section.label.en} onChange={(value) => onUpdateSection({ ...section, label: { ...section.label, en: value } })} />
+          <TextInput label={isRTL ? 'اسم القسم بالعربية' : 'Arabic section name'} value={section.label.ar} dir="rtl" onChange={(value) => onUpdateSection({ ...section, label: mirrorArabicToEnglish(section.label, value) })} />
           <SelectField label={isRTL ? 'نوع القسم' : 'Section type'} value={section.sectionType || 'normal'} onChange={(value) => onUpdateSection({ ...section, sectionType: value })} options={SECTION_TYPE_OPTIONS} isRTL={isRTL} />
           <NumberInput label={isRTL ? 'المسافة أسفل القسم' : 'Space below section'} value={section.pdfStyle?.marginBottom ?? 16} min={0} onChange={(value) => onUpdateSection({ ...section, pdfStyle: { ...section.pdfStyle, marginBottom: value } })} />
         </div>
@@ -494,7 +719,7 @@ const SectionEditor = ({
 
           {layoutType === 'table' && (
             <>
-              <NumberInput
+              {/* <NumberInput
                 label={isRTL ? 'عدد الصفوف الفارغة' : 'Printable rows'}
                 value={section.advancedLayout?.table?.numberOfRows ?? 6}
                 min={1}
@@ -509,7 +734,7 @@ const SectionEditor = ({
                     }
                   }
                 })}
-              />
+              /> */}
               <div className="rounded-2xl bg-primary/5 p-4">
                 <div className="flex flex-wrap gap-4">
                   <Checkbox
@@ -570,7 +795,7 @@ const SectionEditor = ({
           {layoutType === 'table' ? (
             section.advancedLayout?.table?.columns?.length ? (
               section.advancedLayout.table.columns.map((column, index) => (
-                <ColumnEditorCard
+                <GroupedColumnEditorCard
                   key={column.id}
                   column={column}
                   isRTL={isRTL}

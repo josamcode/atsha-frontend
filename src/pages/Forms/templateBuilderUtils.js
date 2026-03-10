@@ -237,6 +237,16 @@ export const mirrorEnglishToArabic = (currentValue, nextEnglish) => {
   };
 };
 
+export const mirrorArabicToEnglish = (currentValue, nextArabic) => {
+  const current = normalizeLocalizedValue(currentValue);
+  const englishWasMirrored = !current.en || current.en === current.ar;
+
+  return {
+    en: englishWasMirrored ? nextArabic : current.en,
+    ar: nextArabic
+  };
+};
+
 export const moveItem = (items, fromIndex, toIndex) => {
   const next = [...items];
   const [item] = next.splice(fromIndex, 1);
@@ -400,6 +410,11 @@ export const getDefaultPdfStyle = (branding = {}) => {
       showApprovedBy: true,
       showApprovalDate: true
     },
+    signature: {
+      enabled: true,
+      showPreparedBy: true,
+      showApprovedBy: true
+    },
     fontFamily: 'Helvetica',
     fontSize: {
       title: 24,
@@ -473,6 +488,7 @@ export const createColumn = (overrides = {}) => ({
   fieldType: 'text',
   width: 'auto',
   alignment: 'left',
+  children: [],
   headerStyle: {
     backgroundColor: '#f3f4f6',
     textColor: '#111827',
@@ -481,6 +497,19 @@ export const createColumn = (overrides = {}) => ({
   },
   ...overrides
 });
+
+export const getColumnChildren = (column) => (
+  Array.isArray(column?.children)
+    ? column.children.filter(Boolean)
+    : []
+);
+
+export const getLeafTableColumns = (columns = []) => (
+  columns.flatMap((column) => {
+    const children = getColumnChildren(column);
+    return children.length > 0 ? getLeafTableColumns(children) : [column];
+  })
+);
 
 export const reindexFields = (fields = []) => fields.map((field, index) => ({
   ...field,
@@ -754,6 +783,7 @@ export const normalizeColumn = (column, index) => ({
   fieldType: column?.fieldType || 'text',
   width: column?.width || 'auto',
   alignment: column?.alignment || 'left',
+  children: getColumnChildren(column).map((child, childIndex) => normalizeColumn(child, childIndex)),
   headerStyle: {
     ...createColumn().headerStyle,
     ...(column?.headerStyle || {})
@@ -898,6 +928,10 @@ export const normalizePdfStyle = (pdfStyle) => {
       ...defaults.metadata,
       ...(pdfStyle?.metadata || {})
     },
+    signature: {
+      ...defaults.signature,
+      ...(pdfStyle?.signature || {})
+    },
     fontSize: {
       ...defaults.fontSize,
       ...(pdfStyle?.fontSize || {})
@@ -968,6 +1002,12 @@ export const finalizeFieldForSave = (field, index) => ({
     : []
 });
 
+const finalizeColumnForSave = (column, index) => ({
+  ...normalizeColumn(column, index),
+  label: finalizeLocalizedValue(column.label),
+  children: getColumnChildren(column).map((child, childIndex) => finalizeColumnForSave(child, childIndex))
+});
+
 export const finalizeSectionForSave = (section, index) => {
   const layout = normalizeAdvancedLayout(section.advancedLayout);
   return {
@@ -983,10 +1023,7 @@ export const finalizeSectionForSave = (section, index) => {
       ...layout,
       table: {
         ...layout.table,
-        columns: (layout.table.columns || []).map((column, columnIndex) => ({
-          ...normalizeColumn(column, columnIndex),
-          label: finalizeLocalizedValue(column.label)
-        }))
+        columns: (layout.table.columns || []).map((column, columnIndex) => finalizeColumnForSave(column, columnIndex))
       }
     }
   };

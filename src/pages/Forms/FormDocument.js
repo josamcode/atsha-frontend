@@ -22,6 +22,7 @@ import {
 } from 'react-icons/fa';
 
 import CompantStamp from '../../components/Common/CompantStamp';
+import { getLeafTableColumns, normalizeTemplate } from './templateBuilderUtils';
 
 const FormDocument = ({
   formInstance,
@@ -36,8 +37,62 @@ const FormDocument = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
+  const normalizedTemplate = normalizeTemplate(template || {});
+  const documentDirection = isRTL ? 'rtl' : 'ltr';
+  const defaultTextAlign = isRTL ? 'right' : 'left';
 
   const printRef = useRef(null);
+
+  const resolveTextAlign = (alignment, fallback = defaultTextAlign) => {
+    if (alignment === 'center') {
+      return 'center';
+    }
+
+    if (isRTL) {
+      return 'right';
+    }
+
+    if (alignment === 'left' || alignment === 'right') {
+      return alignment;
+    }
+
+    return fallback;
+  };
+
+  const resolveTableColumnWidths = (columns = []) => {
+    const normalizedWidths = columns.map((column) => (typeof column?.width === 'string' ? column.width.trim() : ''));
+    const percentValues = normalizedWidths.map((width) => {
+      const match = width.match(/^(\d+(?:\.\d+)?)%$/);
+      return match ? Number(match[1]) : null;
+    });
+    const frValues = normalizedWidths.map((width) => {
+      const match = width.match(/^(\d+(?:\.\d+)?)fr$/i);
+      return match ? Number(match[1]) : null;
+    });
+    const totalFr = frValues.reduce((sum, value) => sum + (value || 0), 0);
+    const hasFrWidths = totalFr > 0;
+    const autoColumnsCount = normalizedWidths.filter((width) => !width || width === 'auto').length;
+    const totalFlexibleWeight = totalFr + (hasFrWidths ? autoColumnsCount : 0);
+    const reservedPercent = percentValues.reduce((sum, value) => sum + (value || 0), 0);
+    const availablePercent = Math.max(0, 100 - reservedPercent);
+
+    return normalizedWidths.map((width, index) => {
+      if (hasFrWidths && (!width || width === 'auto')) {
+        return `${availablePercent / totalFlexibleWeight}%`;
+      }
+
+      if (!width || width === 'auto') {
+        return undefined;
+      }
+
+      const frValue = frValues[index];
+      if (frValue && totalFr > 0) {
+        return `${(frValue / totalFlexibleWeight) * availablePercent}%`;
+      }
+
+      return width;
+    });
+  };
 
   // Helper function to get field value
   const getFieldValue = (sectionId, fieldKey) => {
@@ -94,10 +149,12 @@ const FormDocument = ({
   return (
     <div
       className="w-full overflow-auto"
+      dir={documentDirection}
       style={{
         minHeight: '100vh',
         scrollbarWidth: 'thin',
-        scrollbarColor: '#cbd5e0 #f1f5f9'
+        scrollbarColor: '#cbd5e0 #f1f5f9',
+        direction: documentDirection
       }}
     >
       <style>{`
@@ -122,7 +179,16 @@ const FormDocument = ({
           background: #f1f5f9;
         }
       `}</style>
-      <div ref={printRef} id="print-content" className="mx-auto bg-white print:shadow-none relative print-content" style={{ minWidth: '1000px' }}>
+      <div
+        ref={printRef}
+        id="print-content"
+        className={`mx-auto bg-white print:shadow-none relative print-content ${isRTL ? 'text-right' : 'text-left'}`}
+        style={{
+          minWidth: '1000px',
+          direction: documentDirection,
+          textAlign: defaultTextAlign
+        }}
+      >
         {/* Watermark - Logo behind content */}
         <div className="watermark absolute inset-0 flex items-center justify-center pointer-events-none z-0" style={{ opacity: 0.05 }}>
           <img
@@ -141,7 +207,7 @@ const FormDocument = ({
           <div className="p-12 relative z-10">
             {/* Document Header */}
             {(() => {
-              const pdfStyle = template.pdfStyle || {};
+              const pdfStyle = normalizedTemplate.pdfStyle || {};
               const headerConfig = pdfStyle.header || {};
               const branding = pdfStyle.branding || {};
               const primaryColor = branding.primaryColor || pdfStyle.colors?.primary || '#d4b900';
@@ -243,11 +309,11 @@ const FormDocument = ({
                               textAlign: isRTL ? 'right' : 'left'
                             }}
                           >
-                            {isRTL ? template.title.ar : template.title.en}
+                            {isRTL ? normalizedTemplate.title.ar : normalizedTemplate.title.en}
                           </h2>
-                          {template.description && (
+                          {normalizedTemplate.description && (
                             <p className="text-base mt-2" style={{ color: headerTextColor }}>
-                              {isRTL ? template.description.ar : template.description.en}
+                              {isRTL ? normalizedTemplate.description.ar : normalizedTemplate.description.en}
                             </p>
                           )}
                           {/* Date */}
@@ -282,14 +348,14 @@ const FormDocument = ({
                                   {companyName}
                                 </h1>
                               )}
-                              <p className="text-base mt-1" style={{ color: headerTextColor }}>
+                              {/* <p className="text-base mt-1" style={{ color: headerTextColor }}>
                                 {isRTL ? 'نظام إدارة المطاعم' : 'Restaurant Management System'}
-                              </p>
-                              {showCompanyAddress && companyAddress && (
+                              </p> */}
+                              {/* {showCompanyAddress && companyAddress && (
                                 <p className="text-sm mt-1" style={{ color: headerTextColor }}>
                                   {companyAddress}
                                 </p>
-                              )}
+                              )} */}
                             </div>
                           )}
 
@@ -303,11 +369,11 @@ const FormDocument = ({
                                   fontSize: `${headerConfig.fontSize || 20}px`
                                 }}
                               >
-                                {isRTL ? template.title.ar : template.title.en}
+                                {isRTL ? normalizedTemplate.title.ar : normalizedTemplate.title.en}
                               </h2>
-                              {template.description && (
+                              {normalizedTemplate.description && (
                                 <p className="text-base mt-2" style={{ color: headerTextColor }}>
-                                  {isRTL ? template.description.ar : template.description.en}
+                                  {isRTL ? normalizedTemplate.description.ar : normalizedTemplate.description.en}
                                 </p>
                               )}
                               {/* Date */}
@@ -342,7 +408,7 @@ const FormDocument = ({
 
             {/* Form Metadata */}
             {(() => {
-              const pdfStyle = template.pdfStyle || {};
+              const pdfStyle = normalizedTemplate.pdfStyle || {};
               const metadataConfig = pdfStyle.metadata || {
                 enabled: true,
                 showFormId: true,
@@ -450,8 +516,8 @@ const FormDocument = ({
             <div className="p-8 print:p-6 space-y-8">
               {(() => {
                 // Get layout configuration
-                const layout = template.layout || {};
-                const pdfStyle = template.pdfStyle || {};
+                const layout = normalizedTemplate.layout || {};
+                const pdfStyle = normalizedTemplate.pdfStyle || {};
                 const primaryColor = pdfStyle.colors?.primary || pdfStyle.branding?.primaryColor || '#d4b900';
                 const textColor = pdfStyle.colors?.text || '#000000';
                 const borderColor = pdfStyle.colors?.border || '#e5e7eb';
@@ -459,7 +525,7 @@ const FormDocument = ({
                 const sectionSpacing = pdfStyle.spacing?.sectionSpacing || 20;
 
                 // Get sections in order
-                let sectionsToRender = template.sections || [];
+                let sectionsToRender = normalizedTemplate.sections || [];
                 if (layout.sectionOrder && layout.sectionOrder.length > 0) {
                   const sectionMap = new Map(sectionsToRender.map(s => [s.id, s]));
                   sectionsToRender = layout.sectionOrder
@@ -468,7 +534,7 @@ const FormDocument = ({
 
                   // Add any sections not in sectionOrder
                   const orderedIds = new Set(layout.sectionOrder);
-                  template.sections.forEach(section => {
+                  normalizedTemplate.sections.forEach(section => {
                     if (!orderedIds.has(section.id)) {
                       sectionsToRender.push(section);
                     }
@@ -496,6 +562,11 @@ const FormDocument = ({
                   const showBorder = sectionStyle.showBorder !== false;
                   const showBackground = sectionStyle.showBackground;
                   const layoutType = advancedLayout.layoutType || 'simple';
+                  const tableColumns = advancedLayout.table?.columns || [];
+                  const leafTableColumns = getLeafTableColumns(tableColumns);
+                  const hasGroupedTableColumns = tableColumns.some((column) => Array.isArray(column?.children) && column.children.length > 0);
+                  const resolvedTableColumnWidths = resolveTableColumnWidths(leafTableColumns);
+                  const hasResolvedTableColumnWidths = resolvedTableColumnWidths.some(Boolean);
                   const advSpacing = advancedLayout.spacing || {};
                   const advSizing = advancedLayout.sizing || {};
                   const advPadding = advancedLayout.padding || {};
@@ -542,7 +613,7 @@ const FormDocument = ({
 
                     if (!showLabel && !showValue) return null;
 
-                    const textAlign = alignment === 'center' ? 'center' : alignment === 'right' ? 'right' : 'left';
+                    const textAlign = resolveTextAlign(alignment);
 
                     return (
                       <div
@@ -678,30 +749,80 @@ const FormDocument = ({
                                 className="w-full"
                                 style={{
                                   borderCollapse: 'collapse',
-                                  border: 'none' // Remove outer table border - section border handles it
+                                  border: 'none', // Remove outer table border - section border handles it
+                                  tableLayout: hasResolvedTableColumnWidths ? 'fixed' : 'auto'
                                 }}
                               >
+                                {hasResolvedTableColumnWidths && (
+                                  <colgroup>
+                                    {leafTableColumns.map((col, colIdx) => (
+                                      <col
+                                        key={col.id || colIdx}
+                                        style={{ width: resolvedTableColumnWidths[colIdx] }}
+                                      />
+                                    ))}
+                                  </colgroup>
+                                )}
                                 {advancedLayout.table?.showHeader !== false && advancedLayout.table?.columns?.length > 0 && (
                                   <thead>
                                     <tr>
-                                      {advancedLayout.table.columns.map((col, colIdx) => (
-                                        <th
-                                          key={col.id || colIdx}
-                                          style={{
-                                            backgroundColor: col.headerStyle?.backgroundColor || '#f3f4f6',
-                                            color: col.headerStyle?.textColor || '#000000',
-                                            fontSize: `${col.headerStyle?.fontSize || 18}px`,
-                                            fontWeight: col.headerStyle?.bold ? 'bold' : 'normal',
-                                            padding: '12px',
-                                            textAlign: col.alignment || 'left',
-                                            border: !showBorder && advancedLayout.table?.showBorders !== false ? `1px solid ${borderColor}` : 'none',
-                                            width: col.width !== 'auto' ? col.width : undefined
-                                          }}
-                                        >
-                                          {isRTL ? col.label?.ar || col.label?.en : col.label?.en || col.label?.ar}
-                                        </th>
-                                      ))}
+                                      {tableColumns.map((col, colIdx) => {
+                                        const childColumns = Array.isArray(col?.children) ? col.children : [];
+                                        const leafCount = childColumns.length > 0 ? getLeafTableColumns(childColumns).length : 1;
+
+                                        return (
+                                          <th
+                                            key={col.id || colIdx}
+                                            colSpan={leafCount}
+                                            rowSpan={hasGroupedTableColumns && childColumns.length === 0 ? 2 : 1}
+                                            style={{
+                                              backgroundColor: col.headerStyle?.backgroundColor || '#f3f4f6',
+                                              color: col.headerStyle?.textColor || '#000000',
+                                              fontSize: `${col.headerStyle?.fontSize || 18}px`,
+                                              fontWeight: col.headerStyle?.bold ? 'bold' : 'normal',
+                                              padding: '12px',
+                                              textAlign: resolveTextAlign(col.alignment),
+                                              border: !showBorder && advancedLayout.table?.showBorders !== false ? `1px solid ${borderColor}` : 'none',
+                                              overflowWrap: 'anywhere',
+                                              wordBreak: 'break-word'
+                                            }}
+                                          >
+                                            {isRTL ? col.label?.ar || col.label?.en : col.label?.en || col.label?.ar}
+                                          </th>
+                                        );
+                                      })}
                                     </tr>
+                                    {hasGroupedTableColumns && (
+                                      <tr>
+                                        {tableColumns.flatMap((col) => {
+                                          const childColumns = Array.isArray(col?.children) ? col.children : [];
+
+                                          return childColumns.map((childCol, childIdx) => {
+                                            const leafColumnIndex = leafTableColumns.findIndex((leafCol) => leafCol.id === childCol.id);
+
+                                            return (
+                                              <th
+                                                key={childCol.id || `${col.id || 'group'}_${childIdx}`}
+                                                style={{
+                                                  backgroundColor: childCol.headerStyle?.backgroundColor || '#f3f4f6',
+                                                  color: childCol.headerStyle?.textColor || '#000000',
+                                                  fontSize: `${childCol.headerStyle?.fontSize || 18}px`,
+                                                  fontWeight: childCol.headerStyle?.bold ? 'bold' : 'normal',
+                                                  padding: '12px',
+                                                  textAlign: resolveTextAlign(childCol.alignment),
+                                                  border: !showBorder && advancedLayout.table?.showBorders !== false ? `1px solid ${borderColor}` : 'none',
+                                                  width: resolvedTableColumnWidths[leafColumnIndex],
+                                                  overflowWrap: 'anywhere',
+                                                  wordBreak: 'break-word'
+                                                }}
+                                              >
+                                                {isRTL ? childCol.label?.ar || childCol.label?.en : childCol.label?.en || childCol.label?.ar}
+                                              </th>
+                                            );
+                                          });
+                                        })}
+                                      </tr>
+                                    )}
                                   </thead>
                                 )}
                                 <tbody>
@@ -720,8 +841,9 @@ const FormDocument = ({
                                               backgroundColor: advancedLayout.table?.stripedRows && rowIdx % 2 === 1 ? '#f9fafb' : 'transparent'
                                             }}
                                           >
-                                            {advancedLayout.table.columns.map((col, colIdx) => {
-                                              const value = row[col.fieldKey] || row[col.fieldKey] || '-';
+                                            {leafTableColumns.map((col, colIdx) => {
+                                              const valueKey = col.fieldKey || col.id || `col${colIdx + 1}`;
+                                              const value = row[valueKey] ?? '-';
                                               // Use fieldType from column definition, or default to 'text'
                                               const fieldType = col.fieldType || 'text';
                                               return (
@@ -729,9 +851,12 @@ const FormDocument = ({
                                                   key={col.id || colIdx}
                                                   style={{
                                                     padding: '12px',
-                                                    textAlign: col.alignment || 'left',
+                                                    textAlign: resolveTextAlign(col.alignment),
                                                     border: !showBorder && advancedLayout.table?.showBorders !== false ? `1px solid ${borderColor}` : 'none',
-                                                    fontSize: `${pdfStyle.fontSize?.field || 16}px`
+                                                    fontSize: `${pdfStyle.fontSize?.field || 16}px`,
+                                                    width: resolvedTableColumnWidths[colIdx],
+                                                    overflowWrap: 'anywhere',
+                                                    wordBreak: 'break-word'
                                                   }}
                                                 >
                                                   {formatValue(value, fieldType)}
@@ -743,7 +868,7 @@ const FormDocument = ({
                                       ) : (
                                         <tr>
                                           <td
-                                            colSpan={advancedLayout.table.columns.length}
+                                            colSpan={leafTableColumns.length}
                                             className="text-center py-8 text-gray-500 text-base"
                                           >
                                             {t('forms.noData')}
@@ -756,7 +881,7 @@ const FormDocument = ({
 
                                       return Array.from({ length: numberOfRows }).map((_, rowIdx) => {
                                         // Check if this row has any data
-                                        const hasData = advancedLayout.table.columns.some((col, colIdx) => {
+                                        const hasData = leafTableColumns.some((col, colIdx) => {
                                           const colId = col.id || `col${colIdx + 1}`;
                                           const cellKey = `${section.id}.row_${rowIdx}.col_${colId}`;
                                           const value = formInstance.values[cellKey];
@@ -776,7 +901,7 @@ const FormDocument = ({
                                               backgroundColor: advancedLayout.table?.stripedRows && rowIdx % 2 === 1 ? '#f9fafb' : 'transparent'
                                             }}
                                           >
-                                            {advancedLayout.table.columns.map((col, colIdx) => {
+                                            {leafTableColumns.map((col, colIdx) => {
                                               // Match the key format used in FillForm: sectionId.row_rowIdx.col_colId
                                               // col.id is like "col1", so we use col_col1
                                               const colId = col.id || `col${colIdx + 1}`;
@@ -790,11 +915,14 @@ const FormDocument = ({
                                                   key={col.id || colIdx}
                                                   style={{
                                                     padding: '12px',
-                                                    textAlign: col.alignment || 'left',
+                                                    textAlign: resolveTextAlign(col.alignment),
                                                     border: !showBorder && advancedLayout.table?.showBorders !== false ? `1px solid ${borderColor}` : 'none',
                                                     fontSize: `${pdfStyle.fontSize?.field || 16}px`,
+                                                    width: resolvedTableColumnWidths[colIdx],
                                                     backgroundColor: advancedLayout.table?.cellStyle?.backgroundColor || 'transparent',
-                                                    color: advancedLayout.table?.cellStyle?.textColor || '#000000'
+                                                    color: advancedLayout.table?.cellStyle?.textColor || '#000000',
+                                                    overflowWrap: 'anywhere',
+                                                    wordBreak: 'break-word'
                                                   }}
                                                 >
                                                   {cellValue !== undefined && cellValue !== null && cellValue !== ''
@@ -893,30 +1021,53 @@ const FormDocument = ({
               )}
 
               {/* Signature Section */}
-              <div className="pt-8 border-t-2 border-gray-200 mt-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="text-center">
-                    <div className="border-t-2 border-gray-400 pt-2 mt-16">
-                      <p className="text-base font-semibold text-gray-700">
-                        {t('forms.preparedBy')}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {formInstance.filledBy?.name}
-                      </p>
+              {(() => {
+                const signatureConfig = normalizedTemplate.pdfStyle?.signature || {
+                  enabled: true,
+                  showPreparedBy: true,
+                  showApprovedBy: true
+                };
+                const signatureEntries = [];
+
+                if (signatureConfig.enabled !== false && signatureConfig.showPreparedBy !== false) {
+                  signatureEntries.push({
+                    key: 'prepared',
+                    label: t('forms.preparedBy'),
+                    value: formInstance.filledBy?.name || '_______________'
+                  });
+                }
+
+                if (signatureConfig.enabled !== false && signatureConfig.showApprovedBy !== false) {
+                  signatureEntries.push({
+                    key: 'approved',
+                    label: t('forms.approvedBy'),
+                    value: formInstance.approvedBy?.name || '_______________'
+                  });
+                }
+
+                if (!signatureEntries.length) {
+                  return null;
+                }
+
+                return (
+                  <div className="pt-8 border-t-2 border-gray-200 mt-8">
+                    <div className={`grid grid-cols-1 gap-8 ${signatureEntries.length > 1 ? 'md:grid-cols-2' : ''}`}>
+                      {signatureEntries.map((entry) => (
+                        <div key={entry.key} className={`text-center ${signatureEntries.length === 1 ? 'mx-auto w-full max-w-sm' : ''}`}>
+                          <div className="border-t-2 border-gray-400 pt-2 mt-16">
+                            <p className="text-base font-semibold text-gray-700">
+                              {entry.label}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {entry.value}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="text-center">
-                    <div className="border-t-2 border-gray-400 pt-2 mt-16">
-                      <p className="text-base font-semibold text-gray-700">
-                        {t('forms.approvedBy')}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {formInstance.approvedBy?.name || '_______________'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Footer with company stamp and QR code */}
               <div className="mt-24 mb-16">

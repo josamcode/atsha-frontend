@@ -228,7 +228,7 @@ const ViewForm = () => {
   if (isTemplateDeleted) {
     return (
       <Layout>
-        <div className="space-y-6 pb-6">
+        <div className="space-y-6 pb-6" dir={isRTL ? 'rtl' : 'ltr'}>
           {/* Action Bar */}
           <div className="bg-white rounded-xl shadow-md p-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -317,7 +317,7 @@ const ViewForm = () => {
   if (!template) {
     return (
       <Layout>
-        <div className="space-y-6 pb-6">
+        <div className="space-y-6 pb-6" dir={isRTL ? 'rtl' : 'ltr'}>
           <div className="bg-white rounded-xl shadow-md p-8">
             <div className={`flex flex-col items-center justify-center text-center ${isRTL ? 'rtl' : 'ltr'}`}>
               <div className="mb-6">
@@ -343,7 +343,7 @@ const ViewForm = () => {
 
   return (
     <Layout>
-      <div className="space-y-6 pb-6">
+      <div className="space-y-6 pb-6" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Action Bar */}
         <div className="bg-white rounded-xl shadow-md p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">

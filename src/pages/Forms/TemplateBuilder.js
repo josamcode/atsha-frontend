@@ -8,13 +8,11 @@ import Layout from '../../components/Layout/Layout';
 import Button from '../../components/Common/Button';
 import Card from '../../components/Common/Card';
 import { showError, showSuccess, showWarning } from '../../utils/toast';
-import { getDepartmentOptions } from '../../utils/organizationUi';
 import SectionEditor, {
   Checkbox,
   ColorInput,
   EmptyEditorState,
   NumberInput,
-  SelectField,
   TextAreaInput,
   TextInput
 } from './TemplateBuilderEditor';
@@ -31,7 +29,7 @@ import {
   generateId,
   getDefaultTemplate,
   getLocalizedText,
-  mirrorEnglishToArabic,
+  mirrorArabicToEnglish,
   moveItem,
   normalizeColumn,
   normalizeField,
@@ -52,11 +50,10 @@ const WorkspaceTabButton = ({ active, label, subtitle, onClick, hasError = false
   <button
     type="button"
     onClick={onClick}
-    className={`min-w-[210px] rounded-[24px] border p-4 text-left transition ${
-      active
-        ? 'border-primary bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg'
-        : 'border-gray-200 bg-white hover:border-primary/40 hover:shadow-md'
-    }`}
+    className={`min-w-[210px] rounded-[24px] border p-4 text-left transition ${active
+      ? 'border-primary bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg'
+      : 'border-gray-200 bg-white hover:border-primary/40 hover:shadow-md'
+      }`}
   >
     <div className="flex items-start justify-between gap-3">
       <div className="text-sm font-bold">{label}</div>
@@ -69,17 +66,12 @@ const WorkspaceTabButton = ({ active, label, subtitle, onClick, hasError = false
 );
 
 const TemplateBuilder = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const { organization } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
   const isRTL = i18n.language === 'ar';
-
-  const departmentOptions = useMemo(
-    () => getDepartmentOptions(organization, t, i18n.language, { includeAll: true }),
-    [organization, t, i18n.language]
-  );
 
   const [formData, setFormData] = useState(() => normalizeTemplate(getDefaultTemplate(organization?.branding)));
   const [loading, setLoading] = useState(isEditMode);
@@ -666,60 +658,161 @@ const TemplateBuilder = () => {
     }
   };
 
+  const updateMetadataConfig = (patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      pdfStyle: normalizePdfStyle({
+        ...prev.pdfStyle,
+        metadata: {
+          ...prev.pdfStyle.metadata,
+          ...patch
+        }
+      })
+    }));
+  };
+
+  const updateSignatureConfig = (patch) => {
+    setFormData((prev) => ({
+      ...prev,
+      pdfStyle: normalizePdfStyle({
+        ...prev.pdfStyle,
+        signature: {
+          ...prev.pdfStyle.signature,
+          ...patch
+        }
+      })
+    }));
+  };
+
   const renderDetailsPanel = () => (
     <Card title={isRTL ? 'بيانات القالب' : 'Template Details'} className="border border-primary/10 bg-white">
-      <TextInput
-        label={isRTL ? 'العنوان بالإنجليزية' : 'English title'}
-        value={formData.title.en}
-        onChange={(value) => setFormData((prev) => ({ ...prev, title: mirrorEnglishToArabic(prev.title, value) }))}
-      />
-      <div className="mt-4" />
-      <TextInput
-        label={isRTL ? 'العنوان بالعربية' : 'Arabic title'}
-        value={formData.title.ar}
-        dir="rtl"
-        onChange={(value) => setFormData((prev) => ({ ...prev, title: { ...prev.title, ar: value } }))}
-      />
-      <div className="mt-4" />
-      <TextAreaInput
-        label={isRTL ? 'الوصف بالإنجليزية' : 'English description'}
-        value={formData.description.en}
-        rows={3}
-        onChange={(value) => setFormData((prev) => ({ ...prev, description: mirrorEnglishToArabic(prev.description, value) }))}
-      />
-      <div className="mt-4" />
-      <TextAreaInput
-        label={isRTL ? 'الوصف بالعربية' : 'Arabic description'}
-        value={formData.description.ar}
-        rows={3}
-        dir="rtl"
-        onChange={(value) => setFormData((prev) => ({ ...prev, description: { ...prev.description, ar: value } }))}
-      />
-      <div className="mt-4" />
-      <SelectField
-        label={isRTL ? 'القسم' : 'Department'}
-        value={formData.templateDepartment || 'all'}
-        onChange={(value) => setFormData((prev) => ({ ...prev, templateDepartment: value }))}
-        options={departmentOptions.map((option) => ({ value: option.value, label: option.label, labelAr: option.label }))}
-        isRTL={isRTL}
-      />
-      <div className="mt-4 flex flex-wrap gap-4">
-        <Checkbox
-          label={isRTL ? 'يتطلب اعتمادًا' : 'Requires approval'}
-          checked={formData.requiresApproval !== false}
-          onChange={(checked) => setFormData((prev) => ({ ...prev, requiresApproval: checked }))}
+      <div className="grid gap-4 md:grid-cols-2">
+        <TextInput
+          label={isRTL ? 'العنوان بالإنجليزية' : 'English title'}
+          value={formData.title.en}
+          onChange={(value) => setFormData((prev) => ({ ...prev, title: { ...prev.title, en: value } }))}
         />
-        <Checkbox
-          label={isRTL ? 'إظهار بيانات النموذج' : 'Show metadata'}
-          checked={formData.pdfStyle.metadata?.enabled !== false}
-          onChange={(checked) => setFormData((prev) => ({
-            ...prev,
-            pdfStyle: normalizePdfStyle({
-              ...prev.pdfStyle,
-              metadata: { ...prev.pdfStyle.metadata, enabled: checked }
-            })
-          }))}
+        <TextInput
+          label={isRTL ? 'العنوان بالعربية' : 'Arabic title'}
+          value={formData.title.ar}
+          dir="rtl"
+          onChange={(value) => setFormData((prev) => ({ ...prev, title: mirrorArabicToEnglish(prev.title, value) }))}
         />
+        <TextAreaInput
+          label={isRTL ? 'الوصف بالإنجليزية' : 'English description'}
+          value={formData.description.en}
+          rows={3}
+          onChange={(value) => setFormData((prev) => ({ ...prev, description: { ...prev.description, en: value } }))}
+        />
+        <TextAreaInput
+          label={isRTL ? 'الوصف بالعربية' : 'Arabic description'}
+          value={formData.description.ar}
+          rows={3}
+          dir="rtl"
+          onChange={(value) => setFormData((prev) => ({ ...prev, description: mirrorArabicToEnglish(prev.description, value) }))}
+        />
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-gray-900">
+            {isRTL ? 'بيانات النموذج الظاهرة' : 'Visible Form Metadata'}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL
+              ? 'تحكم في ظهور معلومات النموذج مثل الرقم والتاريخ والقسم في المعاينة وملف الـ PDF.'
+              : 'Control which form details appear in the preview and generated PDF.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-4">
+          <Checkbox
+            label={isRTL ? 'إظهار بيانات النموذج' : 'Show metadata block'}
+            checked={formData.pdfStyle.metadata?.enabled !== false}
+            onChange={(checked) => updateMetadataConfig({ enabled: checked })}
+          />
+        </div>
+
+        {formData.pdfStyle.metadata?.enabled !== false && (
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <Checkbox
+              label={isRTL ? 'رقم النموذج' : 'Form ID'}
+              checked={formData.pdfStyle.metadata?.showFormId !== false}
+              onChange={(checked) => updateMetadataConfig({ showFormId: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'التاريخ' : 'Date'}
+              checked={formData.pdfStyle.metadata?.showDate !== false}
+              onChange={(checked) => updateMetadataConfig({ showDate: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'الوردية' : 'Shift'}
+              checked={formData.pdfStyle.metadata?.showShift !== false}
+              onChange={(checked) => updateMetadataConfig({ showShift: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'القسم' : 'Department'}
+              checked={formData.pdfStyle.metadata?.showDepartment !== false}
+              onChange={(checked) => updateMetadataConfig({ showDepartment: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'تم الملء بواسطة' : 'Filled By'}
+              checked={formData.pdfStyle.metadata?.showFilledBy !== false}
+              onChange={(checked) => updateMetadataConfig({ showFilledBy: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'تاريخ الإرسال' : 'Submitted On'}
+              checked={formData.pdfStyle.metadata?.showSubmittedOn !== false}
+              onChange={(checked) => updateMetadataConfig({ showSubmittedOn: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'تم الاعتماد بواسطة' : 'Approved By'}
+              checked={formData.pdfStyle.metadata?.showApprovedBy !== false}
+              onChange={(checked) => updateMetadataConfig({ showApprovedBy: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'تاريخ الاعتماد' : 'Approval Date'}
+              checked={formData.pdfStyle.metadata?.showApprovalDate !== false}
+              onChange={(checked) => updateMetadataConfig({ showApprovalDate: checked })}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-primary/10 bg-primary/5 p-4">
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-gray-900">
+            {isRTL ? 'قسم التوقيعات' : 'Signature Block'}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL
+              ? 'تحكم في ظهور خانة تم الإعداد بواسطة وتم الاعتماد بواسطة في المعاينة وصفحة العرض.'
+              : 'Control the Prepared By and Approved By signature area in preview and view form.'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-4">
+          <Checkbox
+            label={isRTL ? 'إظهار قسم التوقيعات' : 'Show signature block'}
+            checked={formData.pdfStyle.signature?.enabled !== false}
+            onChange={(checked) => updateSignatureConfig({ enabled: checked })}
+          />
+        </div>
+
+        {formData.pdfStyle.signature?.enabled !== false && (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <Checkbox
+              label={isRTL ? 'تم الإعداد بواسطة' : 'Prepared By'}
+              checked={formData.pdfStyle.signature?.showPreparedBy !== false}
+              onChange={(checked) => updateSignatureConfig({ showPreparedBy: checked })}
+            />
+            <Checkbox
+              label={isRTL ? 'تم الاعتماد بواسطة' : 'Approved By'}
+              checked={formData.pdfStyle.signature?.showApprovedBy !== false}
+              onChange={(checked) => updateSignatureConfig({ showApprovedBy: checked })}
+            />
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -727,7 +820,7 @@ const TemplateBuilder = () => {
   const renderLayoutPanel = () => (
     <Card title={isRTL ? 'إعدادات PDF' : 'PDF Layout'} className="border border-primary/10 bg-white">
       <div className="grid gap-4 md:grid-cols-2">
-        <SelectField
+        {/* <SelectField
           label={isRTL ? 'حجم الصفحة' : 'Page size'}
           value={formData.layout.pageSize}
           onChange={(value) => setFormData((prev) => ({ ...prev, layout: { ...prev.layout, pageSize: value } }))}
@@ -747,7 +840,7 @@ const TemplateBuilder = () => {
             { value: 'landscape', label: 'Landscape', labelAr: 'عرضي' }
           ]}
           isRTL={isRTL}
-        />
+        /> */}
         <NumberInput
           label={isRTL ? 'الهامش العلوي' : 'Top margin'}
           value={formData.layout.margins.top}
@@ -797,7 +890,7 @@ const TemplateBuilder = () => {
                 <Icon />
               </div>
               <div>
-                <div className="font-semibold text-gray-900">{getLocalizedText(preset.label, isRTL)}</div>
+                <div className={`font-semibold text-gray-900 ${isRTL ? "text-right" : "text-left"}`}>{getLocalizedText(preset.label, isRTL)}</div>
                 <div className="text-sm text-gray-500">
                   {preset.id === 'table'
                     ? (isRTL ? 'أفضل خيار للجداول' : 'Best for printable tables')
@@ -829,9 +922,8 @@ const TemplateBuilder = () => {
                 key={section.id}
                 type="button"
                 onClick={() => focusSectionTab(section.id)}
-                className={`w-full rounded-[24px] border p-4 text-left transition ${
-                  isSelected ? 'border-primary bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg' : 'border-gray-200 bg-white hover:border-primary/40 hover:shadow-md'
-                }`}
+                className={`w-full rounded-[24px] border p-4 text-left transition ${isSelected ? 'border-primary bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg' : 'border-gray-200 bg-white hover:border-primary/40 hover:shadow-md'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -923,7 +1015,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               branding: {
                 ...prev.pdfStyle.branding,
-                companyName: mirrorEnglishToArabic(prev.pdfStyle.branding.companyName, value)
+                companyName: { ...prev.pdfStyle.branding.companyName, en: value }
               }
             })
           }))}
@@ -938,7 +1030,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               branding: {
                 ...prev.pdfStyle.branding,
-                companyName: { ...prev.pdfStyle.branding.companyName, ar: value }
+                companyName: mirrorArabicToEnglish(prev.pdfStyle.branding.companyName, value)
               }
             })
           }))}
@@ -975,7 +1067,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               branding: {
                 ...prev.pdfStyle.branding,
-                companyAddress: mirrorEnglishToArabic(prev.pdfStyle.branding.companyAddress, value)
+                companyAddress: { ...prev.pdfStyle.branding.companyAddress, en: value }
               }
             })
           }))}
@@ -990,7 +1082,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               branding: {
                 ...prev.pdfStyle.branding,
-                companyAddress: { ...prev.pdfStyle.branding.companyAddress, ar: value }
+                companyAddress: mirrorArabicToEnglish(prev.pdfStyle.branding.companyAddress, value)
               }
             })
           }))}
@@ -1005,7 +1097,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               footer: {
                 ...prev.pdfStyle.footer,
-                content: mirrorEnglishToArabic(prev.pdfStyle.footer.content, value)
+                content: { ...prev.pdfStyle.footer.content, en: value }
               }
             })
           }))}
@@ -1021,7 +1113,7 @@ const TemplateBuilder = () => {
               ...prev.pdfStyle,
               footer: {
                 ...prev.pdfStyle.footer,
-                content: { ...prev.pdfStyle.footer.content, ar: value }
+                content: mirrorArabicToEnglish(prev.pdfStyle.footer.content, value)
               }
             })
           }))}
@@ -1170,14 +1262,14 @@ const TemplateBuilder = () => {
               </div>
               <div className="mt-2 text-2xl font-bold">{visibleSectionsCount}</div>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+            {/* <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">
                 {isRTL ? 'إعداد الصفحة' : 'Page setup'}
               </div>
               <div className="mt-2 text-lg font-bold">
                 {formData.layout.pageSize} / {formData.layout.orientation}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </Layout>
@@ -1200,12 +1292,12 @@ const TemplateBuilder = () => {
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">
-                {isRTL ? 'منشئ PDF سهل' : 'Easy PDF Builder'}
+                {isRTL ? 'منشئ PDF' : 'PDF Builder'}
               </p>
               <h1 className="mt-3 text-3xl font-bold leading-tight md:text-4xl">
                 {isEditMode
-                  ? (isRTL ? 'حرر القالب عبر تبويبات أوضح وأسرع' : 'Edit the template with a clearer tabbed builder')
-                  : (isRTL ? 'أنشئ قالب PDF عبر تبويبات مستقلة لكل قسم' : 'Build a PDF template with a dedicated tab for every section')}
+                  ? (isRTL ? 'حرر القالب' : 'Edit the template')
+                  : (isRTL ? 'أنشئ قالب' : 'Build a template')}
               </h1>
               <p className="mt-3 max-w-2xl text-sm text-white/80 md:text-base">
                 {isRTL
@@ -1272,7 +1364,7 @@ const TemplateBuilder = () => {
                 {isRTL ? 'مساحة العمل' : 'Workspace'}
               </p>
               <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                {isRTL ? 'كل قسم يعمل داخل تبويب مستقل' : 'Every section works inside its own tab'}
+                {isRTL ? 'جميع الاقسام' : 'All of the sections'}
               </h2>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -1288,14 +1380,14 @@ const TemplateBuilder = () => {
                 </div>
                 <div className="mt-1 text-lg font-bold text-gray-900">{visibleSectionsCount}</div>
               </div>
-              <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
+              {/* <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
                   {isRTL ? 'إعداد الصفحة' : 'Page setup'}
                 </div>
                 <div className="mt-1 text-lg font-bold text-gray-900">
                   {formData.layout.pageSize} / {formData.layout.orientation}
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
 
