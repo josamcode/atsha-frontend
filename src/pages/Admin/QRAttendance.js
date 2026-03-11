@@ -25,11 +25,12 @@ const QRAttendance = () => {
   const isQRManager = isQrManager(user);
   const [qrData, setQrData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(0);
   const [stats, setStats] = useState(null);
   const [qrSize, setQrSize] = useState(280);
   const intervalRef = useRef(null);
   const countdownRef = useRef(null);
+  const qrValiditySeconds = Math.max(1, Number(qrData?.expiresIn) || 30);
 
   // Calculate responsive QR code size
   useEffect(() => {
@@ -88,11 +89,6 @@ const QRAttendance = () => {
     // Generate initial QR when page opens
     generateNewQR(false);
 
-    // Auto-generate new QR every 30 seconds
-    intervalRef.current = setInterval(() => {
-      generateNewQR(false);
-    }, 30000);
-
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
@@ -100,26 +96,34 @@ const QRAttendance = () => {
   }, [generateNewQR]);
 
   useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
+      generateNewQR(false);
+    }, qrValiditySeconds * 1000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [generateNewQR, qrValiditySeconds]);
+
+  useEffect(() => {
     if (qrData) {
-      // Start countdown from 30 seconds
-      setCountdown(30);
+      setCountdown(qrValiditySeconds);
 
       if (countdownRef.current) clearInterval(countdownRef.current);
 
       countdownRef.current = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            return 30; // Reset countdown
-          }
-          return prev - 1;
-        });
+        setCountdown((prev) => Math.max(prev - 1, 0));
       }, 1000);
+    } else {
+      setCountdown(0);
     }
 
     return () => {
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [qrData]);
+  }, [qrData, qrValiditySeconds]);
 
   if (loading) return <Loading />;
 
@@ -182,6 +186,9 @@ const QRAttendance = () => {
                   {t('attendance.scanToRecord')}
                 </h2>
                 <p className="text-sm md:text-base text-gray-600">{t('attendance.scanDescription')}</p>
+                <p className="text-xs md:text-sm text-gray-500 mt-2">
+                  {t('attendance.qrExpiry', { seconds: qrValiditySeconds })}
+                </p>
               </div>
 
               {/* QR Code */}

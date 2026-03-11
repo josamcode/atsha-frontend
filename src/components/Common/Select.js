@@ -9,6 +9,7 @@ const Select = ({
   required = false,
   error,
   disabled = false,
+  placeholder = 'Select...',
   className = ''
 }) => {
   return (
@@ -28,7 +29,7 @@ const Select = ({
         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${error ? 'border-primary' : 'border-gray-300'
           } ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
       >
-        <option value="">Select...</option>
+        <option value="">{placeholder}</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

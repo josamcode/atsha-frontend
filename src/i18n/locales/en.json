@@ -272,7 +272,7 @@
     "workingHours": "Working Hours",
     "noAttendance": "No attendance records found",
     "noAttendanceDescription": "Your attendance records will appear here once you start checking in",
-    "qrExpiry": "QR code expires in",
+    "qrExpiry": "QR code expires in {{seconds}} seconds",
     "qrRefresh": "Refresh QR Code",
     "errorGeneratingQR": "Failed to generate QR code",
     "enterToken": "Please enter or scan QR code token",
@@ -303,7 +303,7 @@
     "uniqueUsers": "Unique Users",
     "totalActions": "Total Actions",
     "securityInfo": "Security Information",
-    "qrChangesEvery60Seconds": "QR code changes every 60 seconds",
+    "qrChangesEvery60Seconds": "QR code changes using the configured interval",
     "oldQRsExpire": "Old QR codes expire automatically",
     "onlyLast10Saved": "Only last 10 QR codes are kept",
     "requiresAuthentication": "Requires user authentication",
@@ -925,6 +925,98 @@
     "sendToMultiple": "Send to multiple recipients",
     "selectMultipleHint": "Hold Ctrl (Cmd on Mac) to select multiple recipients",
     "admin": "Admin",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "searchUsersPlaceholder": "Search by name, email, role, or department",
+    "noRecipientsFound": "No matching recipients found",
+    "noRecipientsAvailable": "No recipients available",
+    "noRecipientsAvailableHint": "Active users in your organization will appear here.",
+    "selectedRecipientsCount": "{{count}} recipient(s) selected"
+  },
+  "organizationSettings": {
+    "stats": {
+      "users": "Users",
+      "active": "Active",
+      "invites": "Invites"
+    },
+    "fields": {
+      "displayName": "Display Name",
+      "shortName": "Short Name",
+      "supportEmail": "Support Email",
+      "emailSenderName": "Email Sender Name",
+      "websiteUrl": "Website URL",
+      "timezone": "Timezone",
+      "locale": "Locale",
+      "primaryColor": "Primary Color",
+      "secondaryColor": "Secondary Color",
+      "allowedDomains": "Allowed Domains",
+      "allowedDomainsPlaceholder": "portal.example.com\nstaff.example.com",
+      "qrValiditySeconds": "QR Validity (seconds)",
+      "defaultAnnualLeave": "Default Annual Leave",
+      "code": "Code",
+      "nameEn": "Name (EN)",
+      "nameAr": "Name (AR)",
+      "email": "Email",
+      "role": "Role",
+      "department": "Department",
+      "language": "Language",
+      "expiresInDays": "Expires in Days",
+      "activationLink": "Activation Link"
+    },
+    "toggles": {
+      "requireDomainMatch": "Require Domain Match",
+      "passwordResetEnabled": "Password Reset Enabled",
+      "publicAttendance": "Public Attendance",
+      "leaveApprovalRequired": "Leave Approval Required",
+      "active": "Active"
+    },
+    "sections": {
+      "departments": "Departments",
+      "departmentsDescription": "Organization-managed department codes.",
+      "featureFlags": "Feature Flags",
+      "featureFlagsDescription": "Current organization capabilities.",
+      "inviteMember": "Invite Member",
+      "inviteMemberDescription": "Create onboarding links for new organization users.",
+      "invitations": "Invitations",
+      "invitationsDescription": "Organization-scoped invitation history."
+    },
+    "actions": {
+      "addDepartment": "Add",
+      "saveSettings": "Save Settings",
+      "saving": "Saving...",
+      "createInvitation": "Create Invitation",
+      "creatingInvitation": "Creating...",
+      "refresh": "Refresh",
+      "cancelInvitation": "Cancel"
+    },
+    "states": {
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "noInvitations": "No invitations yet.",
+      "notAvailable": "--"
+    },
+    "feedback": {
+      "loadError": "Failed to load organization settings",
+      "saveSuccess": "Organization settings updated",
+      "saveError": "Failed to update organization settings",
+      "inviteSuccess": "Invitation created",
+      "inviteError": "Failed to create invitation",
+      "cancelSuccess": "Invitation cancelled",
+      "cancelError": "Failed to cancel invitation"
+    },
+    "languageOptions": {
+      "en": "English",
+      "ar": "Arabic"
+    },
+    "organizationStatus": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "invitationStatus": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    }
   }
 }

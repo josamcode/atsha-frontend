@@ -1,21 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { FaTimes, FaPaperPlane, FaUsers } from 'react-icons/fa';
 import Modal from '../../components/Common/Modal';
 import Input from '../../components/Common/Input';
 import Button from '../../components/Common/Button';
-import Select from '../../components/Common/Select';
+import UserPicker from '../../components/Common/UserPicker';
 import api from '../../utils/api';
 import { showSuccess, showError } from '../../utils/toast';
-import Loading from '../../components/Common/Loading';
+import {
+  getUserOrganizationRole,
+  roleMatches
+} from '../../utils/organization';
 
 const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, organization } = useAuth();
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [users, setUsers] = useState([]);
+  const [adminLoading, setAdminLoading] = useState(false);
   const [formData, setFormData] = useState({
     recipient: '',
     recipients: [], // For broadcast
@@ -23,13 +27,11 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
     content: '',
     isBroadcast: false
   });
-
-  // Fetch users for recipient selection
-  useEffect(() => {
-    if (isOpen && user?.role === 'admin') {
-      fetchUsers();
-    }
-  }, [isOpen, user]);
+  const organizationRole = getUserOrganizationRole(user);
+  const isEmployee = organizationRole === 'employee';
+  const canBroadcast = roleMatches(user, ['platform_admin', 'organization_admin']);
+  const canChooseDirectRecipient = !isEmployee;
+  const currentUserId = user?._id || user?.id;
 
   // Pre-fill form if replying
   useEffect(() => {
@@ -52,21 +54,35 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
     }
   }, [replyTo, isOpen]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/users?isActive=true');
-      // Filter out current user and only get employees for broadcast
-      const filteredUsers = response.data.data.filter(u =>
-        u._id !== user.id && u.role === 'employee'
-      );
+      const responseUsers = Array.isArray(response.data?.data) ? response.data.data : [];
+      const filteredUsers = responseUsers.filter((candidate) => {
+        const candidateId = candidate?._id || candidate?.id;
+
+        return (
+          candidateId &&
+          String(candidateId) !== String(currentUserId) &&
+          candidate.isActive !== false
+        );
+      });
+
       setUsers(filteredUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUserId]);
+
+  // Fetch users for recipient selection
+  useEffect(() => {
+    if (isOpen && canChooseDirectRecipient) {
+      fetchUsers();
+    }
+  }, [canChooseDirectRecipient, fetchUsers, isOpen]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -84,14 +100,11 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
   };
 
   const handleRecipientsChange = (e) => {
-    const selectedOptions = e.target.selectedOptions;
-    if (selectedOptions) {
-      const values = Array.from(selectedOptions, option => option.value);
-      setFormData(prev => ({
-        ...prev,
-        recipients: values
-      }));
-    }
+    const values = Array.isArray(e?.target?.value) ? e.target.value : [];
+    setFormData(prev => ({
+      ...prev,
+      recipients: values
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -129,7 +142,7 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
         payload.recipients = formData.recipients;
       } else {
         // For employees, use adminUser._id if available
-        if (user?.role === 'employee' && adminUser) {
+        if (isEmployee && adminUser) {
           payload.recipient = adminUser._id;
         } else {
           payload.recipient = formData.recipient;
@@ -150,40 +163,25 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
   // Fetch admin user for employees
   const [adminUser, setAdminUser] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && user?.role === 'employee') {
-      fetchAdminUser();
-    }
-  }, [isOpen, user]);
-
-  const fetchAdminUser = async () => {
+  const fetchAdminUser = useCallback(async () => {
     try {
+      setAdminLoading(true);
       const response = await api.get('/users/admin');
       if (response.data.data) {
         setAdminUser(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching admin user:', error);
+    } finally {
+      setAdminLoading(false);
     }
-  };
+  }, []);
 
-  // For employees, recipient is always admin
-  const getRecipientOptions = () => {
-    if (user?.role === 'employee') {
-      // Employees can only send to admin
-      if (adminUser) {
-        return [{ value: adminUser._id, label: adminUser.name || t('messages.admin') }];
-      }
-      return [];
-    } else if (user?.role === 'admin') {
-      // Admin can send to all employees
-      return users.map(u => ({
-        value: u._id,
-        label: `${u.name} (${t(`departments.${u.department}`)})`
-      }));
+  useEffect(() => {
+    if (isOpen && isEmployee) {
+      fetchAdminUser();
     }
-    return [];
-  };
+  }, [fetchAdminUser, isEmployee, isOpen]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -202,7 +200,7 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Broadcast option (Admin only) */}
-          {user?.role === 'admin' && (
+          {canBroadcast && (
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -225,17 +223,25 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('messages.to')}
               </label>
-              {user?.role === 'employee' ? (
-                <div className="px-3 py-2 bg-gray-100 rounded-lg text-gray-700">
-                  {adminUser ? adminUser.name : t('messages.loading')}
-                </div>
-              ) : user?.role === 'admin' ? (
-                <Select
+              {isEmployee ? (
+                <UserPicker
+                  name="recipient"
+                  value={adminUser?._id || ''}
+                  onChange={() => {}}
+                  users={adminUser ? [adminUser] : []}
+                  organization={organization}
+                  loading={adminLoading}
+                  disabled
+                  placeholder={adminLoading ? t('messages.loading') : t('messages.admin')}
+                />
+              ) : canChooseDirectRecipient ? (
+                <UserPicker
                   name="recipient"
                   value={formData.recipient}
                   onChange={handleRecipientChange}
-                  options={getRecipientOptions()}
-                  required
+                  users={users}
+                  organization={organization}
+                  loading={loading}
                   placeholder={t('messages.selectRecipient')}
                 />
               ) : null}
@@ -245,22 +251,16 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('messages.recipients')}
               </label>
-              <select
-                multiple
+              <UserPicker
+                name="recipients"
                 value={formData.recipients}
                 onChange={handleRecipientsChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent min-h-[120px]"
-                required
-              >
-                {users.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {u.name} ({t(`departments.${u.department}`)})
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                {t('messages.selectMultipleHint')}
-              </p>
+                users={users}
+                organization={organization}
+                loading={loading}
+                multiple
+                placeholder={t('messages.recipients')}
+              />
             </div>
           )}
 

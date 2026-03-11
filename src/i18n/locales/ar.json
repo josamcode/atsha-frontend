@@ -272,7 +272,7 @@
     "workingHours": "ساعات العمل",
     "noAttendance": "لم يتم العثور على سجلات حضور",
     "noAttendanceDescription": "ستظهر سجلات حضورك هنا بمجرد بدء تسجيل الحضور",
-    "qrExpiry": "ينتهي رمز QR في",
+    "qrExpiry": "تنتهي صلاحية رمز QR خلال {{seconds}} ثانية",
     "qrRefresh": "تحديث رمز QR",
     "errorGeneratingQR": "فشل في إنشاء رمز QR",
     "enterToken": "يرجى إدخال أو مسح رمز QR",
@@ -303,7 +303,7 @@
     "uniqueUsers": "المستخدمون الفريدون",
     "totalActions": "إجمالي الإجراءات",
     "securityInfo": "معلومات الأمان",
-    "qrChangesEvery60Seconds": "يتغير رمز QR كل 60 ثانية",
+    "qrChangesEvery60Seconds": "يتغير رمز QR حسب المدة المضبوطة",
     "oldQRsExpire": "تنتهي صلاحية رموز QR القديمة تلقائياً",
     "onlyLast10Saved": "يتم الاحتفاظ بآخر 10 رموز QR فقط",
     "requiresAuthentication": "يتطلب مصادقة المستخدم",
@@ -919,6 +919,98 @@
     "sendToMultiple": "إرسال لعدة مستلمين",
     "selectMultipleHint": "اضغط Ctrl (Cmd على Mac) لاختيار عدة مستلمين",
     "admin": "المدير",
-    "loading": "جاري التحميل..."
+    "loading": "جاري التحميل...",
+    "searchUsersPlaceholder": "ابحث بالاسم أو البريد أو الدور أو القسم",
+    "noRecipientsFound": "لم يتم العثور على مستلمين مطابقين",
+    "noRecipientsAvailable": "لا يوجد مستلمون متاحون",
+    "noRecipientsAvailableHint": "سيظهر هنا المستخدمون النشطون في منظمتك.",
+    "selectedRecipientsCount": "تم اختيار {{count}} مستلم"
+  },
+  "organizationSettings": {
+    "stats": {
+      "users": "المستخدمون",
+      "active": "النشطون",
+      "invites": "الدعوات"
+    },
+    "fields": {
+      "displayName": "الاسم المعروض",
+      "shortName": "الاسم المختصر",
+      "supportEmail": "بريد الدعم",
+      "emailSenderName": "اسم مرسل البريد",
+      "websiteUrl": "رابط الموقع",
+      "timezone": "المنطقة الزمنية",
+      "locale": "اللغة الافتراضية",
+      "primaryColor": "اللون الأساسي",
+      "secondaryColor": "اللون الثانوي",
+      "allowedDomains": "النطاقات المسموح بها",
+      "allowedDomainsPlaceholder": "portal.example.com\nstaff.example.com",
+      "qrValiditySeconds": "مدة صلاحية رمز QR (بالثواني)",
+      "defaultAnnualLeave": "الرصيد السنوي الافتراضي",
+      "code": "الرمز",
+      "nameEn": "الاسم (EN)",
+      "nameAr": "الاسم (AR)",
+      "email": "البريد الإلكتروني",
+      "role": "الدور",
+      "department": "القسم",
+      "language": "اللغة",
+      "expiresInDays": "تنتهي خلال أيام",
+      "activationLink": "رابط التفعيل"
+    },
+    "toggles": {
+      "requireDomainMatch": "مطابقة النطاق مطلوبة",
+      "passwordResetEnabled": "إتاحة إعادة تعيين كلمة المرور",
+      "publicAttendance": "الحضور العام",
+      "leaveApprovalRequired": "موافقة الإجازة مطلوبة",
+      "active": "نشط"
+    },
+    "sections": {
+      "departments": "الأقسام",
+      "departmentsDescription": "رموز الأقسام المُدارة على مستوى المنظمة.",
+      "featureFlags": "خصائص المنظمة",
+      "featureFlagsDescription": "القدرات المفعلة حالياً للمنظمة.",
+      "inviteMember": "دعوة عضو",
+      "inviteMemberDescription": "إنشاء روابط انضمام للمستخدمين الجدد في المنظمة.",
+      "invitations": "الدعوات",
+      "invitationsDescription": "سجل الدعوات الخاص بالمنظمة."
+    },
+    "actions": {
+      "addDepartment": "إضافة",
+      "saveSettings": "حفظ الإعدادات",
+      "saving": "جارٍ الحفظ...",
+      "createInvitation": "إنشاء دعوة",
+      "creatingInvitation": "جارٍ الإنشاء...",
+      "refresh": "تحديث",
+      "cancelInvitation": "إلغاء"
+    },
+    "states": {
+      "enabled": "مفعّل",
+      "disabled": "غير مفعّل",
+      "noInvitations": "لا توجد دعوات بعد.",
+      "notAvailable": "--"
+    },
+    "feedback": {
+      "loadError": "فشل تحميل إعدادات المنظمة",
+      "saveSuccess": "تم تحديث إعدادات المنظمة",
+      "saveError": "فشل تحديث إعدادات المنظمة",
+      "inviteSuccess": "تم إنشاء الدعوة",
+      "inviteError": "فشل إنشاء الدعوة",
+      "cancelSuccess": "تم إلغاء الدعوة",
+      "cancelError": "فشل إلغاء الدعوة"
+    },
+    "languageOptions": {
+      "en": "الإنجليزية",
+      "ar": "العربية"
+    },
+    "organizationStatus": {
+      "active": "نشطة",
+      "inactive": "غير نشطة",
+      "suspended": "موقوفة"
+    },
+    "invitationStatus": {
+      "pending": "قيد الانتظار",
+      "accepted": "تم القبول",
+      "cancelled": "تم الإلغاء",
+      "expired": "منتهية"
+    }
   }
 }
