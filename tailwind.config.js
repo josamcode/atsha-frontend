@@ -15,9 +15,10 @@ module.exports = {
         },
       },
       fontFamily: {
-        'sans': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        'cairo': ['Cairo', 'Inter', 'sans-serif'],
-        'inter': ['Inter', 'sans-serif'],
+        'sans': ['Tajawal', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        'cairo': ['Tajawal', 'sans-serif'],
+        'inter': ['Tajawal', 'sans-serif'],
+        'tajawal': ['Tajawal', 'sans-serif'],
       },
       fontSize: {
         // Responsive fluid typography utilities
