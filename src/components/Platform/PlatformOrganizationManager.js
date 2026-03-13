@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa';
 import Button from '../Common/Button';
 import Card from '../Common/Card';
+import FilterBar from '../Common/FilterBar';
 import Input from '../Common/Input';
 import Loading from '../Common/Loading';
 import Modal from '../Common/Modal';
@@ -71,16 +72,25 @@ const getPlanDescription = (plan, language = 'en') => (
   || ''
 );
 
+const formatLabel = (value) => {
+  const normalizedValue = String(value || '').replace(/[_-]+/g, ' ').trim();
+  if (!normalizedValue) {
+    return '--';
+  }
+
+  return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
+};
+
 const getStatusClasses = (status) => {
   if (status === 'active') {
-    return 'bg-green-100 text-green-800 border border-green-200';
+    return 'border border-green-200 bg-green-50 text-green-700';
   }
 
   if (status === 'suspended') {
-    return 'bg-amber-100 text-amber-800 border border-amber-200';
+    return 'border border-amber-200 bg-amber-50 text-amber-700';
   }
 
-  return 'bg-gray-100 text-gray-700 border border-gray-200';
+  return 'border border-gray-200 bg-gray-50 text-gray-600';
 };
 
 const getPlanClasses = (plan) => {
@@ -103,10 +113,11 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   const [planOptions, setPlanOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    search: '',
     status: '',
     plan: ''
   });
+  const [searchValue, setSearchValue] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -128,6 +139,26 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     result[plan.code] = plan;
     return result;
   }, {}), [availablePlans]);
+  const filterConfig = useMemo(() => ([
+    {
+      name: 'status',
+      label: isRTL ? 'الحالة' : 'Status',
+      allLabel: isRTL ? 'كل الحالات' : 'All statuses',
+      options: STATUS_OPTIONS.map((status) => ({
+        value: status,
+        label: formatLabel(status)
+      }))
+    },
+    {
+      name: 'plan',
+      label: isRTL ? 'الخطة' : 'Plan',
+      allLabel: isRTL ? 'كل الخطط' : 'All plans',
+      options: availablePlans.map((plan) => ({
+        value: plan.code,
+        label: getPlanName(plan, i18n.language)
+      }))
+    }
+  ]), [availablePlans, i18n.language, isRTL]);
 
   const titleText = isManagementMode
     ? (isRTL ? 'إدارة المنصة' : 'Platform Settings')
@@ -154,8 +185,8 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
       setLoading(true);
       const params = {};
 
-      if (filters.search) {
-        params.search = filters.search;
+      if (appliedSearch) {
+        params.search = appliedSearch;
       }
 
       if (filters.status) {
@@ -174,7 +205,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     } finally {
       setLoading(false);
     }
-  }, [filters.plan, filters.search, filters.status, isRTL]);
+  }, [appliedSearch, filters.plan, filters.status, isRTL]);
 
   useEffect(() => {
     fetchOrganizations();
@@ -183,6 +214,14 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   useEffect(() => {
     fetchPlans();
   }, [fetchPlans]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setAppliedSearch(searchValue.trim());
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchValue]);
 
   const organizationCountLabel = useMemo(() => {
     const count = organizations.length;
@@ -202,6 +241,28 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
       pendingInvitations: 0
     })
   ), [organizations]);
+
+  const handleFilterChange = (event) => {
+    const { name, value } = event.target;
+    setFilters((currentValue) => ({
+      ...currentValue,
+      [name]: value
+    }));
+  };
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    setAppliedSearch(searchValue.trim());
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      status: '',
+      plan: ''
+    });
+    setSearchValue('');
+    setAppliedSearch('');
+  };
 
   const openMembersModal = async (organization) => {
     const organizationId = getOrganizationId(organization);
@@ -354,13 +415,26 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
         )}
       </div>
 
+      <FilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleResetFilters}
+        filterConfig={filterConfig}
+        showSearch
+        searchValue={searchValue}
+        onSearchChange={(event) => setSearchValue(event.target.value)}
+        onSearchSubmit={handleSearchSubmit}
+        searchPlaceholder={isRTL ? 'ابحث بالاسم أو المعرف' : 'Search by name or slug'}
+      />
+
+      {false && (
       <Card>
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem_12rem_auto]">
           <div className="relative">
             <FaSearch className={`absolute top-1/2 -translate-y-1/2 text-sm text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
             <input
               type="text"
-              value={filters.search}
+              value={searchValue}
               onChange={(event) => setFilters((currentValue) => ({ ...currentValue, search: event.target.value }))}
               placeholder={isRTL ? 'ابحث بالاسم أو المعرف' : 'Search by name or slug'}
               className={`w-full rounded-xl border border-gray-300 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${isRTL ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'}`}
@@ -398,6 +472,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
           </Button>
         </div>
       </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -453,6 +528,91 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
           </div>
         </Card>
       ) : (
+        <>
+          <div className="grid gap-5 xl:grid-cols-2">
+            {organizations.map((organization) => {
+              const organizationPlanCode = getOrganizationPlanCode(organization);
+              const organizationPlan = planLookup[organizationPlanCode] || { code: organizationPlanCode };
+
+              return (
+                <Card key={`simple-${getOrganizationId(organization)}`} className="h-full rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  <div className="flex h-full flex-col">
+                    <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-5">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold uppercase text-gray-700">
+                          {(getOrganizationName(organization) || 'O').charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-lg font-semibold text-gray-900">
+                            {getOrganizationName(organization)}
+                          </h3>
+                          <p className="mt-1 truncate text-sm text-gray-500">
+                            {organization.slug || '--'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(organization.status)}`}>
+                          {formatLabel(organization.status)}
+                        </span>
+                        <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+                          {getPlanName(organizationPlan, i18n.language)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pb-5">
+                      <div className="grid grid-cols-3 gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                            {isRTL ? 'المستخدمون' : 'Users'}
+                          </p>
+                          <p className="mt-1 text-lg font-semibold text-gray-900">
+                            {organization?.summary?.users || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                            {isRTL ? 'النشطون' : 'Active'}
+                          </p>
+                          <p className="mt-1 text-lg font-semibold text-gray-900">
+                            {organization?.summary?.activeUsers || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                            {isRTL ? 'الدعوات' : 'Invites'}
+                          </p>
+                          <p className="mt-1 text-lg font-semibold text-gray-900">
+                            {organization?.summary?.pendingInvitations || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 text-sm text-gray-500">
+                        {organization?.locale || '--'} / {organization?.timezone || '--'}
+                      </p>
+                    </div>
+
+                    <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-gray-200 px-5 py-4">
+                      <Button variant="outline" onClick={() => openMembersModal(organization)} icon={FaUsers} className='w-full'>
+                        {isRTL ? 'عرض الأعضاء' : 'View Members'}
+                      </Button>
+
+                      {isManagementMode && (
+                        <Button onClick={() => openEditModal(organization)} icon={FaEdit}>
+                          {isRTL ? 'تعديل المؤسسة' : 'Edit Organization'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+
+          {false && (
         <div className="grid gap-5 xl:grid-cols-2">
           {organizations.map((organization) => (
             <Card key={getOrganizationId(organization)} className="h-full overflow-hidden rounded-3xl border border-gray-200 p-0 shadow-sm">
@@ -561,6 +721,8 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
             </Card>
           ))}
         </div>
+          )}
+        </>
       )}
 
       <Modal
