@@ -4,7 +4,14 @@ import { FaReply, FaTrash, FaUser, FaEnvelope, FaEnvelopeOpen, FaClock } from 'r
 import Card from '../../components/Common/Card';
 import Button from '../../components/Common/Button';
 
-const MessageView = ({ message, onReply, onDelete, isInbox }) => {
+const MessageView = ({
+  message,
+  onReply,
+  onDelete,
+  isInbox,
+  readOnly = false,
+  scopeLabel = ''
+}) => {
   const { t, i18n } = useTranslation();
 
   const formatTime = (date) => {
@@ -36,41 +43,56 @@ const MessageView = ({ message, onReply, onDelete, isInbox }) => {
               <div className="flex items-center gap-2">
                 <FaUser className="text-gray-400" />
                 <span className="font-medium">
-                  {isInbox ? t('messages.from') : t('messages.to')}:
+                  {readOnly
+                    ? t('messages.from')
+                    : (isInbox ? t('messages.from') : t('messages.to'))}:
                 </span>
                 <span>
-                  {isInbox
-                    ? message.sender?.name || t('messages.unknown')
-                    : message.recipient?.name || t('messages.unknown')}
+                  {readOnly
+                    ? `${message.sender?.name || t('messages.unknown')} -> ${message.recipient?.name || t('messages.unknown')}`
+                    : (isInbox
+                      ? message.sender?.name || t('messages.unknown')
+                      : message.recipient?.name || t('messages.unknown'))}
                 </span>
               </div>
+              {scopeLabel ? (
+                <div className="flex items-center gap-2">
+                  <FaUser className="text-gray-400" />
+                  <span className="font-medium">
+                    {t('users.organization', { defaultValue: 'Organization' })}:
+                  </span>
+                  <span>{scopeLabel}</span>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2">
                 <FaClock className="text-gray-400" />
                 <span>{formatTime(message.createdAt)}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {isInbox && (
+          {!readOnly && (
+            <div className="flex items-center gap-2">
+              {isInbox && (
+                <Button
+                  onClick={onReply}
+                  variant="outline"
+                  icon={FaReply}
+                  size="sm"
+                >
+                  {t('messages.reply')}
+                </Button>
+              )}
               <Button
-                onClick={onReply}
+                onClick={onDelete}
                 variant="outline"
-                icon={FaReply}
+                icon={FaTrash}
                 size="sm"
+                className="text-primary hover:text-primary hover:border-primary"
               >
-                {t('messages.reply')}
+                {t('messages.delete')}
               </Button>
-            )}
-            <Button
-              onClick={onDelete}
-              variant="outline"
-              icon={FaTrash}
-              size="sm"
-              className="text-primary hover:text-primary hover:border-primary"
-            >
-              {t('messages.delete')}
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

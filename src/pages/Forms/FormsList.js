@@ -13,6 +13,7 @@ import FilterBar from '../../components/Common/FilterBar';
 import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
+import { isPlatformAdmin } from '../../utils/organization';
 import {
   canDeleteForms,
   canReviewForms,
@@ -31,8 +32,11 @@ const FormsList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [forms, setForms] = useState([]);
   const [templates, setTemplates] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const platformAdminView = isPlatformAdmin(user);
   const [filters, setFilters] = useState({
+    organizationId: searchParams.get('organizationId') || '',
     status: searchParams.get('status') || '',
     templateId: searchParams.get('templateId') || '',
     department: searchParams.get('department') || '',
@@ -46,6 +50,7 @@ const FormsList = () => {
   // Sync filters state with URL params when URL changes
   useEffect(() => {
     setFilters({
+      organizationId: searchParams.get('organizationId') || '',
       status: searchParams.get('status') || '',
       templateId: searchParams.get('templateId') || '',
       department: searchParams.get('department') || '',
@@ -57,13 +62,17 @@ const FormsList = () => {
   useEffect(() => {
     fetchForms();
     fetchTemplates();
-  }, [filters]);
+    if (platformAdminView) {
+      fetchOrganizations();
+    }
+  }, [filters, platformAdminView]);
 
   const fetchForms = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
 
+      if (filters.organizationId) params.append('organizationId', filters.organizationId);
       if (filters.status) params.append('status', filters.status);
       if (filters.templateId) params.append('templateId', filters.templateId);
       if (filters.department) params.append('department', filters.department);
@@ -81,10 +90,24 @@ const FormsList = () => {
 
   const fetchTemplates = async () => {
     try {
-      const response = await api.get('/form-templates');
+      const params = {};
+      if (platformAdminView && filters.organizationId) {
+        params.organizationId = filters.organizationId;
+      }
+
+      const response = await api.get('/form-templates', { params });
       setTemplates(response.data.data);
     } catch (error) {
       console.error('Error fetching templates:', error);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      const response = await api.get('/organizations');
+      setOrganizations(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
     }
   };
 
@@ -103,6 +126,7 @@ const FormsList = () => {
 
   const handleResetFilters = () => {
     setFilters({
+      organizationId: '',
       status: '',
       templateId: '',
       department: '',
@@ -189,6 +213,12 @@ const FormsList = () => {
   if (loading) return <Loading />;
 
   const formColumns = [
+    ...(platformAdminView ? [{
+      key: 'organization',
+      header: isRTL ? 'المؤسسة' : 'Organization',
+      cellClassName: 'px-6 py-4 text-sm text-gray-500',
+      render: (form) => form.organizationId?.branding?.displayName || form.organizationId?.name || 'N/A'
+    }] : []),
     {
       key: 'templateDetails',
       header: t('forms.templateDetails'),
@@ -213,7 +243,7 @@ const FormsList = () => {
       cellClassName: 'px-6 py-4 text-sm text-gray-500',
       render: (form) => (
         form.department
-          ? getDepartmentLabel(form.department, organization, t, i18n.language)
+          ? getDepartmentLabel(form.department, form.organizationId || organization, t, i18n.language)
           : t('common.na')
       )
     },
@@ -312,15 +342,19 @@ const FormsList = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <PageTitle
             title={t('forms.title')}
-            description={t('forms.manageAndTrackForms')}
+            description={platformAdminView
+              ? (isRTL ? 'متابعة جميع نماذج النظام عبر كل المؤسسات.' : 'Track forms across every organization in the platform.')
+              : t('forms.manageAndTrackForms')}
           />
 
-          <Link to="/forms/new" className="w-full sm:w-auto">
-            <Button className="w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap">
-              <FaPlus className="shrink-0" />
-              <span>{t('forms.createForm')}</span>
-            </Button>
-          </Link>
+          {!platformAdminView && (
+            <Link to="/forms/new" className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap">
+                <FaPlus className="shrink-0" />
+                <span>{t('forms.createForm')}</span>
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Filters */}
@@ -329,6 +363,15 @@ const FormsList = () => {
           onFilterChange={handleFilterChange}
           onReset={handleResetFilters}
           filterConfig={[
+            ...(platformAdminView ? [{
+              name: 'organizationId',
+              label: isRTL ? 'المؤسسة' : 'Organization',
+              allLabel: isRTL ? 'كل المؤسسات' : 'All Organizations',
+              options: organizations.map((organizationItem) => ({
+                value: organizationItem._id || organizationItem.id,
+                label: organizationItem.branding?.displayName || organizationItem.name
+              }))
+            }] : []),
             {
               name: 'status',
               label: t('forms.status'),
@@ -344,12 +387,14 @@ const FormsList = () => {
               name: 'templateId',
               label: t('forms.templates'),
               allLabel: t('forms.allTemplates'),
-              options: templates.map(t => ({
-                value: t._id,
-                label: isRTL ? (t.title.ar || t.title.en) : t.title.en
+              options: templates.map((template) => ({
+                value: template._id,
+                label: platformAdminView
+                  ? `${isRTL ? (template.title.ar || template.title.en) : (template.title.en || template.title.ar)} - ${template.organizationId?.branding?.displayName || template.organizationId?.name || '--'}`
+                  : (isRTL ? (template.title.ar || template.title.en) : (template.title.en || template.title.ar))
               }))
             },
-            ...(canReviewForms(user) ? [{
+            ...(!platformAdminView && canReviewForms(user) ? [{
               name: 'department',
               label: t('forms.department'),
               allLabel: t('common.allDepartments'),
@@ -432,6 +477,14 @@ const FormsList = () => {
                         </div>
 
                         <div className="space-y-2 mb-4">
+                          {platformAdminView && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500">{isRTL ? 'المؤسسة' : 'Organization'}</span>
+                              <span className="text-xs font-medium text-gray-900">
+                                {form.organizationId?.branding?.displayName || form.organizationId?.name || 'N/A'}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
                               {form.filledBy?.name?.charAt(0)?.toUpperCase() || 'N'}
@@ -441,7 +494,7 @@ const FormsList = () => {
 
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500">
-                              {getDepartmentLabel(form.department, organization, t, i18n.language)}
+                              {getDepartmentLabel(form.department, form.organizationId || organization, t, i18n.language)}
                             </span>
                             <span
                               className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${form.status === 'approved'

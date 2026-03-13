@@ -34,10 +34,13 @@ import {
   FaList
 } from 'react-icons/fa';
 import PageTitle from '../../components/Common/PageTilte';
+import PlatformOrganizationManager from '../../components/Platform/PlatformOrganizationManager';
+import { isPlatformAdmin } from '../../utils/organization';
 
 const UsersList = () => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const isRTL = i18n.language === 'ar';
   const { user: currentUser, organization } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,12 +57,15 @@ const UsersList = () => {
   const { confirmState, confirm, closeConfirm } = useConfirm();
   const canManageCurrentUsers = canManageUsers(currentUser);
   const canOpenAnalytics = canViewUserAnalytics(currentUser);
+  const platformAdminView = isPlatformAdmin(currentUser);
   const roleOptions = getAssignableRoleOptions(currentUser, t, i18n.language);
   const departmentOptions = getDepartmentOptions(organization, t, i18n.language);
 
   useEffect(() => {
-    fetchUsers();
-  }, [filters]);
+    if (!platformAdminView) {
+      fetchUsers();
+    }
+  }, [filters, platformAdminView]);
 
   const fetchUsers = async () => {
     try {
@@ -159,6 +165,14 @@ const UsersList = () => {
       showError(error.response?.data?.message || t('users.errorFetchingUser'));
     }
   };
+
+  if (platformAdminView) {
+    return (
+      <Layout>
+        <PlatformOrganizationManager mode="browse" />
+      </Layout>
+    );
+  }
 
   if (loading) return <Loading />;
 
@@ -345,12 +359,18 @@ const UsersList = () => {
             </div>
           ) : (
             <>
-              {/* View Toggle */}
-              <div className="mb-4 flex items-center justify-end">
-                <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('users.title')}</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {`${t('users.totalUsers')}: ${filteredUsers.length}`}
+                  </p>
+                </div>
+
+                <div className="flex items-center rounded-2xl bg-gray-100 p-1">
                   <button
                     onClick={() => setViewMode('table')}
-                    className={`p-2 rounded transition-all ${viewMode === 'table'
+                    className={`rounded-xl p-2 transition-all ${viewMode === 'table'
                       ? 'bg-white text-primary shadow-sm'
                       : 'text-gray-500 hover:text-gray-700'
                       }`}
@@ -360,7 +380,7 @@ const UsersList = () => {
                   </button>
                   <button
                     onClick={() => setViewMode('cards')}
-                    className={`p-2 rounded transition-all ${viewMode === 'cards'
+                    className={`rounded-xl p-2 transition-all ${viewMode === 'cards'
                       ? 'bg-white text-primary shadow-sm'
                       : 'text-gray-500 hover:text-gray-700'
                       }`}
@@ -385,130 +405,151 @@ const UsersList = () => {
               {/* Cards View */}
               {viewMode === 'cards' && (
                 <div className="p-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredUsers.map((user) => (
-                      <div
-                        key={user._id}
-                        className={`bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all ${canOpenAnalytics ? 'cursor-pointer' : ''}`}
-                        onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
-                      >
-                        {/* User Header */}
-                        <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
-                          {user.image ? (
-                            <img
-                              src={getMediaUrl(user.image)}
-                              alt={user.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                if (e.target.nextSibling) {
-                                  e.target.nextSibling.style.display = 'flex';
-                                }
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${user.image ? 'hidden' : 'flex'}`}
-                            style={{ display: user.image ? 'none' : 'flex' }}
-                          >
-                            {user.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-semibold text-gray-900 truncate">
-                              {user.name}
-                            </h4>
-                            {user.phone && (
-                              <p className="text-xs text-gray-500">{user.phone}</p>
-                            )}
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {filteredUsers.map((user) => {
+                      const roleLabel = getRoleLabel(user.organizationRole || user.role, t, i18n.language);
+                      const departmentLabel = getDepartmentLabel(user.department, organization, t, i18n.language);
+                      const isActive = user.isActive !== false;
 
-                        {/* User Info */}
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-600">{t('users.email')}</span>
-                            <span className="text-xs font-medium text-gray-900 truncate ml-2">{user.email}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-600">{t('users.role')}</span>
-                            <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
-                              {getRoleLabel(user.organizationRole || user.role, t, i18n.language)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-600">{t('users.department')}</span>
-                            <span className="text-xs font-medium text-gray-900">
-                              {getDepartmentLabel(user.department, organization, t, i18n.language)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <span className="text-xs text-gray-600">{t('users.status')}</span>
-                            <span className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full ${user.isActive !== false
+                      return (
+                        <div
+                          key={user._id}
+                          className={`group rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition ${canOpenAnalytics ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg' : ''}`}
+                          onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              {user.image ? (
+                                <img
+                                  src={getMediaUrl(user.image)}
+                                  alt={user.name}
+                                  className="h-14 w-14 flex-shrink-0 rounded-2xl border-2 border-gray-200 object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    if (e.target.nextSibling) {
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                              ) : null}
+                              <div
+                                className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-lg font-bold text-white ${user.image ? 'hidden' : 'flex'}`}
+                                style={{ display: user.image ? 'none' : 'flex' }}
+                              >
+                                {user.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="truncate text-base font-semibold text-gray-900">
+                                  {user.name}
+                                </h4>
+                                <p className="mt-1 truncate text-sm text-gray-500">
+                                  {user.phone || user.email}
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-primary text-primary-darko'
+                              : 'bg-rose-100 text-rose-700'
                               }`}>
-                              {user.isActive !== false ? t('users.active') : t('users.inactive')}
+                              {isActive ? t('users.active') : t('users.inactive')}
                             </span>
                           </div>
-                        </div>
 
-                        {/* Actions */}
-                        {canManageCurrentUsers && (
-                          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditModal(user);
-                                }}
-                                className="text-blue-600 hover:text-blue-800 transition-colors"
-                                title={t('common.edit')}
-                              >
-                                <FaEdit className="text-sm" />
-                              </button>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
+                              {roleLabel}
+                            </span>
+                            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                              {departmentLabel}
+                            </span>
+                          </div>
 
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleActive(user._id, user.isActive !== false);
-                                }}
-                                className={`transition-colors ${user.isActive !== false
-                                  ? 'text-orange-600 hover:text-orange-800'
-                                  : 'text-green-600 hover:text-green-800'
-                                  }`}
-                                title={user.isActive !== false ? t('users.deactivate') : t('users.activate')}
-                              >
-                                {user.isActive !== false ? <FaUserTimes className="text-sm" /> : <FaUserCheck className="text-sm" />}
-                              </button>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <div className="rounded-2xl border border-gray-100 bg-gray-50/80 px-3 py-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                {t('users.email')}
+                              </p>
+                              <p className="mt-1 truncate text-sm font-medium text-gray-900">
+                                {user.email}
+                              </p>
+                            </div>
 
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleResetPassword(user._id);
-                                }}
-                                className="text-purple-600 hover:text-purple-800 transition-colors"
-                                title={t('users.resetPassword')}
-                              >
-                                <FaKey className="text-sm" />
-                              </button>
+                            <div className="rounded-2xl border border-gray-100 bg-gray-50/80 px-3 py-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                {user.phone ? t('auth.phone') : t('users.department')}
+                              </p>
+                              <p className="mt-1 truncate text-sm font-medium text-gray-900">
+                                {user.phone || departmentLabel || t('common.na')}
+                              </p>
+                            </div>
+                          </div>
 
-                              {user._id !== currentUser?._id && (
+                          <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                            <p className="text-xs text-gray-500">
+                              {canOpenAnalytics
+                                ? (isRTL
+                                  ? '\u0627\u0641\u062a\u062d \u0627\u0644\u0628\u0637\u0627\u0642\u0629 \u0644\u0639\u0631\u0636 \u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a \u0627\u0644\u0645\u0648\u0638\u0641'
+                                  : 'Open the card to view analytics')
+                                : roleLabel}
+                            </p>
+
+                            {canManageCurrentUsers && (
+                              <div className="flex items-center gap-2">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleDelete(user._id, user.name);
+                                    openEditModal(user);
                                   }}
-                                  className="text-primary hover:text-primary-darko transition-colors"
-                                  title={t('common.delete')}
+                                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-blue-600 transition hover:border-blue-200 hover:bg-blue-50"
+                                  title={t('common.edit')}
                                 >
-                                  <FaTrash className="text-sm" />
+                                  <FaEdit className="text-sm" />
                                 </button>
-                              )}
-                            </div>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleActive(user._id, isActive);
+                                  }}
+                                  className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${isActive
+                                    ? 'border-orange-200 text-orange-600 hover:bg-orange-50'
+                                    : 'border-green-200 text-green-600 hover:bg-green-50'
+                                    }`}
+                                  title={isActive ? t('users.deactivate') : t('users.activate')}
+                                >
+                                  {isActive ? <FaUserTimes className="text-sm" /> : <FaUserCheck className="text-sm" />}
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleResetPassword(user._id);
+                                  }}
+                                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-200 text-purple-600 transition hover:bg-purple-50"
+                                  title={t('users.resetPassword')}
+                                >
+                                  <FaKey className="text-sm" />
+                                </button>
+
+                                {user._id !== currentUser?._id && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(user._id, user.name);
+                                    }}
+                                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 text-rose-600 transition hover:bg-rose-50"
+                                    title={t('common.delete')}
+                                  >
+                                    <FaTrash className="text-sm" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

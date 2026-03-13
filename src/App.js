@@ -108,7 +108,7 @@ function AppContent() {
           <Route
             path="/forms/new"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin', 'supervisor']}>
+              <ProtectedRoute allowedRoles={['organization_admin', 'supervisor']}>
                 <SelectTemplate />
               </ProtectedRoute>
             )}
@@ -116,7 +116,7 @@ function AppContent() {
           <Route
             path="/forms/fill/:templateId"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin', 'supervisor']}>
+              <ProtectedRoute allowedRoles={['organization_admin', 'supervisor']}>
                 <FillForm />
               </ProtectedRoute>
             )}
@@ -149,7 +149,7 @@ function AppContent() {
           <Route
             path="/templates/create"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin']}>
+              <ProtectedRoute allowedRoles={['organization_admin']}>
                 <TemplateBuilder />
               </ProtectedRoute>
             )}
@@ -157,7 +157,7 @@ function AppContent() {
           <Route
             path="/templates/edit/:id"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin']}>
+              <ProtectedRoute allowedRoles={['organization_admin']}>
                 <TemplateBuilder />
               </ProtectedRoute>
             )}
@@ -166,7 +166,10 @@ function AppContent() {
           <Route
             path="/attendance"
             element={(
-              <ProtectedRoute requiredFeatures={['attendanceManagement']}>
+              <ProtectedRoute
+                allowedRoles={['organization_admin', 'supervisor', 'employee', 'qr_manager']}
+                requiredFeatures={['attendanceManagement']}
+              >
                 <AttendancePage />
               </ProtectedRoute>
             )}
@@ -175,7 +178,7 @@ function AppContent() {
             path="/qr"
             element={(
               <ProtectedRoute
-                allowedRoles={['platform_admin', 'organization_admin', 'qr_manager']}
+                allowedRoles={['organization_admin', 'qr_manager']}
                 requiredFeatures={['attendanceManagement', 'qrCode']}
               >
                 <QRAttendance />
@@ -186,7 +189,7 @@ function AppContent() {
             path="/admin/qr-attendance"
             element={(
               <ProtectedRoute
-                allowedRoles={['platform_admin', 'organization_admin']}
+                allowedRoles={['organization_admin']}
                 requiredFeatures={['attendanceManagement', 'qrCode']}
               >
                 <QRAttendance />

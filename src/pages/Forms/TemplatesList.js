@@ -28,32 +28,44 @@ import {
 } from '../../utils/organizationUi';
 import PageTitle from '../../components/Common/PageTilte';
 import Card from '../../components/Common/Card';
+import { isPlatformAdmin } from '../../utils/organization';
 
 const TemplatesList = () => {
   const { t, i18n } = useTranslation();
   const { user, organization } = useAuth();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
-  const canManageCurrentTemplates = canManageTemplates(user);
+  const platformAdminView = isPlatformAdmin(user);
+  const canManageCurrentTemplates = canManageTemplates(user) && !platformAdminView;
 
   const [templates, setTemplates] = useState([]);
   const [filteredTemplates, setFilteredTemplates] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [organizationFilter, setOrganizationFilter] = useState('');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const { confirmState, confirm, closeConfirm } = useConfirm();
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+    if (platformAdminView) {
+      fetchOrganizations();
+    }
+  }, [platformAdminView, organizationFilter]);
 
   useEffect(() => {
     filterTemplates();
-  }, [searchTerm, templates]);
+  }, [organizationFilter, searchTerm, templates]);
 
   const fetchTemplates = async () => {
     try {
-      const response = await api.get('/form-templates');
+      const params = {};
+      if (platformAdminView && organizationFilter) {
+        params.organizationId = organizationFilter;
+      }
+
+      const response = await api.get('/form-templates', { params });
       setTemplates(response.data.data);
       setFilteredTemplates(response.data.data);
     } catch (error) {
@@ -63,16 +75,33 @@ const TemplatesList = () => {
     }
   };
 
-  const filterTemplates = () => {
-    if (!searchTerm) {
-      setFilteredTemplates(templates);
-      return;
+  const fetchOrganizations = async () => {
+    try {
+      const response = await api.get('/organizations');
+      setOrganizations(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
     }
+  };
 
-    const filtered = templates.filter(template =>
-      template.title.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      template.title.ar.includes(searchTerm)
-    );
+  const filterTemplates = () => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filtered = templates.filter((template) => {
+      const organizationName = template.organizationId?.branding?.displayName || template.organizationId?.name || '';
+      const matchesSearch = !normalizedSearch || [
+        template.title?.en,
+        template.title?.ar,
+        organizationName
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch);
+      const matchesOrganization = !organizationFilter || (template.organizationId?._id === organizationFilter || template.organizationId?.id === organizationFilter);
+
+      return matchesSearch && matchesOrganization;
+    });
+
     setFilteredTemplates(filtered);
   };
 
@@ -123,6 +152,11 @@ const TemplatesList = () => {
   if (loading) return <Loading />;
 
   const templateColumns = [
+    ...(platformAdminView ? [{
+      key: 'organization',
+      header: isRTL ? 'المؤسسة' : 'Organization',
+      render: (template) => template.organizationId?.branding?.displayName || template.organizationId?.name || 'N/A'
+    }] : []),
     {
       key: 'template',
       header: t('templates.template'),
@@ -158,7 +192,7 @@ const TemplatesList = () => {
               key={dept}
               className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
             >
-              {getDepartmentLabel(dept, organization, t, i18n.language)}
+              {getDepartmentLabel(dept, template.organizationId || organization, t, i18n.language)}
             </span>
           ))}
           {template.departments.length > 2 && (
@@ -241,7 +275,9 @@ const TemplatesList = () => {
               </div>
               <PageTitle
                 title={t('forms.templates')}
-                description={t('templates.manageFormTemplates')}
+                description={platformAdminView
+                  ? (isRTL ? 'عرض جميع قوالب النظام عبر كل المؤسسات.' : 'Review templates across every organization in the platform.')
+                  : t('templates.manageFormTemplates')}
                 titleClass="text-white"
                 descriptionClass="text-white/80"
               />
@@ -261,15 +297,32 @@ const TemplatesList = () => {
 
         {/* Search */}
         <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="relative">
-            <FaSearch className={`absolute top-1/2 transform -translate-y-1/2 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
-            <input
-              type="text"
-              placeholder={t('common.search')}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent`}
-            />
+          <div className={`grid gap-4 ${platformAdminView ? 'lg:grid-cols-[minmax(0,1fr)_18rem]' : ''}`}>
+            <div className="relative">
+              <FaSearch className={`absolute top-1/2 transform -translate-y-1/2 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
+              <input
+                type="text"
+                placeholder={t('common.search')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent`}
+              />
+            </div>
+
+            {platformAdminView && (
+              <select
+                value={organizationFilter}
+                onChange={(event) => setOrganizationFilter(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">{isRTL ? 'كل المؤسسات' : 'All Organizations'}</option>
+                {organizations.map((organizationItem) => (
+                  <option key={organizationItem._id || organizationItem.id} value={organizationItem._id || organizationItem.id}>
+                    {organizationItem.branding?.displayName || organizationItem.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -378,6 +431,16 @@ const TemplatesList = () => {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
+                          {platformAdminView && (
+                            <>
+                              <span className="text-xs text-gray-600">{isRTL ? 'المؤسسة' : 'Organization'}</span>
+                              <span className="text-xs font-medium text-gray-900">
+                                {template.organizationId?.branding?.displayName || template.organizationId?.name || 'N/A'}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-600">{t('templates.departments')}</span>
                           <div className="flex flex-wrap gap-1">
                             {template.departments.slice(0, 2).map((dept) => (
@@ -385,7 +448,7 @@ const TemplatesList = () => {
                                 key={dept}
                                 className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
                               >
-                                {getDepartmentLabel(dept, organization, t, i18n.language)}
+                                {getDepartmentLabel(dept, template.organizationId || organization, t, i18n.language)}
                               </span>
                             ))}
                             {template.departments.length > 2 && (

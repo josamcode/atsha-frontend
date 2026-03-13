@@ -5,15 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import {
   FaEnvelope,
   FaEnvelopeOpen,
-  FaPaperPlane,
-  FaTrash,
-  FaCheck,
   FaCheckDouble,
-  FaUser,
   FaSearch,
   FaFilter,
   FaPlus,
-  FaReply
 } from 'react-icons/fa';
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/Common/Card';
@@ -23,6 +18,7 @@ import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import api from '../../utils/api';
 import { showSuccess, showError } from '../../utils/toast';
 import { formatDateTime } from '../../utils/dateUtils';
+import { isPlatformAdmin } from '../../utils/organization';
 import NewMessageModal from './NewMessageModal';
 import MessageView from './MessageView';
 import PageTitle from '../../components/Common/PageTilte';
@@ -30,6 +26,7 @@ import PageTitle from '../../components/Common/PageTilte';
 const Messages = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const platformAdminView = isPlatformAdmin(user);
   const [messages, setMessages] = useState([]);
   const [filteredMessages, setFilteredMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +50,9 @@ const Messages = () => {
       }
       let response;
 
-      if (filter === 'inbox') {
+      if (platformAdminView) {
+        response = await api.get('/messages?scope=system');
+      } else if (filter === 'inbox') {
         const queryParams = readFilter !== 'all' ? `?read=${readFilter === 'read'}` : '';
         response = await api.get(`/messages${queryParams}`);
       } else {
@@ -63,7 +62,9 @@ const Messages = () => {
       setMessages(response.data.data || []);
 
       // Fetch unread count for inbox
-      if (filter === 'inbox') {
+      if (platformAdminView) {
+        setUnreadCount(response.data?.unreadCount || 0);
+      } else if (filter === 'inbox') {
         const countResponse = await api.get('/messages/unread-count');
         setUnreadCount(countResponse.data.data?.count || 0);
       }
@@ -82,14 +83,14 @@ const Messages = () => {
         setLoading(false);
       }
     }
-  }, [filter, readFilter, t]);
+  }, [filter, platformAdminView, readFilter, t]);
 
   // Filter messages
   useEffect(() => {
     let filtered = messages;
 
     // Apply read filter for inbox
-    if (filter === 'inbox' && readFilter !== 'all') {
+    if (!platformAdminView && filter === 'inbox' && readFilter !== 'all') {
       filtered = filtered.filter(m =>
         readFilter === 'read' ? m.read : !m.read
       );
@@ -101,13 +102,14 @@ const Messages = () => {
       filtered = filtered.filter(m =>
         m.subject.toLowerCase().includes(term) ||
         m.content.toLowerCase().includes(term) ||
+        (platformAdminView && `${m.sender?.name || ''} ${m.recipient?.name || ''} ${m.organizationId?.branding?.displayName || m.organizationId?.name || ''}`.toLowerCase().includes(term)) ||
         (filter === 'inbox' && m.sender?.name?.toLowerCase().includes(term)) ||
         (filter === 'sent' && m.recipient?.name?.toLowerCase().includes(term))
       );
     }
 
     setFilteredMessages(filtered);
-  }, [messages, filter, readFilter, searchTerm]);
+  }, [messages, filter, platformAdminView, readFilter, searchTerm]);
 
   // Mark as read
   const markAsRead = async (messageId) => {
@@ -180,7 +182,7 @@ const Messages = () => {
   // Handle message click
   const handleMessageClick = async (message) => {
     setSelectedMessage(message);
-    if (filter === 'inbox' && !message.read) {
+    if (!platformAdminView && filter === 'inbox' && !message.read) {
       await markAsRead(message._id);
     }
   };
@@ -189,7 +191,7 @@ const Messages = () => {
   React.useEffect(() => {
     isInitialLoad.current = true;
     fetchMessages(true); // true = show loading spinner on initial load
-  }, [filter, readFilter, fetchMessages]);
+  }, [filter, platformAdminView, readFilter, fetchMessages]);
 
   // Use optimized polling instead of setInterval
   // Create a wrapper that doesn't show loading spinner during polling updates
@@ -218,26 +220,35 @@ const Messages = () => {
           <Card className="flex-shrink-0">
             <div className="flex flex-col sm:items-center sm:justify-between gap-4">
               <PageTitle
-                title={t('messages.messages')}
+                title={platformAdminView
+                  ? (i18n.language === 'ar' ? 'رسائل النظام' : 'System Messages')
+                  : t('messages.messages')}
                 description={
-                  filter === 'inbox' && unreadCount > 0 ? (
+                  unreadCount > 0 ? (
                     <span className="text-sm text-gray-500">
-                      {t('messages.unreadCount', { count: unreadCount })}
+                      {platformAdminView
+                        ? (i18n.language === 'ar'
+                          ? `${unreadCount} رسالة غير مقروءة على مستوى النظام`
+                          : `${unreadCount} unread messages across the system`)
+                        : t('messages.unreadCount', { count: unreadCount })}
                     </span>
                   ) : null
                 }
               />
-              <Button
-                onClick={() => setShowNewMessageModal(true)}
-                icon={FaPlus}
-                className="w-full"
-              >
-                {t('messages.newMessage')}
-              </Button>
+              {!platformAdminView && (
+                <Button
+                  onClick={() => setShowNewMessageModal(true)}
+                  icon={FaPlus}
+                  className="w-full"
+                >
+                  {t('messages.newMessage')}
+                </Button>
+              )}
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 mt-4 border-b border-gray-200">
+            {!platformAdminView && (
+              <div className="flex gap-2 mt-4 border-b border-gray-200">
               <button
                 onClick={() => {
                   setFilter('inbox');
@@ -267,10 +278,11 @@ const Messages = () => {
               >
                 {t('messages.sent')}
               </button>
-            </div>
+              </div>
+            )}
 
             {/* Filters */}
-            {filter === 'inbox' && (
+            {!platformAdminView && filter === 'inbox' && (
               <div className="flex items-center gap-2 mt-4">
                 <FaFilter className="text-gray-400" />
                 <button
@@ -315,7 +327,7 @@ const Messages = () => {
               />
             </div>
 
-            {filter === 'inbox' && unreadCount > 0 && (
+            {!platformAdminView && filter === 'inbox' && unreadCount > 0 && (
               <div className="mt-4">
                 <Button
                   onClick={markAllAsRead}
@@ -356,7 +368,7 @@ const Messages = () => {
                     key={message._id}
                     onClick={() => handleMessageClick(message)}
                     className={`p-4 border-b border-gray-100 cursor-pointer transition-colors hover:bg-gray-50 ${selectedMessage?._id === message._id ? 'bg-blue-50 border-l-4 border-l-primary' : ''
-                      } ${!message.read && filter === 'inbox' ? 'bg-blue-50/30' : ''}`}
+                      } ${!platformAdminView && !message.read && filter === 'inbox' ? 'bg-blue-50/30' : ''}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-1">
@@ -370,18 +382,25 @@ const Messages = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-gray-900 truncate">
-                              {filter === 'inbox'
+                              {platformAdminView
+                                ? `${message.sender?.name || t('messages.unknown')} -> ${message.recipient?.name || t('messages.unknown')}`
+                                : (filter === 'inbox'
                                 ? message.sender?.name || t('messages.unknown')
-                                : message.recipient?.name || t('messages.unknown')}
+                                : message.recipient?.name || t('messages.unknown'))}
                             </p>
                             <p className="text-sm text-gray-600 truncate mt-1">
                               {message.subject}
                             </p>
+                            {platformAdminView && (
+                              <p className="text-xs text-gray-400 mt-1 truncate">
+                                {message.organizationId?.branding?.displayName || message.organizationId?.name || '--'}
+                              </p>
+                            )}
                             <p className="text-xs text-gray-400 mt-1">
                               {formatMessageTime(message.createdAt)}
                             </p>
                           </div>
-                          {!message.read && filter === 'inbox' && (
+                          {!message.read && !platformAdminView && filter === 'inbox' && (
                             <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2"></span>
                           )}
                         </div>
@@ -400,14 +419,21 @@ const Messages = () => {
             <MessageView
               message={selectedMessage}
               onReply={() => {
-                setShowNewMessageModal(true);
-                // Pre-fill recipient if replying
+                if (!platformAdminView) {
+                  setShowNewMessageModal(true);
+                }
               }}
               onDelete={() => {
-                setMessageToDelete(selectedMessage);
-                setShowDeleteDialog(true);
+                if (!platformAdminView) {
+                  setMessageToDelete(selectedMessage);
+                  setShowDeleteDialog(true);
+                }
               }}
               isInbox={filter === 'inbox'}
+              readOnly={platformAdminView}
+              scopeLabel={platformAdminView
+                ? (selectedMessage.organizationId?.branding?.displayName || selectedMessage.organizationId?.name || '')
+                : ''}
             />
           ) : (
             <Card className="h-full flex items-center justify-center">
@@ -426,33 +452,36 @@ const Messages = () => {
       </div>
 
       {/* New Message Modal */}
-      <NewMessageModal
-        isOpen={showNewMessageModal}
-        onClose={() => setShowNewMessageModal(false)}
-        onSend={() => {
-          setShowNewMessageModal(false);
-          fetchMessages(true); // Show loading when sending a new message
-        }}
-        replyTo={selectedMessage}
-      />
+      {!platformAdminView && (
+        <NewMessageModal
+          isOpen={showNewMessageModal}
+          onClose={() => setShowNewMessageModal(false)}
+          onSend={() => {
+            setShowNewMessageModal(false);
+            fetchMessages(true); // Show loading when sending a new message
+          }}
+          replyTo={selectedMessage}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={showDeleteDialog}
-        onClose={() => {
-          setShowDeleteDialog(false);
-          setMessageToDelete(null);
-        }}
-        onConfirm={() => deleteMessage(messageToDelete?._id)}
-        title={t('messages.deleteMessage')}
-        message={t('messages.confirmDelete')}
-        confirmText={t('messages.delete')}
-        cancelText={t('common.cancel')}
-        type="danger"
-      />
+      {!platformAdminView && (
+        <ConfirmDialog
+          isOpen={showDeleteDialog}
+          onClose={() => {
+            setShowDeleteDialog(false);
+            setMessageToDelete(null);
+          }}
+          onConfirm={() => deleteMessage(messageToDelete?._id)}
+          title={t('messages.deleteMessage')}
+          message={t('messages.confirmDelete')}
+          confirmText={t('messages.delete')}
+          cancelText={t('common.cancel')}
+          type="danger"
+        />
+      )}
     </Layout>
   );
 };
 
 export default Messages;
-

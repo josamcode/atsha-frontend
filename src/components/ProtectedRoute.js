@@ -6,6 +6,7 @@ import {
   buildLoginPath,
   getDefaultAuthenticatedPath,
   hasOrganizationFeature,
+  isPlatformAdmin,
   isQrManager,
   roleMatches
 } from '../utils/organization';
@@ -32,7 +33,7 @@ const ProtectedRoute = ({
     && hasOrganizationFeature(organization, 'qrCode')
   );
 
-  if (requiredFeatures.length > 0) {
+  if (!isPlatformAdmin(user) && requiredFeatures.length > 0) {
     const hasAllFeatures = requiredFeatures.every((featureKey) => (
       hasOrganizationFeature(organization, featureKey)
     ));

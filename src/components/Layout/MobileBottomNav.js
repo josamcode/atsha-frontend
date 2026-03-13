@@ -42,13 +42,13 @@ const MobileBottomNav = () => {
       path: '/forms',
       label: t('nav.forms'),
       icon: FaFileAlt,
-      roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+      roles: ['platform_admin', 'organization_admin', 'supervisor']
     },
     {
       path: '/attendance',
       label: t('nav.attendance'),
       icon: FaUserClock,
-      roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+      roles: ['organization_admin', 'supervisor', 'employee', 'qr_manager']
     },
     {
       path: '/leaves',
@@ -69,7 +69,7 @@ const MobileBottomNav = () => {
       path: '/admin/qr-attendance',
       label: t('nav.qrAttendance'),
       icon: FaQrcode,
-      roles: ['platform_admin', 'organization_admin']
+      roles: ['organization_admin']
     },
     {
       path: '/users',

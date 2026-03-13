@@ -10,7 +10,7 @@ import {
   FaSignOutAlt,
   FaUser
 } from 'react-icons/fa';
-import { getUserOrganizationRole, roleMatches } from '../../utils/organization';
+import { getUserOrganizationRole, isPlatformAdmin, roleMatches } from '../../utils/organization';
 import { getRoleLabel } from '../../utils/organizationUi';
 
 const Navbar = () => {
@@ -21,6 +21,7 @@ const Navbar = () => {
   const profileRef = useRef(null);
   const languageRef = useRef(null);
   const isRTL = i18n.language === 'ar';
+  const platformAdminView = isPlatformAdmin(user);
   const showNotifications = roleMatches(user, ['platform_admin', 'organization_admin']);
   const showSettingsLink = roleMatches(user, ['platform_admin', 'organization_admin']);
 
@@ -57,8 +58,14 @@ const Navbar = () => {
               className="h-12 w-32 group-hover:scale-105 transition-transform"
             />
             <div className="hidden lg:block min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{organization?.name || 'Atsha'}</p>
-              <p className="text-xs text-gray-500 truncate">{organization?.slug || 'organization'}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {platformAdminView
+                  ? (isRTL ? 'لوحة المنصة' : 'Platform Console')
+                  : (organization?.name || 'Atsha')}
+              </p>
+              <p className="text-xs text-gray-500 truncate">
+                {platformAdminView ? 'platform' : (organization?.slug || 'organization')}
+              </p>
             </div>
           </Link>
 
@@ -121,7 +128,11 @@ const Navbar = () => {
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
                     <p className="text-xs text-gray-500">{user?.email}</p>
-                    <p className="text-xs text-gray-400 mt-1 truncate">{organization?.name}</p>
+                    <p className="text-xs text-gray-400 mt-1 truncate">
+                      {platformAdminView
+                        ? (isRTL ? 'إدارة النظام بالكامل' : 'System-wide administration')
+                        : organization?.name}
+                    </p>
                   </div>
 
                   <Link

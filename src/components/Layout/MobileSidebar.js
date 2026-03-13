@@ -12,7 +12,7 @@ import {
   FaUserClock,
   FaUsers
 } from 'react-icons/fa';
-import { getUserOrganizationRole, roleMatches } from '../../utils/organization';
+import { getUserOrganizationRole, isPlatformAdmin, roleMatches } from '../../utils/organization';
 import { getDepartmentLabel, getRoleLabel } from '../../utils/organizationUi';
 
 const MobileSidebar = ({ isOpen, onClose }) => {
@@ -20,6 +20,7 @@ const MobileSidebar = ({ isOpen, onClose }) => {
   const { user, organization } = useAuth();
   const location = useLocation();
   const isRTL = i18n.language === 'ar';
+  const platformAdminView = isPlatformAdmin(user);
 
   const navLinks = [
     {
@@ -32,7 +33,7 @@ const MobileSidebar = ({ isOpen, onClose }) => {
       path: '/forms',
       label: t('nav.forms'),
       icon: FaFileAlt,
-      roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+      roles: ['platform_admin', 'organization_admin', 'supervisor']
     },
     {
       path: '/templates',
@@ -44,7 +45,7 @@ const MobileSidebar = ({ isOpen, onClose }) => {
       path: '/attendance',
       label: t('nav.attendance'),
       icon: FaUserClock,
-      roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+      roles: ['organization_admin', 'supervisor', 'employee', 'qr_manager']
     },
     {
       path: '/leaves',
@@ -103,7 +104,11 @@ const MobileSidebar = ({ isOpen, onClose }) => {
               <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <p className="font-semibold text-gray-800 truncate">{user?.name}</p>
                 <p className="text-xs text-gray-600">{getRoleLabel(getUserOrganizationRole(user), t, i18n.language)}</p>
-                <p className="text-xs text-gray-500 truncate mt-1">{organization?.name}</p>
+                <p className="text-xs text-gray-500 truncate mt-1">
+                  {platformAdminView
+                    ? (isRTL ? 'لوحة المنصة' : 'Platform Console')
+                    : organization?.name}
+                </p>
               </div>
             </div>
           </div>
@@ -136,13 +141,19 @@ const MobileSidebar = ({ isOpen, onClose }) => {
             </p>
             <div className="space-y-2">
               <div className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-600">Organization</span>
-                <span className="font-semibold text-gray-800 truncate max-w-[8rem]">{organization?.name || '--'}</span>
+                <span className="text-gray-600">{platformAdminView ? 'Scope' : 'Organization'}</span>
+                <span className="font-semibold text-gray-800 truncate max-w-[8rem]">
+                  {platformAdminView
+                    ? (isRTL ? 'النظام بالكامل' : 'Entire System')
+                    : (organization?.name || '--')}
+                </span>
               </div>
               <div className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className="text-gray-600">Department</span>
+                <span className="text-gray-600">{platformAdminView ? 'Mode' : 'Department'}</span>
                 <span className="font-semibold text-gray-800">
-                  {getDepartmentLabel(user?.department, organization, t, i18n.language)}
+                  {platformAdminView
+                    ? (isRTL ? 'إدارة مركزية' : 'Central Admin')
+                    : getDepartmentLabel(user?.department, organization, t, i18n.language)}
                 </span>
               </div>
             </div>

@@ -18,6 +18,7 @@ import api from '../utils/api';
 import { showError, showSuccess } from '../utils/toast';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
+import { isPlatformAdmin } from '../utils/organization';
 import {
   getAssignableRoleOptions,
   getDepartmentLabel,
@@ -25,6 +26,7 @@ import {
   getRoleLabel
 } from '../utils/organizationUi';
 import PageTitle from '../components/Common/PageTilte';
+import PlatformOrganizationManager from '../components/Platform/PlatformOrganizationManager';
 
 const normalizeDepartmentCode = (value) => String(value || '')
   .trim()
@@ -88,6 +90,7 @@ const OrganizationSettings = () => {
   const { user, organization } = useAuth();
   const { setOrganizationContext, refreshOrganization } = useOrganization();
   const isRTL = i18n.language === 'ar';
+  const platformAdminView = isPlatformAdmin(user);
   const activeLocale = isRTL ? 'ar-EG' : 'en-US';
   const [settings, setSettings] = useState(null);
   const [invitations, setInvitations] = useState([]);
@@ -170,8 +173,10 @@ const OrganizationSettings = () => {
   }, [t]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!platformAdminView) {
+      loadData();
+    }
+  }, [loadData, platformAdminView]);
 
   const updateField = (field, value) => {
     setSettings((currentValue) => ({ ...currentValue, [field]: value }));
@@ -328,6 +333,14 @@ const OrganizationSettings = () => {
       showError(error.response?.data?.message || t('organizationSettings.feedback.cancelError'));
     }
   };
+
+  if (platformAdminView) {
+    return (
+      <Layout>
+        <PlatformOrganizationManager mode="manage" />
+      </Layout>
+    );
+  }
 
   if (loading || !settings) {
     return <Loading />;

@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
-import { formatDate, formatTime, SAUDI_TIMEZONE } from '../utils/dateUtils';
+import { formatDate, formatTime } from '../utils/dateUtils';
+import { isPlatformAdmin } from '../utils/organization';
 import Layout from '../components/Layout/Layout';
-import Card from '../components/Common/Card';
 import DataTable from '../components/Common/DataTable';
 import Loading from '../components/Common/Loading';
+import PlatformDashboard from '../components/Platform/PlatformDashboard';
 import {
   FaFileAlt,
   FaHourglassHalf,
@@ -19,8 +20,6 @@ import {
   FaEdit,
   FaClipboardCheck,
   FaPlane,
-  FaArrowUp,
-  FaArrowDown,
   FaClock,
   FaUserCheck,
   FaClipboardList,
@@ -36,10 +35,17 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentFormsView, setRecentFormsView] = useState('table'); // 'table' or 'cards'
+  const platformAdminView = isPlatformAdmin(user);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (!platformAdminView) {
+      fetchDashboardData();
+    }
+  }, [platformAdminView]);
+
+  if (platformAdminView) {
+    return <PlatformDashboard />;
+  }
 
   const fetchDashboardData = async () => {
     try {
@@ -54,22 +60,32 @@ const Dashboard = () => {
 
   if (loading) return <Loading />;
 
-  const StatCard = ({ title, value, icon: Icon, color, link }) => (
-    <Link to={link || '#'} className="block group">
-      <div className="relative overflow-hidden rounded-xl p-6 bg-white shadow hover:shadow-lg transition-all duration-300 border border-gray-100">
-        {/* Content */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
-          </div>
-          <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-            <Icon className="text-2xl text-white" />
-          </div>
+  const StatCard = ({ title, value, icon: Icon, color, link, subtitle }) => {
+    const content = (
+      <div className="flex items-start justify-between gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-lg">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+          {subtitle ? (
+            <p className="mt-2 text-xs text-gray-500">{subtitle}</p>
+          ) : null}
+        </div>
+        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-sm ${color}`}>
+          <Icon className="text-xl" />
         </div>
       </div>
-    </Link>
-  );
+    );
+
+    if (!link) {
+      return <div className="group">{content}</div>;
+    }
+
+    return (
+      <Link to={link} className="group block">
+        {content}
+      </Link>
+    );
+  };
 
   const recentFormsColumns = [
     {
@@ -141,6 +157,30 @@ const Dashboard = () => {
       )
     }
   ];
+
+  const quickActions = [
+    user?.role !== 'employee' ? {
+      to: '/forms/new',
+      title: t('forms.createForm'),
+      description: t('dashboard.createNewForm'),
+      icon: FaEdit,
+      accentClass: 'bg-primary'
+    } : null,
+    user?.role !== 'admin' ? {
+      to: '/attendance',
+      title: t('attendance.checkIn'),
+      description: t('dashboard.markAttendance'),
+      icon: FaClipboardCheck,
+      accentClass: 'bg-green-500'
+    } : null,
+    {
+      to: '/leaves/new',
+      title: t('leaves.requestLeave'),
+      description: t('dashboard.requestTimeOff'),
+      icon: FaPlane,
+      accentClass: 'bg-violet-600'
+    }
+  ].filter(Boolean);
 
   return (
     <Layout>
@@ -224,6 +264,7 @@ const Dashboard = () => {
               icon={FaUmbrellaBeach}
               color="bg-blue-500"
               link="/leaves"
+              subtitle={isRTL ? '\u0627\u0644\u0631\u0635\u064a\u062f \u0627\u0644\u0645\u062a\u0627\u062d' : 'Available days'}
             />
             <StatCard
               title={t('dashboard.myPendingLeaves')}
@@ -231,6 +272,7 @@ const Dashboard = () => {
               icon={FaHourglassHalf}
               color="bg-amber-500"
               link="/leaves?status=pending"
+              subtitle={isRTL ? '\u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629' : 'Awaiting review'}
             />
             <StatCard
               title={t('dashboard.myUpcomingLeaves')}
@@ -238,6 +280,7 @@ const Dashboard = () => {
               icon={FaCalendarAlt}
               color="bg-purple-500"
               link="/leaves?status=approved"
+              subtitle={isRTL ? '\u0645\u0639\u062a\u0645\u062f\u0629 \u0648\u0645\u062c\u062f\u0648\u0644\u0629' : 'Approved and scheduled'}
             />
             <StatCard
               title={t('dashboard.attendanceThisMonth')}
@@ -245,6 +288,7 @@ const Dashboard = () => {
               icon={FaCheckCircle}
               color="bg-green-500"
               link="/attendance"
+              subtitle={isRTL ? '\u062d\u0636\u0648\u0631 \u0647\u0630\u0627 \u0627\u0644\u0634\u0647\u0631' : 'This month'}
             />
           </div>
         ) : (
@@ -260,6 +304,7 @@ const Dashboard = () => {
                 const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
                 return `/forms?dateFrom=${startOfDay.toISOString()}&dateTo=${endOfDay.toISOString()}`;
               })()}
+              subtitle={`${t('dashboard.formsThisWeek')}: ${stats?.forms?.thisWeek || 0}`}
             />
             <StatCard
               title={t('dashboard.pendingApprovals')}
@@ -267,6 +312,7 @@ const Dashboard = () => {
               icon={FaHourglassHalf}
               color="bg-amber-500"
               link="/forms?status=submitted"
+              subtitle={isRTL ? '\u0646\u0645\u0627\u0630\u062c \u0628\u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0642\u0631\u0627\u0631' : 'Forms waiting for review'}
             />
             <StatCard
               title={t('dashboard.attendance')}
@@ -277,6 +323,7 @@ const Dashboard = () => {
                 const today = new Date();
                 return `/attendance?month=${today.getMonth()}&year=${today.getFullYear()}&day=${today.getDate()}`;
               })()}
+              subtitle={isRTL ? '\u0627\u0644\u062d\u0636\u0648\u0631 \u0627\u0644\u0645\u0633\u062c\u0644 \u0627\u0644\u064a\u0648\u0645' : 'Checked in today'}
             />
             <StatCard
               title={t('dashboard.pendingLeaves')}
@@ -284,6 +331,7 @@ const Dashboard = () => {
               icon={FaUmbrellaBeach}
               color="bg-purple-500"
               link="/leaves?status=pending"
+              subtitle={isRTL ? '\u0637\u0644\u0628\u0627\u062a \u0625\u062c\u0627\u0632\u0627\u062a' : 'Time-off requests'}
             />
           </div>
         )}
@@ -296,12 +344,14 @@ const Dashboard = () => {
               value={stats?.forms?.thisWeek || 0}
               icon={FaChartBar}
               color="bg-indigo-500"
+              subtitle={isRTL ? '\u0622\u062e\u0631 7 \u0623\u064a\u0627\u0645' : 'Last 7 days'}
             />
             <StatCard
               title={t('dashboard.upcomingLeaves')}
               value={stats?.leaves?.upcoming || 0}
               icon={FaCalendarAlt}
               color="bg-pink-500"
+              subtitle={isRTL ? '\u0625\u062c\u0627\u0632\u0627\u062a \u0642\u0627\u062f\u0645\u0629' : 'Approved soon'}
             />
             <StatCard
               title={t('dashboard.totalUsers')}
@@ -309,6 +359,7 @@ const Dashboard = () => {
               icon={FaUsers}
               color="bg-teal-500"
               link="/users"
+              subtitle={isRTL ? '\u0623\u0639\u0636\u0627\u0621 \u0627\u0644\u0641\u0631\u064a\u0642' : 'Team members'}
             />
           </div>
         )}
@@ -374,7 +425,7 @@ const Dashboard = () => {
                     <Link
                       key={form._id}
                       to={`/forms/view/${form._id}`}
-                      className="block bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md hover:border-primary/50 transition-all"
+                      className="group block rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
                     >
                       <div className="flex items-start gap-3 mb-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
@@ -426,60 +477,41 @@ const Dashboard = () => {
         )}
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-primary flex items-center justify-center">
-                <FaTasks className="text-white text-lg" />
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                <FaTasks className="text-lg" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800">{t('dashboard.quickActions')}</h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{t('dashboard.quickActions')}</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {isRTL
+                    ? '\u0627\u0646\u062a\u0642\u0644 \u0628\u064a\u0646 \u0627\u0644\u0645\u0647\u0627\u0645 \u0627\u0644\u064a\u0648\u0645\u064a\u0629 \u0628\u0633\u0631\u0639\u0629'
+                    : 'Move through your everyday tasks from here.'}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="p-6">
-            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${user?.role === 'employee' ? 'md:grid-cols-2' : ''}`}>
-              {user?.role !== 'employee' && (
+          <div className={`mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 ${quickActions.length > 2 ? 'xl:grid-cols-3' : ''}`}>
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
                 <Link
-                  to="/forms/new"
-                  className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-primary hover:shadow-md transition-all group"
+                  key={action.to}
+                  to={action.to}
+                  className="group flex items-start gap-4 rounded-2xl border border-gray-200 px-4 py-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <FaEdit className="text-white text-lg" />
+                  <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white ${action.accentClass}`}>
+                    <Icon className="text-lg" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{t('forms.createForm')}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.createNewForm')}</p>
+                    <p className="text-sm font-semibold text-gray-900">{action.title}</p>
+                    <p className="mt-1 text-xs text-gray-500">{action.description}</p>
                   </div>
                 </Link>
-              )}
-
-              {user?.role !== 'admin' && (
-                <Link
-                  to="/attendance"
-                  className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <FaClipboardCheck className="text-white text-lg" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{t('attendance.checkIn')}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.markAttendance')}</p>
-                  </div>
-                </Link>
-              )}
-
-              <Link
-                to="/leaves/new"
-                className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-500 hover:shadow-md transition-all group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-purple-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                  <FaPlane className="text-white text-lg" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">{t('leaves.requestLeave')}</p>
-                  <p className="text-xs text-gray-500">{t('dashboard.requestTimeOff')}</p>
-                </div>
-              </Link>
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ import {
   FaUserClock,
   FaUsers
 } from 'react-icons/fa';
-import { getUserOrganizationRole, roleMatches } from '../../utils/organization';
+import { getUserOrganizationRole, isPlatformAdmin, roleMatches } from '../../utils/organization';
 import { getDepartmentLabel, getRoleLabel } from '../../utils/organizationUi';
 
 const Sidebar = () => {
@@ -27,6 +27,7 @@ const Sidebar = () => {
   const location = useLocation();
   const isRTL = i18n.language === 'ar';
   const currentRole = getUserOrganizationRole(user);
+  const platformAdminView = isPlatformAdmin(user);
 
   const navLinks = [
     {
@@ -51,13 +52,13 @@ const Sidebar = () => {
       path: '/admin/qr-attendance',
       label: t('nav.qrAttendance'),
       icon: FaQrcode,
-      roles: ['platform_admin', 'organization_admin']
+      roles: ['organization_admin']
     },
     {
       path: '/attendance',
       label: t('nav.attendance'),
       icon: FaUserClock,
-      roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+      roles: ['organization_admin', 'supervisor', 'employee', 'qr_manager']
     },
     {
       path: '/leaves',
@@ -111,8 +112,12 @@ const Sidebar = () => {
               <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <p className="font-semibold text-gray-800 truncate">{user?.name}</p>
                 <p className="text-xs text-gray-600">{getRoleLabel(currentRole, t, i18n.language)}</p>
-                {organization?.name && (
-                  <p className="text-xs text-gray-500 truncate mt-1">{organization.name}</p>
+                {(platformAdminView || organization?.name) && (
+                  <p className="text-xs text-gray-500 truncate mt-1">
+                    {platformAdminView
+                      ? (isRTL ? 'لوحة المنصة' : 'Platform Console')
+                      : organization.name}
+                  </p>
                 )}
               </div>
             </div>
@@ -170,13 +175,19 @@ const Sidebar = () => {
               </p>
               <div className="space-y-2">
                 <div className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-gray-600">Organization</span>
-                  <span className="font-semibold text-gray-800 truncate max-w-[9rem]">{organization?.name || '--'}</span>
+                  <span className="text-gray-600">{platformAdminView ? 'Scope' : 'Organization'}</span>
+                  <span className="font-semibold text-gray-800 truncate max-w-[9rem]">
+                    {platformAdminView
+                      ? (isRTL ? 'النظام بالكامل' : 'Entire System')
+                      : (organization?.name || '--')}
+                  </span>
                 </div>
                 <div className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <span className="text-gray-600">Department</span>
+                  <span className="text-gray-600">{platformAdminView ? 'Mode' : 'Department'}</span>
                   <span className="font-semibold text-gray-800">
-                    {getDepartmentLabel(user?.department, organization, t, i18n.language)}
+                    {platformAdminView
+                      ? (isRTL ? 'إدارة مركزية' : 'Central Admin')
+                      : getDepartmentLabel(user?.department, organization, t, i18n.language)}
                   </span>
                 </div>
                 <div className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -191,7 +202,7 @@ const Sidebar = () => {
                 {new Date().getFullYear()} atsha
               </p>
               <p className="text-xs text-gray-400 mt-1">
-                {organization?.slug || 'organization'}
+                {platformAdminView ? 'platform' : (organization?.slug || 'organization')}
               </p>
             </div>
           </>
