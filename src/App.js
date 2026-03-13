@@ -290,7 +290,7 @@ function App() {
   }, [i18n]);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <OrganizationProvider>
         <AuthProvider>
           <AppContent />

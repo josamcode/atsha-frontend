@@ -1177,8 +1177,8 @@ const TemplateBuilder = () => {
             className="rounded-[22px] border border-primary/20 bg-primary/5 p-4 text-left transition hover:border-primary hover:shadow-md"
           >
             <div className="flex items-center gap-2">
-              {[systemTheme.colors.primary, systemTheme.colors.secondary, systemTheme.footer.backgroundColor].map((color) => (
-                <span key={`system_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
+              {[systemTheme.colors.primary, systemTheme.colors.secondary, systemTheme.footer.backgroundColor].map((color, index) => (
+                <span key={`system_${index}_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
               ))}
             </div>
             <div className="mt-3 font-semibold text-gray-900">{systemTheme.label}</div>
@@ -1191,8 +1191,8 @@ const TemplateBuilder = () => {
               className="rounded-[22px] border border-gray-200 bg-white p-4 text-left transition hover:border-primary hover:shadow-md"
             >
               <div className="flex items-center gap-2">
-                {[theme.colors.primary, theme.colors.secondary, theme.footer.backgroundColor].map((color) => (
-                  <span key={`${themeKey}_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
+                {[theme.colors.primary, theme.colors.secondary, theme.footer.backgroundColor].map((color, index) => (
+                  <span key={`${themeKey}_${index}_${color}`} className="h-6 w-6 rounded-full border border-white shadow" style={{ backgroundColor: color }} />
                 ))}
               </div>
               <div className="mt-3 font-semibold text-gray-900">{isRTL ? theme.labelAr : theme.label}</div>
