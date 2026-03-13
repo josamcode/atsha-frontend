@@ -54,8 +54,8 @@ const buildSettingsState = (source) => ({
     supportEmail: source?.branding?.supportEmail || '',
     emailFromName: source?.branding?.emailFromName || '',
     websiteUrl: source?.branding?.websiteUrl || '',
-    primaryColor: source?.branding?.primaryColor || '#d4b900',
-    secondaryColor: source?.branding?.secondaryColor || '#b51c20'
+    primaryColor: source?.branding?.primaryColor || '#01c853',
+    secondaryColor: source?.branding?.secondaryColor || '#059669'
   },
   securitySettings: {
     requireDomainMatch: source?.securitySettings?.requireDomainMatch === true,

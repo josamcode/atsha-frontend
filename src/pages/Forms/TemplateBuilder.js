@@ -34,6 +34,7 @@ import {
   generateId,
   getDefaultTemplate,
   getLocalizedText,
+  getSystemPdfPalette,
   mirrorArabicToEnglish,
   moveItem,
   normalizeColumn,
@@ -204,21 +205,33 @@ const TemplateBuilder = () => {
     [formData.sections]
   );
   const systemTheme = useMemo(() => {
-    const primaryColor = organization?.branding?.primaryColor || '#d4b900';
-    const secondaryColor = organization?.branding?.secondaryColor || '#9e8b00';
+    const {
+      primaryColor,
+      secondaryColor,
+      borderColor,
+      backgroundColor,
+      textColor,
+      headerBackgroundColor,
+      headerTextColor,
+      footerBackgroundColor,
+      footerTextColor
+    } = getSystemPdfPalette({
+      primaryColor: organization?.branding?.primaryColor,
+      secondaryColor: organization?.branding?.secondaryColor
+    });
 
     return {
       label: isRTL ? 'ألوان النظام' : 'System Colors',
       colors: {
         primary: primaryColor,
         secondary: secondaryColor,
-        border: '#d1d5db',
-        background: '#ffffff',
-        text: '#111827'
+        border: borderColor,
+        background: backgroundColor,
+        text: textColor
       },
       header: {
-        backgroundColor: '#fffbeb',
-        textColor: '#1f2937',
+        backgroundColor: headerBackgroundColor,
+        textColor: headerTextColor,
         titleColor: primaryColor,
         border: {
           show: true,
@@ -229,8 +242,8 @@ const TemplateBuilder = () => {
         }
       },
       footer: {
-        backgroundColor: secondaryColor,
-        textColor: '#ffffff'
+        backgroundColor: footerBackgroundColor,
+        textColor: footerTextColor
       }
     };
   }, [isRTL, organization?.branding?.primaryColor, organization?.branding?.secondaryColor]);
@@ -1192,7 +1205,7 @@ const TemplateBuilder = () => {
             <div className="grid gap-4 md:grid-cols-2">
               <ColorInput
                 label={isRTL ? 'اللون الرئيسي' : 'Primary color'}
-                value={formData.pdfStyle.branding?.primaryColor || organization?.branding?.primaryColor || '#d4b900'}
+                value={formData.pdfStyle.branding?.primaryColor || systemTheme.colors.primary}
                 onChange={(value) => setFormData((prev) => ({
                   ...prev,
                   pdfStyle: normalizePdfStyle({
@@ -1281,7 +1294,6 @@ const TemplateBuilder = () => {
               <NumberInput
                 label={isRTL ? 'حجم الشعار (px)' : 'Logo size (px)'}
                 value={logoSize}
-                min={24}
                 max={160}
                 onChange={(value) => setFormData((prev) => ({
                   ...prev,
@@ -1294,7 +1306,6 @@ const TemplateBuilder = () => {
               <NumberInput
                 label={isRTL ? 'حجم العلامة المائية (%)' : 'Watermark size (%)'}
                 value={watermarkSize}
-                min={20}
                 max={100}
                 onChange={(value) => updateBrandingConfig({ watermarkSize: value })}
               />
@@ -1308,7 +1319,6 @@ const TemplateBuilder = () => {
               <NumberInput
                 label={isRTL ? 'حجم QR (px)' : 'QR size (px)'}
                 value={qrCodeSize}
-                min={48}
                 max={160}
                 onChange={(value) => updateFooterConfig({ qrCodeSize: value })}
               />
@@ -1481,7 +1491,7 @@ const TemplateBuilder = () => {
               previewUrl: currentWatermarkUrl,
               previewClassName: 'opacity-30',
               previewStyle: {
-                maxHeight: `${Math.max(48, Math.round((watermarkSize / 100) * 160))}px`,
+                maxHeight: `${Math.max(0, Math.round((watermarkSize / 100) * 160))}px`,
                 opacity: Math.max(0.05, watermarkOpacity / 100)
               }
             })}

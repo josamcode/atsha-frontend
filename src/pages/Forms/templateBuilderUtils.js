@@ -219,11 +219,59 @@ export const FOOTER_TEMPLATE_OPTIONS = [
   { value: 'minimal', label: 'Minimal', labelAr: 'بسيط' }
 ];
 
-const DEFAULT_PRIMARY_COLOR = '#d4b900';
-const DEFAULT_SECONDARY_COLOR = '#9e8b00';
+const DEFAULT_PRIMARY_COLOR = '#01c853';
+const DEFAULT_SECONDARY_COLOR = '#059669';
 const FOOTER_TEMPLATE_VALUES = FOOTER_TEMPLATE_OPTIONS.map((option) => option.value);
 
 const getDefaultBrandingName = (branding = {}) => branding?.displayName || branding?.shortName || 'Atsha';
+const parseHexColor = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  let normalized = value.trim().replace('#', '');
+  if (normalized.length === 3) {
+    normalized = normalized.split('').map((char) => `${char}${char}`).join('');
+  }
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return null;
+  }
+
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+};
+
+const withAlpha = (color, alpha, fallback) => {
+  const rgb = parseHexColor(color);
+
+  if (!rgb) {
+    return fallback;
+  }
+
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+};
+
+export const getSystemPdfPalette = (branding = {}) => {
+  const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY_COLOR;
+  const secondaryColor = branding?.secondaryColor || DEFAULT_SECONDARY_COLOR;
+
+  return {
+    primaryColor,
+    secondaryColor,
+    borderColor: withAlpha(primaryColor, 0.2, '#a7f3d0'),
+    backgroundColor: '#ffffff',
+    textColor: '#111827',
+    headerBackgroundColor: withAlpha(primaryColor, 0.08, '#ecfdf5'),
+    headerTextColor: secondaryColor,
+    footerBackgroundColor: secondaryColor,
+    footerTextColor: '#ffffff'
+  };
+};
+
 const clampNumber = (value, fallback, min, max) => {
   const numericValue = Number(value);
 
@@ -249,14 +297,14 @@ const buildSampleImageDataUrl = (isRTL) => {
     <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
       <defs>
         <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#fff7d6" />
+          <stop offset="0%" stop-color="#ecfdf5" />
           <stop offset="100%" stop-color="#f3f4f6" />
         </linearGradient>
       </defs>
       <rect width="640" height="420" rx="28" fill="url(#bg)" />
       <rect x="32" y="32" width="576" height="356" rx="24" fill="#ffffff" stroke="#d1d5db" stroke-width="3" />
-      <circle cx="190" cy="168" r="46" fill="#d4b900" opacity="0.35" />
-      <path d="M104 302l104-92 72 58 88-96 168 130H104z" fill="#d4b900" opacity="0.7" />
+      <circle cx="190" cy="168" r="46" fill="#01c853" opacity="0.35" />
+      <path d="M104 302l104-92 72 58 88-96 168 130H104z" fill="#01c853" opacity="0.7" />
       <text x="320" y="118" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" font-weight="700" fill="#111827">${title}</text>
       <text x="320" y="154" text-anchor="middle" font-size="22" font-family="Arial, sans-serif" fill="#6b7280">${subtitle}</text>
     </svg>
@@ -438,8 +486,17 @@ export const getDefaultSectionPdfStyle = () => ({
 });
 
 export const getDefaultPdfStyle = (branding = {}) => {
-  const primaryColor = branding?.primaryColor || DEFAULT_PRIMARY_COLOR;
-  const secondaryColor = branding?.secondaryColor || DEFAULT_SECONDARY_COLOR;
+  const {
+    primaryColor,
+    secondaryColor,
+    borderColor,
+    backgroundColor,
+    textColor,
+    headerBackgroundColor,
+    headerTextColor,
+    footerBackgroundColor,
+    footerTextColor
+  } = getSystemPdfPalette(branding);
   const companyName = getDefaultBrandingName(branding);
 
   return {
@@ -470,8 +527,8 @@ export const getDefaultPdfStyle = (branding = {}) => {
       decorativeLineColor: primaryColor,
       height: 96,
       logoSize: 64,
-      backgroundColor: '#fffbeb',
-      textColor: '#1f2937',
+      backgroundColor: headerBackgroundColor,
+      textColor: headerTextColor,
       titleColor: primaryColor,
       fontSize: 18,
       dashedBorder: false,
@@ -498,8 +555,8 @@ export const getDefaultPdfStyle = (branding = {}) => {
       socialLinks: [],
       companyName,
       height: 56,
-      backgroundColor: secondaryColor,
-      textColor: '#ffffff',
+      backgroundColor: footerBackgroundColor,
+      textColor: footerTextColor,
       fontSize: 12,
       content: { en: '', ar: '' }
     },
@@ -528,9 +585,9 @@ export const getDefaultPdfStyle = (branding = {}) => {
     colors: {
       primary: primaryColor,
       secondary: secondaryColor,
-      text: '#111827',
-      border: '#d1d5db',
-      background: '#ffffff'
+      text: textColor,
+      border: borderColor,
+      background: backgroundColor
     },
     spacing: {
       sectionSpacing: 20,
@@ -1050,7 +1107,7 @@ export const normalizePdfStyle = (pdfStyle) => {
     branding: {
       ...defaults.branding,
       ...(pdfStyle?.branding || {}),
-      watermarkSize: clampNumber(pdfStyle?.branding?.watermarkSize, defaults.branding.watermarkSize, 20, 100),
+      watermarkSize: clampNumber(pdfStyle?.branding?.watermarkSize, defaults.branding.watermarkSize, 0, 100),
       watermarkOpacity: clampNumber(pdfStyle?.branding?.watermarkOpacity, defaults.branding.watermarkOpacity, 0, 100),
       companyName: normalizeLocalizedValue(pdfStyle?.branding?.companyName || defaults.branding.companyName),
       companyAddress: normalizeLocalizedValue(pdfStyle?.branding?.companyAddress || defaults.branding.companyAddress)
@@ -1058,7 +1115,7 @@ export const normalizePdfStyle = (pdfStyle) => {
     header: {
       ...defaults.header,
       ...(pdfStyle?.header || {}),
-      logoSize: clampNumber(pdfStyle?.header?.logoSize, defaults.header.logoSize, 24, 160),
+      logoSize: clampNumber(pdfStyle?.header?.logoSize, defaults.header.logoSize, 0, 160),
       subtitle: normalizeLocalizedValue(pdfStyle?.header?.subtitle || defaults.header.subtitle),
       border: {
         ...defaults.header.border,
@@ -1068,7 +1125,7 @@ export const normalizePdfStyle = (pdfStyle) => {
     footer: {
       ...defaults.footer,
       ...(pdfStyle?.footer || {}),
-      qrCodeSize: clampNumber(pdfStyle?.footer?.qrCodeSize, defaults.footer.qrCodeSize, 48, 160),
+      qrCodeSize: clampNumber(pdfStyle?.footer?.qrCodeSize, defaults.footer.qrCodeSize, 0, 160),
       template: normalizeFooterTemplate(pdfStyle?.footer?.template),
       content: normalizeLocalizedValue(pdfStyle?.footer?.content || defaults.footer.content),
       socialLinks: Array.isArray(pdfStyle?.footer?.socialLinks)

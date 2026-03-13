@@ -74,14 +74,14 @@ export const SelectField = ({ label, value, onChange, options, isRTL }) => (
   </div>
 );
 
-export const NumberInput = ({ label, value, onChange, min = 0, max }) => (
+export const NumberInput = ({ label, value, onChange, min, max }) => (
   <div>
     <InputLabel label={label} />
     <input
       type="number"
       value={value}
-      min={min}
-      max={max}
+      min={min ?? undefined}
+      max={max ?? undefined}
       onChange={(event) => onChange(Number(event.target.value))}
       className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
     />

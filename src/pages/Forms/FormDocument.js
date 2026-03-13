@@ -274,7 +274,7 @@ const FormDocument = ({
         {(() => {
           const branding = normalizedTemplate.pdfStyle?.branding || {};
           const watermarkUrl = branding.watermarkUrl || branding.logoUrl || '/logo.png';
-          const watermarkSize = clampNumber(branding.watermarkSize, 55, 20, 100);
+          const watermarkSize = clampNumber(branding.watermarkSize, 55, 0, 100);
           const watermarkOpacity = clampNumber(branding.watermarkOpacity, 5, 0, 100) / 100;
 
           if (!watermarkUrl) {
@@ -312,11 +312,11 @@ const FormDocument = ({
               const pdfStyle = normalizedTemplate.pdfStyle || {};
               const headerConfig = pdfStyle.header || {};
               const branding = pdfStyle.branding || {};
-              const primaryColor = branding.primaryColor || pdfStyle.colors?.primary || '#d4b900';
+              const primaryColor = branding.primaryColor || pdfStyle.colors?.primary || '#01c853';
               const headerBgColor = headerConfig.backgroundColor || '#ffffff';
               const headerTextColor = headerConfig.textColor || '#000000';
               const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || 'atsha';
-              const logoSize = clampNumber(headerConfig.logoSize, 64, 24, 160);
+              const logoSize = clampNumber(headerConfig.logoSize, 64, 0, 160);
               const companyAddress = branding.companyAddress?.[i18n.language] || branding.companyAddress?.en || (isRTL ? 'مصر' : 'Egypt');
 
               if (headerConfig.enabled === false) return null;
@@ -623,7 +623,7 @@ const FormDocument = ({
                 // Get layout configuration
                 const layout = normalizedTemplate.layout || {};
                 const pdfStyle = normalizedTemplate.pdfStyle || {};
-                const primaryColor = pdfStyle.colors?.primary || pdfStyle.branding?.primaryColor || '#d4b900';
+                const primaryColor = pdfStyle.colors?.primary || pdfStyle.branding?.primaryColor || '#01c853';
                 const textColor = pdfStyle.colors?.text || '#000000';
                 const borderColor = pdfStyle.colors?.border || '#e5e7eb';
                 const backgroundColor = pdfStyle.colors?.background || '#ffffff';
@@ -1231,7 +1231,7 @@ const FormDocument = ({
                   return null;
                 }
 
-                const footerBgColor = footerConfig.backgroundColor || pdfStyle.colors?.secondary || '#b51c20';
+                const footerBgColor = footerConfig.backgroundColor || pdfStyle.colors?.secondary || '#059669';
                 const footerTextColor = footerConfig.textColor || '#ffffff';
                 const footerBorderColor = pdfStyle.colors?.border || 'rgba(255,255,255,0.2)';
                 const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || '';
@@ -1241,7 +1241,7 @@ const FormDocument = ({
                 const qrCodeValue = String(footerConfig.qrCodeValue || '').trim();
                 const showQRCode = footerConfig.showQRCode && qrCodeValue;
                 const qrPosition = footerConfig.qrCodePosition || 'center';
-                const qrCodeSize = clampNumber(footerConfig.qrCodeSize, 84, 48, 160);
+                const qrCodeSize = clampNumber(footerConfig.qrCodeSize, 84, 0, 160);
                 const footerTemplate = resolveFooterTemplate(footerConfig.template);
                 const socialLinks = footerConfig.showSocialIcons
                   ? (Array.isArray(footerConfig.socialLinks) ? footerConfig.socialLinks.filter((link) => String(link?.url || '').trim()) : [])
