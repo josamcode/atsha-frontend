@@ -55,7 +55,8 @@
     "moveDown": "تحريك لأسفل",
     "tableView": "عرض الجدول",
     "cardsView": "عرض البطاقات",
-    "optional": "اختياري"
+    "optional": "اختياري",
+    "filledForms": "النماذج المعبأة"
   },
   "nav": {
     "dashboard": "لوحة التحكم",

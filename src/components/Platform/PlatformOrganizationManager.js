@@ -127,6 +127,11 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   const [saving, setSaving] = useState(false);
   const [editingOrganizationId, setEditingOrganizationId] = useState('');
   const [formData, setFormData] = useState(buildOrganizationForm());
+  const getOrganizationStatusLabel = useCallback((status) => (
+    t(`organizationSettings.organizationStatus.${status}`, {
+      defaultValue: formatLabel(status)
+    })
+  ), [t]);
   const availablePlans = planOptions.length > 0
     ? planOptions
     : DEFAULT_PLAN_OPTIONS.map((plan) => ({
@@ -146,7 +151,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
       allLabel: isRTL ? 'كل الحالات' : 'All statuses',
       options: STATUS_OPTIONS.map((status) => ({
         value: status,
-        label: formatLabel(status)
+        label: getOrganizationStatusLabel(status)
       }))
     },
     {
@@ -158,7 +163,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
         label: getPlanName(plan, i18n.language)
       }))
     }
-  ]), [availablePlans, i18n.language, isRTL]);
+  ]), [availablePlans, getOrganizationStatusLabel, i18n.language, isRTL]);
 
   const titleText = isManagementMode
     ? (isRTL ? 'إدارة المنصة' : 'Platform Settings')
@@ -233,12 +238,12 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
       organizations: result.organizations + 1,
       activeOrganizations: result.activeOrganizations + (organization.status === 'active' ? 1 : 0),
       users: result.users + (organization?.summary?.users || 0),
-      pendingInvitations: result.pendingInvitations + (organization?.summary?.pendingInvitations || 0)
+      filledForms: result.filledForms + (organization?.summary?.filledForms || 0)
     }), {
       organizations: 0,
       activeOrganizations: 0,
       users: 0,
-      pendingInvitations: 0
+      filledForms: 0
     })
   ), [organizations]);
 
@@ -497,11 +502,11 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
 
         <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            {isRTL ? 'الدعوات' : 'Pending Invites'}
+            {isRTL ? 'النماذج المعبأة' : 'Filled Forms'}
           </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">{listedSummary.pendingInvitations}</p>
+          <p className="mt-3 text-3xl font-bold text-gray-900">{listedSummary.filledForms}</p>
           <p className="mt-1 text-sm text-gray-500">
-            {isRTL ? 'بانتظار التفعيل' : 'Waiting for activation'}
+            {isRTL ? 'إجمالي النماذج داخل المؤسسات المفلترة' : 'Total forms across the filtered organizations'}
           </p>
         </div>
 
@@ -554,7 +559,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(organization.status)}`}>
-                          {formatLabel(organization.status)}
+                          {getOrganizationStatusLabel(organization.status)}
                         </span>
                         <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
                           {getPlanName(organizationPlan, i18n.language)}
@@ -582,10 +587,10 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
                         </div>
                         <div>
                           <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                            {isRTL ? 'الدعوات' : 'Invites'}
+                            {isRTL ? 'النماذج المعبأة' : 'Filled Forms'}
                           </p>
                           <p className="mt-1 text-lg font-semibold text-gray-900">
-                            {organization?.summary?.pendingInvitations || 0}
+                            {organization?.summary?.filledForms || 0}
                           </p>
                         </div>
                       </div>
@@ -807,7 +812,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
                 >
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
-                      {status}
+                      {getOrganizationStatusLabel(status)}
                     </option>
                   ))}
                 </select>

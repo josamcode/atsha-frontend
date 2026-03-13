@@ -55,7 +55,8 @@
     "moveDown": "Move Down",
     "tableView": "Table View",
     "cardsView": "Cards View",
-    "optional": "Optional"
+    "optional": "Optional",
+    "filledForms": "Filled Forms"
   },
   "nav": {
     "dashboard": "Dashboard",
