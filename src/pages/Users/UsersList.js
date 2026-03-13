@@ -32,6 +32,7 @@ import {
   FaTh,
   FaList
 } from 'react-icons/fa';
+import PageTitle from '../../components/Common/PageTilte';
 
 const UsersList = () => {
   const navigate = useNavigate();
@@ -171,18 +172,14 @@ const UsersList = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <FaUsers className="text-primary" />
-              {t('users.title')}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {t('users.totalUsers')}: {users.length}
-            </p>
-          </div>
+          <PageTitle
+            icon={FaUsers}
+            title={t('users.title')}
+            description={`${t('users.totalUsers')}: ${users.length}`}
+          />
 
           {canManageCurrentUsers && (
-            <Button onClick={openCreateModal} icon={FaUserPlus}>
+            <Button className="w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap" onClick={openCreateModal} icon={FaUserPlus}>
               {t('users.addUser')}
             </Button>
           )}
@@ -224,7 +221,7 @@ const UsersList = () => {
           ) : (
             <>
               {/* View Toggle */}
-              <div className="mb-4 flex items-center justify-end px-6 pt-4">
+              <div className="mb-4 flex items-center justify-end">
                 <div className="flex items-center bg-gray-100 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('table')}
@@ -384,7 +381,7 @@ const UsersList = () => {
 
               {/* Cards View */}
               {viewMode === 'cards' && (
-                <div className="p-6">
+                <div className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredUsers.map((user) => (
                       <div

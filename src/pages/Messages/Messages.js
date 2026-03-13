@@ -25,6 +25,7 @@ import { showSuccess, showError } from '../../utils/toast';
 import { formatDateTime } from '../../utils/dateUtils';
 import NewMessageModal from './NewMessageModal';
 import MessageView from './MessageView';
+import PageTitle from '../../components/Common/PageTilte';
 
 const Messages = () => {
   const { t, i18n } = useTranslation();
@@ -216,14 +217,16 @@ const Messages = () => {
           {/* Header */}
           <Card className="flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('messages.messages')}</h1>
-                {filter === 'inbox' && unreadCount > 0 && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {t('messages.unreadCount', { count: unreadCount })}
-                  </p>
-                )}
-              </div>
+              <PageTitle
+                title={t('messages.messages')}
+                description={
+                  filter === 'inbox' && unreadCount > 0 ? (
+                    <span className="text-sm text-gray-500">
+                      {t('messages.unreadCount', { count: unreadCount })}
+                    </span>
+                  ) : null
+                }
+              />
               <Button
                 onClick={() => setShowNewMessageModal(true)}
                 icon={FaPlus}

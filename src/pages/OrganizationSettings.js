@@ -24,6 +24,7 @@ import {
   getDepartmentOptions,
   getRoleLabel
 } from '../utils/organizationUi';
+import PageTitle from '../components/Common/PageTilte';
 
 const normalizeDepartmentCode = (value) => String(value || '')
   .trim()
@@ -305,10 +306,12 @@ const OrganizationSettings = () => {
               <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-white">
                 <FaBuilding className="text-2xl" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">{settings.branding.displayName || settings.name}</h1>
-                <p className="text-sm text-white/80 mt-1">{settings.slug} | {getOrganizationStatusLabel(settings.status)}</p>
-              </div>
+              <PageTitle
+                title={settings.branding.displayName || settings.name}
+                description={`${settings.slug} | ${getOrganizationStatusLabel(settings.status)}`}
+                titleClass="text-white"
+                descriptionClass="text-white/80"
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-3 min-w-[18rem]">

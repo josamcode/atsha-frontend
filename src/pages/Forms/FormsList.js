@@ -19,6 +19,7 @@ import {
   getDepartmentOptions
 } from '../../utils/organizationUi';
 import { FaFilePdf, FaCheckCircle, FaTimesCircle, FaTrashAlt, FaPlus, FaEye, FaTh, FaList, FaCalendarAlt, FaPaperPlane } from 'react-icons/fa';
+import PageTitle from '../../components/Common/PageTilte';
 
 
 const FormsList = () => {
@@ -61,7 +62,7 @@ const FormsList = () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      
+
       if (filters.status) params.append('status', filters.status);
       if (filters.templateId) params.append('templateId', filters.templateId);
       if (filters.department) params.append('department', filters.department);
@@ -190,14 +191,15 @@ const FormsList = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-800">{t('forms.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('forms.manageAndTrackForms')}</p>
-          </div>
-          <Link to="/forms/new">
-            <Button className="flex items-center space-x-2">
-              <FaPlus />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <PageTitle
+            title={t('forms.title')}
+            description={t('forms.manageAndTrackForms')}
+          />
+
+          <Link to="/forms/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap">
+              <FaPlus className="shrink-0" />
               <span>{t('forms.createForm')}</span>
             </Button>
           </Link>
@@ -401,7 +403,7 @@ const FormsList = () => {
 
               {/* Cards View */}
               {viewMode === 'cards' && (
-                <div className="p-6">
+                <div className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {forms.map((form) => (
                       <div
@@ -485,8 +487,8 @@ const FormsList = () => {
                               </button>
                             )}
 
-                        {canReviewForms(user) &&
-                          form.status === 'submitted' && (
+                            {canReviewForms(user) &&
+                              form.status === 'submitted' && (
                                 <>
                                   <button
                                     onClick={() => handleApprove(form._id, 'approved')}
@@ -505,8 +507,8 @@ const FormsList = () => {
                                 </>
                               )}
 
-                        {canDeleteForms(user) && (
-                          <button
+                            {canDeleteForms(user) && (
+                              <button
                                 onClick={() => handleDelete(form._id)}
                                 className="text-primary hover:text-primary-darko transition-colors"
                                 title={t('common.delete')}

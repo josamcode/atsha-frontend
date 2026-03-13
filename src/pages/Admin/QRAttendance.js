@@ -16,6 +16,7 @@ import {
 } from 'react-icons/fa';
 import { showSuccess, showError } from '../../utils/toast';
 import { buildPathWithOrganization, isQrManager } from '../../utils/organization';
+import PageTitle from '../../components/Common/PageTilte';
 
 const QRAttendance = () => {
   const { t, i18n } = useTranslation();
@@ -139,13 +140,11 @@ const QRAttendance = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-                <FaQrcode className="text-primary" />
-                {t('attendance.qrAttendanceSystem')}
-              </h1>
-              <p className="text-gray-600 mt-2">{t('attendance.qrSystemDescription')}</p>
-            </div>
+            <PageTitle
+              icon={FaQrcode}
+              title={t('attendance.qrAttendanceSystem')}
+              description={t('attendance.qrSystemDescription')}
+            />
 
             <div className="flex items-center gap-4">
               {stats && (

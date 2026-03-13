@@ -13,6 +13,7 @@ import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { FaCheckCircle, FaTimesCircle, FaBan, FaTrashAlt, FaPlus, FaUmbrellaBeach, FaCalendarCheck, FaHourglassHalf, FaEye, FaTh, FaList, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import PageTitle from '../../components/Common/PageTilte';
 
 const LeavesList = () => {
   const { t, i18n } = useTranslation();
@@ -138,13 +139,13 @@ const LeavesList = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-800">{t('leaves.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('leaves.manageEmployeeLeaveRequests')}</p>
-          </div>
-          <Link to="/leaves/new">
-            <Button className="flex items-center space-x-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <PageTitle
+            title={t('leaves.title')}
+            description={t('leaves.manageEmployeeLeaveRequests')}
+          />
+          <Link to="/leaves/new" className="w-full sm:w-auto">
+            <Button className="w-full sm:w-auto flex items-center justify-center gap-2 whitespace-nowrap">
               <FaPlus />
               <span>{t('leaves.requestLeave')}</span>
             </Button>
@@ -411,7 +412,7 @@ const LeavesList = () => {
 
               {/* Cards View */}
               {viewMode === 'cards' && (
-                <div className="p-6">
+                <div className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {leaves.map((leave) => (
                       <div

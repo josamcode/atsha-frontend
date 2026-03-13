@@ -25,6 +25,8 @@ import {
   canManageTemplates,
   getDepartmentLabel
 } from '../../utils/organizationUi';
+import PageTitle from '../../components/Common/PageTilte';
+import Card from '../../components/Common/Card';
 
 const TemplatesList = () => {
   const { t, i18n } = useTranslation();
@@ -129,14 +131,12 @@ const TemplatesList = () => {
               <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
                 <FaFileAlt className="text-2xl text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  {t('forms.templates')}
-                </h1>
-                <p className="text-white/80 text-sm mt-1">
-                  {t('templates.manageFormTemplates')}
-                </p>
-              </div>
+              <PageTitle
+                title={t('forms.templates')}
+                description={t('templates.manageFormTemplates')}
+                titleClass="text-white"
+                descriptionClass="text-white/80"
+              />
             </div>
 
             {canManageCurrentTemplates && (
@@ -183,9 +183,9 @@ const TemplatesList = () => {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <Card>
             {/* View Toggle */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-end">
+            <div className="pb-4 flex items-center justify-end">
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('table')}
@@ -328,7 +328,7 @@ const TemplatesList = () => {
 
             {/* Cards View */}
             {viewMode === 'cards' && (
-              <div className="p-6">
+              <div className="p-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredTemplates.map((template) => (
                     <div
@@ -432,7 +432,7 @@ const TemplatesList = () => {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
         )}
       </div>
 

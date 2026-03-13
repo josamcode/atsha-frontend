@@ -27,6 +27,7 @@ import {
   FaEdit
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import PageTitle from '../../components/Common/PageTilte';
 
 const AttendancePage = () => {
   const { t, i18n } = useTranslation();
@@ -366,18 +367,15 @@ const AttendancePage = () => {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <FaUserClock className="text-primary" />
-              {t('attendance.title')}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {isAdmin
+          <PageTitle
+            icon={FaUserClock}
+            title={t('attendance.title')}
+            description={
+              isAdmin
                 ? t('attendance.trackCompanyAttendance')
                 : t('attendance.trackYourAttendance')
-              }
-            </p>
-          </div>
+            }
+          />
         </div>
 
         {/* Filters and Sorting for Admin/Supervisor */}
@@ -784,7 +782,7 @@ const AttendancePage = () => {
 
               {/* Cards View */}
               {viewMode === 'cards' && (
-                <div className="p-6">
+                <div className="p-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {attendanceData.map((record, index) => {
                       // Calculate duration if both check-in and check-out exist
