@@ -102,6 +102,7 @@ const OrganizationSettings = () => {
     languagePreference: 'en',
     expiresInDays: 7
   });
+  const [activeTab, setActiveTab] = useState('general');
 
   const roleOptions = getAssignableRoleOptions(user, t, i18n.language);
   const departmentOptions = getDepartmentOptions(settings || organization, t, i18n.language);
@@ -366,10 +367,37 @@ const OrganizationSettings = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2">
-            <Card>
-              <form onSubmit={handleSave} className="space-y-6">
+        <div className="flex overflow-x-auto border-b border-gray-200">
+          <nav className="-mb-px flex space-x-6 rtl:space-x-reverse" aria-label="Tabs">
+            {[
+              { id: 'general', label: t('organizationSettings.tabs.general', { defaultValue: 'General' }) },
+              { id: 'policies', label: t('organizationSettings.tabs.policies', { defaultValue: 'Policies' }) },
+              { id: 'departments', label: t('organizationSettings.sections.departments', { defaultValue: 'Departments' }) },
+              { id: 'members', label: t('organizationSettings.sections.invitations', { defaultValue: 'Members & Invitations' }) },
+              { id: 'subscription', label: t('organizationSettings.sections.subscription', { defaultValue: 'Subscription & Features' }) }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  whitespace-nowrap flex py-4 px-2 border-b-2 font-medium text-sm transition-colors
+                  ${activeTab === tab.id
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {['general', 'policies', 'departments'].includes(activeTab) && (
+          <form onSubmit={handleSave} className="space-y-6">
+            {activeTab === 'general' && (
+              <Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input label={t('organizationSettings.fields.displayName')} value={settings.branding.displayName} onChange={(event) => updateGroupField('branding', 'displayName', event.target.value)} />
                   <Input label={t('organizationSettings.fields.shortName')} value={settings.branding.shortName} onChange={(event) => updateGroupField('branding', 'shortName', event.target.value)} />
@@ -379,7 +407,7 @@ const OrganizationSettings = () => {
                   <Input label={t('organizationSettings.fields.timezone')} value={settings.timezone} onChange={(event) => updateField('timezone', event.target.value)} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.locale')}</label>
                     <select
@@ -391,82 +419,90 @@ const OrganizationSettings = () => {
                       <option value="ar">{t('organizationSettings.languageOptions.ar')}</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.primaryColor')}</label>
-                      <input type="color" value={settings.branding.primaryColor} onChange={(event) => updateGroupField('branding', 'primaryColor', event.target.value)} className="w-full h-11 border border-gray-300 rounded-lg" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.secondaryColor')}</label>
-                      <input type="color" value={settings.branding.secondaryColor} onChange={(event) => updateGroupField('branding', 'secondaryColor', event.target.value)} className="w-full h-11 border border-gray-300 rounded-lg" />
-                    </div>
-                  </div>
                 </div>
 
+                <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                  <Button type="submit" disabled={saving}>{saving ? t('organizationSettings.actions.saving') : t('organizationSettings.actions.saveSettings')}</Button>
+                </div>
+              </Card>
+            )}
+
+            {activeTab === 'policies' && (
+              <Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
                     <span className="text-sm font-medium text-gray-700">{t('organizationSettings.toggles.passwordResetEnabled')}</span>
-                    <input type="checkbox" checked={settings.securitySettings.passwordResetEnabled} onChange={(event) => updateGroupField('securitySettings', 'passwordResetEnabled', event.target.checked)} className="h-4 w-4" />
+                    <input type="checkbox" checked={settings.securitySettings.passwordResetEnabled} onChange={(event) => updateGroupField('securitySettings', 'passwordResetEnabled', event.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
                   </label>
-                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
                     <span className="text-sm font-medium text-gray-700">{t('organizationSettings.toggles.publicAttendance')}</span>
-                    <input type="checkbox" checked={settings.attendanceSettings.allowPublicAttendance} onChange={(event) => updateGroupField('attendanceSettings', 'allowPublicAttendance', event.target.checked)} className="h-4 w-4" />
+                    <input type="checkbox" checked={settings.attendanceSettings.allowPublicAttendance} onChange={(event) => updateGroupField('attendanceSettings', 'allowPublicAttendance', event.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
                   </label>
-                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors">
                     <span className="text-sm font-medium text-gray-700">{t('organizationSettings.toggles.leaveApprovalRequired')}</span>
-                    <input type="checkbox" checked={settings.leaveSettings.approvalRequired} onChange={(event) => updateGroupField('leaveSettings', 'approvalRequired', event.target.checked)} className="h-4 w-4" />
+                    <input type="checkbox" checked={settings.leaveSettings.approvalRequired} onChange={(event) => updateGroupField('leaveSettings', 'approvalRequired', event.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
                   </label>
                   <Input label={t('organizationSettings.fields.qrValiditySeconds')} type="number" value={settings.attendanceSettings.qrTokenValiditySeconds} onChange={(event) => updateGroupField('attendanceSettings', 'qrTokenValiditySeconds', event.target.value)} />
                   <Input label={t('organizationSettings.fields.defaultAnnualLeave')} type="number" value={settings.leaveSettings.defaultAnnualBalance} onChange={(event) => updateGroupField('leaveSettings', 'defaultAnnualBalance', event.target.value)} />
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between gap-4 mb-4">
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.departments')}</h2>
-                      <p className="text-sm text-gray-500">{t('organizationSettings.sections.departmentsDescription')}</p>
-                    </div>
-                    <Button type="button" variant="outline" onClick={addDepartment} icon={FaPlus}>{t('organizationSettings.actions.addDepartment')}</Button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {settings.departments.map((department, index) => (
-                      <div key={`${department.code || 'department'}-${index}`} className="rounded-xl border border-gray-200 p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <Input label={t('organizationSettings.fields.code')} value={department.code} onChange={(event) => updateDepartment(index, 'code', normalizeDepartmentCode(event.target.value))} />
-                          <Input label={t('organizationSettings.fields.nameEn')} value={department.nameEn} onChange={(event) => updateDepartment(index, 'nameEn', event.target.value)} />
-                          <Input label={t('organizationSettings.fields.nameAr')} value={department.nameAr} onChange={(event) => updateDepartment(index, 'nameAr', event.target.value)} />
-                          <div className="flex items-end gap-2">
-                            <label className="flex-1 flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
-                              <span className="text-sm font-medium text-gray-700">{t('organizationSettings.toggles.active')}</span>
-                              <input type="checkbox" checked={department.isActive} onChange={(event) => updateDepartment(index, 'isActive', event.target.checked)} className="h-4 w-4" />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => removeDepartment(index)}
-                              disabled={settings.departments.length === 1}
-                              className="h-11 px-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <FaTimes />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
                   <Button type="submit" disabled={saving}>{saving ? t('organizationSettings.actions.saving') : t('organizationSettings.actions.saveSettings')}</Button>
                 </div>
-              </form>
-            </Card>
-          </div>
+              </Card>
+            )}
 
+            {activeTab === 'departments' && (
+              <Card>
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.departments')}</h2>
+                    <p className="text-sm text-gray-500">{t('organizationSettings.sections.departmentsDescription')}</p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={addDepartment} icon={FaPlus}>{t('organizationSettings.actions.addDepartment')}</Button>
+                </div>
+
+                <div className="space-y-3">
+                  {settings.departments.map((department, index) => (
+                    <div key={`${department.code || 'department'}-${index}`} className="rounded-xl border border-gray-200 p-4 transition-all hover:shadow-sm bg-white">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <Input label={t('organizationSettings.fields.code')} value={department.code} onChange={(event) => updateDepartment(index, 'code', normalizeDepartmentCode(event.target.value))} />
+                        <Input label={t('organizationSettings.fields.nameEn')} value={department.nameEn} onChange={(event) => updateDepartment(index, 'nameEn', event.target.value)} />
+                        <Input label={t('organizationSettings.fields.nameAr')} value={department.nameAr} onChange={(event) => updateDepartment(index, 'nameAr', event.target.value)} />
+                        <div className="flex items-end gap-2">
+                          <label className="flex-1 flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 cursor-pointer hover:bg-gray-50">
+                            <span className="text-sm font-medium text-gray-700">{t('organizationSettings.toggles.active')}</span>
+                            <input type="checkbox" checked={department.isActive} onChange={(event) => updateDepartment(index, 'isActive', event.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => removeDepartment(index)}
+                            disabled={settings.departments.length === 1}
+                            className="h-11 px-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                  <Button type="submit" disabled={saving}>{saving ? t('organizationSettings.actions.saving') : t('organizationSettings.actions.saveSettings')}</Button>
+                </div>
+              </Card>
+            )}
+          </form>
+        )}
+
+        {activeTab === 'subscription' && (
           <div className="space-y-6">
             <Card>
               <div className="flex items-center gap-3 mb-4">
-                <FaBuilding className="text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FaBuilding className="text-primary" />
+                </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
                     {t('organizationSettings.sections.subscription', { defaultValue: 'Subscription' })}
@@ -477,48 +513,41 @@ const OrganizationSettings = () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 space-y-4">
+              <div className="rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-6 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                    <p className="text-xs uppercase tracking-wider font-medium text-gray-500 mb-1">
                       {t('organizationSettings.subscription.currentPlan', { defaultValue: 'Current Plan' })}
                     </p>
-                    <p className="text-xl font-semibold text-gray-900">{subscriptionPlanName}</p>
+                    <p className="text-2xl font-bold text-gray-900">{subscriptionPlanName}</p>
                   </div>
-                  <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary border border-primary/20">
+                  <span className="inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-primary border border-primary/20 shadow-sm">
                     {getSubscriptionStatusLabel(settings.subscription?.status)}
                   </span>
                 </div>
 
                 {settings.subscription?.isDowngraded && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    {t('organizationSettings.subscription.downgradedNotice', {
-                      defaultValue: 'This organization is currently enforced on its downgrade plan because the paid subscription is no longer active.'
-                    })}
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-3">
+                    <span className="text-amber-500 mt-0.5 text-lg">⚠️</span>
+                    <p>
+                      {t('organizationSettings.subscription.downgradedNotice', {
+                        defaultValue: 'This organization is currently enforced on its downgrade plan because the paid subscription is no longer active.'
+                      })}
+                    </p>
                   </div>
                 )}
 
                 {subscriptionUsageEntries.length > 0 && (
-                  <div className="space-y-2">
-                    {subscriptionUsageEntries.map(([key, metric]) => (
-                      <div key={key} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 border border-gray-100">
-                        <span className="text-sm text-gray-700">{getSubscriptionMetricLabel(key)}</span>
-                        <span className="text-sm font-semibold text-gray-900">{getSubscriptionUsageText(metric)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {subscriptionFeatureEntries.length > 0 && (
-                  <div className="space-y-2">
-                    {subscriptionFeatureEntries.map(([key, enabled]) => (
-                      <div key={key} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 border border-gray-100">
-                        <span className="text-sm text-gray-700">{getSubscriptionFeatureLabel(key)}</span>
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
-                          {enabled ? t('organizationSettings.states.enabled') : t('organizationSettings.states.disabled')}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="mt-6 pt-6 border-t border-gray-200/60">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('organizationSettings.subscription.usage', { defaultValue: 'Usage Limits' })}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {subscriptionUsageEntries.map(([key, metric]) => (
+                        <div key={key} className="flex flex-col rounded-xl bg-white p-4 border border-gray-100 shadow-sm">
+                          <span className="text-xs font-medium text-gray-500 mb-1"><span className="line-clamp-1">{getSubscriptionMetricLabel(key)}</span></span>
+                          <span className="text-lg font-semibold text-gray-900">{getSubscriptionUsageText(metric)}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -526,27 +555,35 @@ const OrganizationSettings = () => {
 
             <Card>
               <div className="flex items-center gap-3 mb-4">
-                <FaGlobe className="text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FaGlobe className="text-primary" />
+                </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.featureFlags')}</h2>
                   <p className="text-sm text-gray-500">{t('organizationSettings.sections.featureFlagsDescription')}</p>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {Object.entries(settings.featureFlags || {}).map(([key, enabled]) => (
-                  <div key={key} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
-                    <span className="text-sm text-gray-700">{getFeatureFlagLabel(key)}</span>
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                  <div key={key} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 bg-white">
+                    <span className="text-sm font-medium text-gray-700">{getFeatureFlagLabel(key)}</span>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${enabled ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
                       {enabled ? t('organizationSettings.states.enabled') : t('organizationSettings.states.disabled')}
                     </span>
                   </div>
                 ))}
               </div>
             </Card>
+          </div>
+        )}
 
+        {activeTab === 'members' && (
+          <div className="space-y-6">
             <Card>
               <div className="flex items-center gap-3 mb-4">
-                <FaUserPlus className="text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <FaUserPlus className="text-primary" />
+                </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.inviteMember')}</h2>
                   <p className="text-sm text-gray-500">{t('organizationSettings.sections.inviteMemberDescription')}</p>
@@ -554,113 +591,125 @@ const OrganizationSettings = () => {
               </div>
 
               <form onSubmit={handleInvite} className="space-y-4">
-                <Input label={t('organizationSettings.fields.email')} type="email" value={inviteForm.email} onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, email: event.target.value }))} required />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.role')}</label>
-                  <select
-                    value={inviteForm.role}
-                    onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, role: event.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    {roleOptions.filter((option) => option.value !== 'platform_admin').map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.department')}</label>
-                  <select
-                    value={inviteForm.department}
-                    onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, department: event.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  >
-                    {departmentOptions.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input label={t('organizationSettings.fields.email')} type="email" value={inviteForm.email} onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, email: event.target.value }))} required />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.language')}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.role')}</label>
                     <select
-                      value={inviteForm.languagePreference}
-                      onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, languagePreference: event.target.value }))}
+                      value={inviteForm.role}
+                      onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, role: event.target.value }))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
-                      <option value="en">{t('organizationSettings.languageOptions.en')}</option>
-                      <option value="ar">{t('organizationSettings.languageOptions.ar')}</option>
+                      {roleOptions.filter((option) => option.value !== 'platform_admin').map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
                   </div>
-                  <Input label={t('organizationSettings.fields.expiresInDays')} type="number" value={inviteForm.expiresInDays} onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, expiresInDays: event.target.value }))} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.department')}</label>
+                    <select
+                      value={inviteForm.department}
+                      onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, department: event.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      {departmentOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('organizationSettings.fields.language')}</label>
+                      <select
+                        value={inviteForm.languagePreference}
+                        onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, languagePreference: event.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      >
+                        <option value="en">{t('organizationSettings.languageOptions.en')}</option>
+                        <option value="ar">{t('organizationSettings.languageOptions.ar')}</option>
+                      </select>
+                    </div>
+                    <Input label={t('organizationSettings.fields.expiresInDays')} type="number" value={inviteForm.expiresInDays} onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, expiresInDays: event.target.value }))} />
+                  </div>
                 </div>
-                <Button type="submit" disabled={inviteLoading} fullWidth>{inviteLoading ? t('organizationSettings.actions.creatingInvitation') : t('organizationSettings.actions.createInvitation')}</Button>
+                
+                <div className={`mt-4 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                  <Button type="submit" disabled={inviteLoading}>{inviteLoading ? t('organizationSettings.actions.creatingInvitation') : t('organizationSettings.actions.createInvitation')}</Button>
+                </div>
               </form>
 
               {latestActivationUrl && (
-                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                  <p className="text-sm font-medium text-gray-900 mb-2">{t('organizationSettings.fields.activationLink')}</p>
-                  <input readOnly value={latestActivationUrl} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm" />
+                <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">{t('organizationSettings.fields.activationLink')}</p>
+                    <input readOnly value={latestActivationUrl} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-primary focus:border-primary" />
+                  </div>
+                  <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(latestActivationUrl)} className="mt-6">Copy Link</Button>
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FaUsers className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.invitations')}</h2>
+                    <p className="text-sm text-gray-500">{t('organizationSettings.sections.invitationsDescription')}</p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" onClick={loadData}>{t('organizationSettings.actions.refresh')}</Button>
+              </div>
+
+              {invitations.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center bg-gray-50 flex flex-col items-center justify-center">
+                  <FaEnvelope className="text-gray-400 text-3xl mb-3" />
+                  <p className="text-gray-500 font-medium">{t('organizationSettings.states.noInvitations')}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {invitations.map((invitation) => (
+                    <div key={invitation.id || invitation._id} className="rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-colors bg-white">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-900">
+                            <span className="font-semibold">{invitation.email}</span>
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium border ${invitation.status === 'pending' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
+                              {getInvitationStatusLabel(invitation.status)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-gray-600 font-medium">
+                              Role: {getRoleLabel(invitation.organizationRole || invitation.role, t, i18n.language)}
+                            </span>
+                            <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-gray-600 font-medium">
+                              Dept: {getDepartmentLabel(invitation.department, settings, t, i18n.language)}
+                            </span>
+                            <span className="text-gray-500 flex items-center gap-1 mx-2">
+                              • Expires: {invitation.expiresAt ? new Date(invitation.expiresAt).toLocaleString(activeLocale) : t('organizationSettings.states.notAvailable')}
+                            </span>
+                          </div>
+                        </div>
+                        {invitation.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => cancelInvitation(invitation.id || invitation._id)}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors whitespace-nowrap"
+                          >
+                            <FaTimes />
+                            {t('organizationSettings.actions.cancelInvitation')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </Card>
           </div>
-        </div>
-
-        <Card>
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-              <FaUsers className="text-primary" />
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{t('organizationSettings.sections.invitations')}</h2>
-                <p className="text-sm text-gray-500">{t('organizationSettings.sections.invitationsDescription')}</p>
-              </div>
-            </div>
-            <Button type="button" variant="outline" onClick={loadData}>{t('organizationSettings.actions.refresh')}</Button>
-          </div>
-
-          {invitations.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 p-8 text-center text-gray-500">{t('organizationSettings.states.noInvitations')}</div>
-          ) : (
-            <div className="space-y-3">
-              {invitations.map((invitation) => (
-                <div key={invitation.id || invitation._id} className="rounded-xl border border-gray-200 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <FaEnvelope className="text-primary" />
-                        <span className="font-medium">{invitation.email}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-xs">
-                        <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                          {getRoleLabel(invitation.organizationRole || invitation.role, t, i18n.language)}
-                        </span>
-                        <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                          {getDepartmentLabel(invitation.department, settings, t, i18n.language)}
-                        </span>
-                        <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-blue-800">
-                          {getInvitationStatusLabel(invitation.status)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {invitation.expiresAt ? new Date(invitation.expiresAt).toLocaleString(activeLocale) : t('organizationSettings.states.notAvailable')}
-                      </p>
-                    </div>
-                    {invitation.status === 'pending' && (
-                      <button
-                        type="button"
-                        onClick={() => cancelInvitation(invitation.id || invitation._id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        <FaTimes />
-                        {t('organizationSettings.actions.cancelInvitation')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+        )}
       </div>
     </Layout>
   );
