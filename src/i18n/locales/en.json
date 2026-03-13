@@ -947,6 +947,10 @@
     "selectedRecipientsCount": "{{count}} recipient(s) selected"
   },
   "organizationSettings": {
+    "tabs": {
+      "general": "General",
+      "policies": "Policies"
+    },
     "stats": {
       "users": "Users",
       "active": "Active",
@@ -971,9 +975,12 @@
       "nameAr": "Name (AR)",
       "email": "Email",
       "role": "Role",
+      "roleLabel": "Role",
       "department": "Department",
+      "deptLabel": "Dept",
       "language": "Language",
       "expiresInDays": "Expires in Days",
+      "expiresLabel": "Expires",
       "activationLink": "Activation Link"
     },
     "toggles": {
@@ -991,7 +998,9 @@
       "inviteMember": "Invite Member",
       "inviteMemberDescription": "Create onboarding links for new organization users.",
       "invitations": "Invitations",
-      "invitationsDescription": "Organization-scoped invitation history."
+      "invitationsDescription": "Organization-scoped invitation history.",
+      "subscription": "Subscription & Features",
+      "subscriptionDescription": "Effective plan, limits, and downgrade enforcement."
     },
     "actions": {
       "addDepartment": "Add",
@@ -1000,7 +1009,8 @@
       "createInvitation": "Create Invitation",
       "creatingInvitation": "Creating...",
       "refresh": "Refresh",
-      "cancelInvitation": "Cancel"
+      "cancelInvitation": "Cancel",
+      "copyLink": "Copy Link"
     },
     "states": {
       "enabled": "Enabled",
@@ -1011,7 +1021,11 @@
     "featureFlags": {
       "multiOrganization": "Multi Organization",
       "invitations": "Invitations",
-      "customBranding": "Custom Branding"
+      "customBranding": "Custom Branding",
+      "qrCode": "Qr Code",
+      "attendanceManagement": "Attendance Management",
+      "leaveManagement": "Leave Management",
+      "messaging": "Messaging"
     },
     "feedback": {
       "loadError": "Failed to load organization settings",
@@ -1036,6 +1050,24 @@
       "accepted": "Accepted",
       "cancelled": "Cancelled",
       "expired": "Expired"
+    },
+    "subscription": {
+      "currentPlan": "Current Plan",
+      "usage": "Usage Limits",
+      "downgradedNotice": "This organization is currently enforced on its downgrade plan because the paid subscription is no longer active.",
+      "metrics": {
+        "formsPerMonth": "Forms Per Month",
+        "messagesPerMonth": "Messages Per Month",
+        "templatesTotal": "Templates Total",
+        "usersTotal": "Users Total"
+      },
+      "statuses": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "past_due": "Past Due",
+        "canceled": "Canceled",
+        "unpaid": "Unpaid"
+      }
     }
   }
 }

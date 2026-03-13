@@ -942,6 +942,10 @@
     "selectedRecipientsCount": "تم اختيار {{count}} مستلم"
   },
   "organizationSettings": {
+    "tabs": {
+      "general": "عام",
+      "policies": "السياسات"
+    },
     "stats": {
       "users": "المستخدمون",
       "active": "النشطون",
@@ -966,9 +970,12 @@
       "nameAr": "الاسم (AR)",
       "email": "البريد الإلكتروني",
       "role": "الدور",
+      "roleLabel": "الدور",
       "department": "القسم",
+      "deptLabel": "القسم",
       "language": "اللغة",
       "expiresInDays": "تنتهي خلال أيام",
+      "expiresLabel": "ينتهي في",
       "activationLink": "رابط التفعيل"
     },
     "toggles": {
@@ -986,7 +993,9 @@
       "inviteMember": "دعوة عضو",
       "inviteMemberDescription": "إنشاء روابط انضمام للمستخدمين الجدد في المنظمة.",
       "invitations": "الدعوات",
-      "invitationsDescription": "سجل الدعوات الخاص بالمنظمة."
+      "invitationsDescription": "سجل الدعوات الخاص بالمنظمة.",
+      "subscription": "الاشتراك والميزات",
+      "subscriptionDescription": "الخطة الفعالة، والحدود، وتخفيض الميزات."
     },
     "actions": {
       "addDepartment": "إضافة",
@@ -995,7 +1004,8 @@
       "createInvitation": "إنشاء دعوة",
       "creatingInvitation": "جارٍ الإنشاء...",
       "refresh": "تحديث",
-      "cancelInvitation": "إلغاء"
+      "cancelInvitation": "إلغاء",
+      "copyLink": "نسخ الرابط"
     },
     "states": {
       "enabled": "مفعّل",
@@ -1006,7 +1016,11 @@
     "featureFlags": {
       "multiOrganization": "متعدد المنظمات",
       "invitations": "الدعوات",
-      "customBranding": "الهوية البصرية المخصصة"
+      "customBranding": "الهوية البصرية المخصصة",
+      "qrCode": "رمز الاستجابة السريعة (QR)",
+      "attendanceManagement": "إدارة الحضور",
+      "leaveManagement": "إدارة الإجازات",
+      "messaging": "المراسلات"
     },
     "feedback": {
       "loadError": "فشل تحميل إعدادات المنظمة",
@@ -1031,6 +1045,24 @@
       "accepted": "تم القبول",
       "cancelled": "تم الإلغاء",
       "expired": "منتهية"
+    },
+    "subscription": {
+      "currentPlan": "الخطة الحالية",
+      "usage": "حدود الاستخدام",
+      "downgradedNotice": "يتم حالياً تطبيق خطة تخفيض الميزات لهذه المؤسسة لأن الاشتراك المدفوع لم يعد نشطاً.",
+      "metrics": {
+        "formsPerMonth": "النماذج شهرياً",
+        "messagesPerMonth": "الرسائل شهرياً",
+        "templatesTotal": "إجمالي القوالب",
+        "usersTotal": "إجمالي المستخدمين"
+      },
+      "statuses": {
+        "active": "نشطة",
+        "inactive": "غير نشطة",
+        "past_due": "متأخرة",
+        "canceled": "ملغاة",
+        "unpaid": "غير مدفوعة"
+      }
     }
   }
 }

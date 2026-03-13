@@ -367,7 +367,7 @@ const OrganizationSettings = () => {
           </div>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-gray-200">
+        <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
           <nav className="-mb-px flex space-x-6 rtl:space-x-reverse" aria-label="Tabs">
             {[
               { id: 'general', label: t('organizationSettings.tabs.general', { defaultValue: 'General' }) },
@@ -632,7 +632,7 @@ const OrganizationSettings = () => {
                     <Input label={t('organizationSettings.fields.expiresInDays')} type="number" value={inviteForm.expiresInDays} onChange={(event) => setInviteForm((currentValue) => ({ ...currentValue, expiresInDays: event.target.value }))} />
                   </div>
                 </div>
-                
+
                 <div className={`mt-4 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
                   <Button type="submit" disabled={inviteLoading}>{inviteLoading ? t('organizationSettings.actions.creatingInvitation') : t('organizationSettings.actions.createInvitation')}</Button>
                 </div>
@@ -644,7 +644,7 @@ const OrganizationSettings = () => {
                     <p className="text-sm font-semibold text-gray-900 mb-1">{t('organizationSettings.fields.activationLink')}</p>
                     <input readOnly value={latestActivationUrl} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-primary focus:border-primary" />
                   </div>
-                  <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(latestActivationUrl)} className="mt-6">Copy Link</Button>
+                  <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(latestActivationUrl)} className="mt-6">{t('organizationSettings.actions.copyLink', { defaultValue: 'Copy Link' })}</Button>
                 </div>
               )}
             </Card>
@@ -682,13 +682,13 @@ const OrganizationSettings = () => {
                           </div>
                           <div className="flex flex-wrap items-center gap-2 text-xs">
                             <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-gray-600 font-medium">
-                              Role: {getRoleLabel(invitation.organizationRole || invitation.role, t, i18n.language)}
+                              {t('organizationSettings.fields.roleLabel', { defaultValue: 'Role' })}: {getRoleLabel(invitation.organizationRole || invitation.role, t, i18n.language)}
                             </span>
                             <span className="inline-flex rounded-md bg-gray-100 px-2 py-1 text-gray-600 font-medium">
-                              Dept: {getDepartmentLabel(invitation.department, settings, t, i18n.language)}
+                              {t('organizationSettings.fields.deptLabel', { defaultValue: 'Dept' })}: {getDepartmentLabel(invitation.department, settings, t, i18n.language)}
                             </span>
                             <span className="text-gray-500 flex items-center gap-1 mx-2">
-                              • Expires: {invitation.expiresAt ? new Date(invitation.expiresAt).toLocaleString(activeLocale) : t('organizationSettings.states.notAvailable')}
+                              • {t('organizationSettings.fields.expiresLabel', { defaultValue: 'Expires' })}: {invitation.expiresAt ? new Date(invitation.expiresAt).toLocaleString(activeLocale) : t('organizationSettings.states.notAvailable')}
                             </span>
                           </div>
                         </div>
