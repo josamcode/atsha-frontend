@@ -70,6 +70,7 @@ const buildSettingsState = (source) => ({
     defaultAnnualBalance: source?.leaveSettings?.defaultAnnualBalance || 0
   },
   featureFlags: source?.featureFlags || {},
+  subscription: source?.subscription || null,
   summary: source?.summary || {},
   departments: Array.isArray(source?.departments) && source.departments.length > 0
     ? source.departments.map((department, index) => ({
@@ -116,6 +117,34 @@ const OrganizationSettings = () => {
       .replace(/[-_]+/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase())
   });
+  const getSubscriptionStatusLabel = (status) => t(`organizationSettings.subscription.statuses.${status}`, {
+    defaultValue: String(status || '--')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  });
+  const getSubscriptionMetricLabel = (key) => t(`organizationSettings.subscription.metrics.${key}`, {
+    defaultValue: String(key || '')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  });
+  const getSubscriptionFeatureLabel = (key) => t(`organizationSettings.subscription.features.${key}`, {
+    defaultValue: getFeatureFlagLabel(key)
+  });
+  const getSubscriptionUsageText = (metric) => {
+    const used = metric?.used ?? 0;
+    const limit = metric?.limit;
+    return limit === null || limit === undefined
+      ? `${used} / Unlimited`
+      : `${used} / ${limit}`;
+  };
+  const subscriptionPlanName = settings?.subscription?.plan?.name?.[i18n.language]
+    || settings?.subscription?.plan?.name?.en
+    || settings?.subscription?.effectivePlanCode
+    || settings?.subscription?.subscribedPlanCode
+    || '--';
+  const subscriptionUsageEntries = Object.entries(settings?.subscription?.usage || {});
+  const subscriptionFeatureEntries = Object.entries(settings?.subscription?.entitlements?.features || {});
 
   const loadData = useCallback(async () => {
     try {
@@ -435,6 +464,66 @@ const OrganizationSettings = () => {
           </div>
 
           <div className="space-y-6">
+            <Card>
+              <div className="flex items-center gap-3 mb-4">
+                <FaBuilding className="text-primary" />
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {t('organizationSettings.sections.subscription', { defaultValue: 'Subscription' })}
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    {t('organizationSettings.sections.subscriptionDescription', { defaultValue: 'Effective plan, limits, and downgrade enforcement.' })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                      {t('organizationSettings.subscription.currentPlan', { defaultValue: 'Current Plan' })}
+                    </p>
+                    <p className="text-xl font-semibold text-gray-900">{subscriptionPlanName}</p>
+                  </div>
+                  <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary border border-primary/20">
+                    {getSubscriptionStatusLabel(settings.subscription?.status)}
+                  </span>
+                </div>
+
+                {settings.subscription?.isDowngraded && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {t('organizationSettings.subscription.downgradedNotice', {
+                      defaultValue: 'This organization is currently enforced on its downgrade plan because the paid subscription is no longer active.'
+                    })}
+                  </div>
+                )}
+
+                {subscriptionUsageEntries.length > 0 && (
+                  <div className="space-y-2">
+                    {subscriptionUsageEntries.map(([key, metric]) => (
+                      <div key={key} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 border border-gray-100">
+                        <span className="text-sm text-gray-700">{getSubscriptionMetricLabel(key)}</span>
+                        <span className="text-sm font-semibold text-gray-900">{getSubscriptionUsageText(metric)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {subscriptionFeatureEntries.length > 0 && (
+                  <div className="space-y-2">
+                    {subscriptionFeatureEntries.map(([key, enabled]) => (
+                      <div key={key} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 border border-gray-100">
+                        <span className="text-sm text-gray-700">{getSubscriptionFeatureLabel(key)}</span>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                          {enabled ? t('organizationSettings.states.enabled') : t('organizationSettings.states.disabled')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+
             <Card>
               <div className="flex items-center gap-3 mb-4">
                 <FaGlobe className="text-primary" />

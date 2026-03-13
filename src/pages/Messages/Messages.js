@@ -216,7 +216,7 @@ const Messages = () => {
         <div className="lg:col-span-1 flex flex-col">
           {/* Header */}
           <Card className="flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-col sm:items-center sm:justify-between gap-4">
               <PageTitle
                 title={t('messages.messages')}
                 description={
@@ -230,7 +230,7 @@ const Messages = () => {
               <Button
                 onClick={() => setShowNewMessageModal(true)}
                 icon={FaPlus}
-                className="w-full sm:w-auto"
+                className="w-full"
               >
                 {t('messages.newMessage')}
               </Button>

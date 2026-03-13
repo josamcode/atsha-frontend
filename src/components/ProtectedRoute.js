@@ -5,11 +5,17 @@ import Loading from './Common/Loading';
 import {
   buildLoginPath,
   getDefaultAuthenticatedPath,
+  hasOrganizationFeature,
   isQrManager,
   roleMatches
 } from '../utils/organization';
 
-const ProtectedRoute = ({ children, roles = [], allowedRoles = [] }) => {
+const ProtectedRoute = ({
+  children,
+  roles = [],
+  allowedRoles = [],
+  requiredFeatures = []
+}) => {
   const location = useLocation();
   const { user, organization, organizationSlug, loading } = useAuth();
 
@@ -21,7 +27,22 @@ const ProtectedRoute = ({ children, roles = [], allowedRoles = [] }) => {
     return <Navigate to={buildLoginPath(location, organizationSlug)} replace />;
   }
 
-  if (isQrManager(user)) {
+  const qrManagerCanUseQr = (
+    hasOrganizationFeature(organization, 'attendanceManagement')
+    && hasOrganizationFeature(organization, 'qrCode')
+  );
+
+  if (requiredFeatures.length > 0) {
+    const hasAllFeatures = requiredFeatures.every((featureKey) => (
+      hasOrganizationFeature(organization, featureKey)
+    ));
+
+    if (!hasAllFeatures) {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  if (isQrManager(user) && qrManagerCanUseQr) {
     const currentPath = location.pathname;
     if (currentPath.startsWith('/qr') || currentPath.startsWith('/attend/')) {
       return children;

@@ -200,6 +200,16 @@ export const isOrganizationAdmin = (user) => {
   return getUserOrganizationRole(user) === 'organization_admin';
 };
 
+export const hasOrganizationFeature = (organization, featureKey) => {
+  if (!featureKey) {
+    return true;
+  }
+
+  return Boolean(
+    organization?.subscription?.entitlements?.features?.[featureKey]
+  );
+};
+
 export const getDefaultAuthenticatedPath = (user) => {
   if (isQrManager(user)) {
     return '/qr';

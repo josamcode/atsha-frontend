@@ -166,7 +166,7 @@ function AppContent() {
           <Route
             path="/attendance"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['attendanceManagement']}>
                 <AttendancePage />
               </ProtectedRoute>
             )}
@@ -174,7 +174,10 @@ function AppContent() {
           <Route
             path="/qr"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin', 'qr_manager']}>
+              <ProtectedRoute
+                allowedRoles={['platform_admin', 'organization_admin', 'qr_manager']}
+                requiredFeatures={['attendanceManagement', 'qrCode']}
+              >
                 <QRAttendance />
               </ProtectedRoute>
             )}
@@ -182,7 +185,10 @@ function AppContent() {
           <Route
             path="/admin/qr-attendance"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin']}>
+              <ProtectedRoute
+                allowedRoles={['platform_admin', 'organization_admin']}
+                requiredFeatures={['attendanceManagement', 'qrCode']}
+              >
                 <QRAttendance />
               </ProtectedRoute>
             )}
@@ -190,7 +196,7 @@ function AppContent() {
           <Route
             path="/attend/:token"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['attendanceManagement', 'qrCode']}>
                 <AttendAction />
               </ProtectedRoute>
             )}
@@ -199,7 +205,7 @@ function AppContent() {
           <Route
             path="/leaves"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['leaveManagement']}>
                 <LeavesList />
               </ProtectedRoute>
             )}
@@ -207,7 +213,7 @@ function AppContent() {
           <Route
             path="/leaves/new"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['leaveManagement']}>
                 <NewLeave />
               </ProtectedRoute>
             )}
@@ -215,7 +221,7 @@ function AppContent() {
           <Route
             path="/leaves/:id"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['leaveManagement']}>
                 <ViewLeaveRequest />
               </ProtectedRoute>
             )}
@@ -266,7 +272,7 @@ function AppContent() {
           <Route
             path="/messages"
             element={(
-              <ProtectedRoute>
+              <ProtectedRoute requiredFeatures={['messaging']}>
                 <Messages />
               </ProtectedRoute>
             )}
