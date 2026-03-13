@@ -217,6 +217,51 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendOrganizationVerificationCode = async (payload) => {
+    try {
+      const response = await api.post(
+        '/auth/register-organization/send-verification-code',
+        payload,
+        {
+          skipOrganizationHeader: true
+        }
+      );
+
+      return {
+        success: true,
+        message: response.data?.message || 'Verification code sent to your email'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Unable to send verification code'
+      };
+    }
+  };
+
+  const verifyOrganizationEmail = async (payload) => {
+    try {
+      const response = await api.post(
+        '/auth/register-organization/verify-email',
+        payload,
+        {
+          skipOrganizationHeader: true
+        }
+      );
+
+      return {
+        success: true,
+        message: response.data?.message || 'Email verified successfully',
+        verificationToken: response.data?.data?.verificationToken || ''
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Unable to verify email'
+      };
+    }
+  };
+
   const acceptInvitation = async (payload, options = {}) => {
     const requestedOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
 
@@ -295,6 +340,8 @@ export const AuthProvider = ({ children }) => {
     loading: loading || organizationLoading,
     login,
     registerOrganization,
+    sendOrganizationVerificationCode,
+    verifyOrganizationEmail,
     acceptInvitation,
     logout,
     updateUser,

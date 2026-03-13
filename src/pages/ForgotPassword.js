@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaArrowLeft, FaBuilding, FaEnvelope } from 'react-icons/fa';
+import { FaBuilding, FaEnvelope } from 'react-icons/fa';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import api from '../utils/api';
@@ -24,7 +24,6 @@ const ForgotPassword = () => {
   });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const isRTL = i18n.language === 'ar';
 
   useEffect(() => {
     setFormData((currentValue) => ({
@@ -81,69 +80,67 @@ const ForgotPassword = () => {
   const requestResetPath = buildPathWithOrganization('/request-password-reset', formData.organizationSlug || organizationSlug);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="flex justify-end space-x-2 mb-8">
-          <button
-            onClick={() => changeLanguage('en')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${i18n.language === 'en'
-              ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-md'
-              : 'text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => changeLanguage('ar')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${i18n.language === 'ar'
-              ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-md'
-              : 'text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            AR
-          </button>
+    <div className="auth-page">
+      {/* ── Branded Panel ── */}
+      <div className="auth-brand-panel">
+        <div className="auth-orb auth-orb-1" />
+        <div className="auth-orb auth-orb-2" />
+        <div className="auth-orb auth-orb-3" />
+
+        <div className="auth-brand-content">
+          <img src="/logo.png" alt={organization?.name || 'Atsha'} className="auth-brand-logo" />
+          <h1 className="auth-brand-title">{t('auth.forgotPasswordTitle')}</h1>
+          <p className="auth-brand-subtitle">{t('auth.forgotPasswordSubtitle')}</p>
         </div>
+      </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <img
-                src="/logo.png"
-                alt={organization?.name || 'Atsha'}
-                className="h-16 w-32 group-hover:scale-105 transition-transform"
-              />
+      {/* ── Form Panel ── */}
+      <div className="auth-form-panel">
+        <div className="auth-form-card">
+          {/* Language switcher */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <div className="auth-lang-switcher">
+              <button
+                type="button"
+                onClick={() => changeLanguage('en')}
+                className={`auth-lang-btn ${i18n.language === 'en' ? 'active' : ''}`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => changeLanguage('ar')}
+                className={`auth-lang-btn ${i18n.language === 'ar' ? 'active' : ''}`}
+              >
+                AR
+              </button>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {t('auth.forgotPasswordTitle')}
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              {t('auth.forgotPasswordSubtitle')}
-            </p>
           </div>
 
-          <div className={`rounded-xl border px-4 py-3 ${organization
-            ? 'border-emerald-200 bg-emerald-50'
-            : organizationError
-              ? 'border-primary/30 bg-primary/5'
-              : 'border-gray-200 bg-gray-50'
-            }`}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Organization</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {organization?.name || (organizationLoading ? 'Resolving organization...' : 'No organization selected')}
-            </p>
-            <p className="text-xs text-gray-600 mt-1">
-              {organization?.slug || formData.organizationSlug || 'Reset links are scoped to an organization.'}
-            </p>
-            {!organization && organizationError && (
-              <p className="text-xs text-primary mt-2">{organizationError}</p>
-            )}
-          </div>
+          <div className="auth-card-inner">
+            <div className="auth-form-header">
+              <h2>{t('auth.forgotPasswordTitle')}</h2>
+              <p>{t('auth.forgotPasswordSubtitle')}</p>
+            </div>
 
-          {!sent ? (
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="relative">
-                <FaBuilding className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-10 text-gray-400`} />
+            {/* Organization info badge */}
+            <div className={`auth-verify-section ${organization ? 'verified' : ''}`} style={{ marginBottom: '1.25rem' }}>
+              <div className="auth-verify-status">
+                <span className="auth-verify-status-dot" />
+                <span style={{ fontWeight: 600, color: '#111827', fontSize: '0.82rem' }}>
+                  {organization?.name || (organizationLoading ? 'Resolving organization...' : 'No organization selected')}
+                </span>
+              </div>
+              <p className="auth-verify-hint" style={{ marginTop: '0.25rem' }}>
+                {organization?.slug || formData.organizationSlug || 'Reset links are scoped to an organization.'}
+              </p>
+              {!organization && organizationError && (
+                <p style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.25rem' }}>{organizationError}</p>
+              )}
+            </div>
+
+            {!sent ? (
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                 <Input
                   label="Organization Slug"
                   type="text"
@@ -154,12 +151,9 @@ const ForgotPassword = () => {
                     organizationSlug: event.target.value
                   }))}
                   placeholder="your-organization"
-                  className={isRTL ? 'pr-10' : 'pl-10'}
+                  icon={FaBuilding}
                 />
-              </div>
 
-              <div className="relative">
-                <FaEnvelope className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-10 text-gray-400`} />
                 <Input
                   label={t('auth.email')}
                   type="email"
@@ -171,45 +165,32 @@ const ForgotPassword = () => {
                   }))}
                   placeholder="example@gmail.com"
                   required
-                  className={isRTL ? 'pr-10' : 'pl-10'}
+                  icon={FaEnvelope}
                 />
+
+                <Button
+                  type="submit"
+                  disabled={loading || organizationLoading}
+                  fullWidth
+                >
+                  {loading ? t('common.loading') : t('auth.sendResetLink')}
+                </Button>
+              </form>
+            ) : (
+              <div className="auth-alert auth-alert-success" style={{ textAlign: 'center' }}>
+                <p style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('auth.resetLinkSent')}</p>
+                <p style={{ fontSize: '0.82rem' }}>{t('auth.checkEmailInstructions')}</p>
               </div>
+            )}
 
-              <Button
-                type="submit"
-                disabled={loading || organizationLoading}
-                fullWidth
-              >
-                {loading ? t('common.loading') : t('auth.sendResetLink')}
-              </Button>
-            </form>
-          ) : (
-            <div className="text-center space-y-4">
-              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded">
-                <p className="font-medium">{t('auth.resetLinkSent')}</p>
-                <p className="text-sm mt-1">{t('auth.checkEmailInstructions')}</p>
-              </div>
-            </div>
-          )}
+            <p className="auth-footer-text">
+              <Link to={loginPath}>{t('auth.backToLogin')}</Link>
+            </p>
 
-          <div className="text-center">
-            <Link
-              to={loginPath}
-              className="inline-flex items-center text-sm text-primary hover:text-primary-dark"
-            >
-              <FaArrowLeft className={`mr-2 ${isRTL ? 'ml-2 mr-0' : ''}`} />
-              {t('auth.backToLogin')}
-            </Link>
-          </div>
-
-          <div className="text-center text-sm text-gray-600">
-            <p>{t('auth.noResetLink')}</p>
-            <Link
-              to={requestResetPath}
-              className="text-primary hover:text-primary-dark font-medium"
-            >
-              {t('auth.requestFromAdmin')}
-            </Link>
+            <p className="auth-footer-text" style={{ marginTop: '0.5rem' }}>
+              {t('auth.noResetLink')}{' '}
+              <Link to={requestResetPath}>{t('auth.requestFromAdmin')}</Link>
+            </p>
           </div>
         </div>
       </div>

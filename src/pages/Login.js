@@ -71,106 +71,108 @@ const Login = () => {
   const forgotPasswordPath = buildPathWithOrganization('/forgot-password', organizationSlug);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="flex justify-end space-x-2 mb-8">
-          <button
-            onClick={() => changeLanguage('en')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${i18n.language === 'en'
-              ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-md'
-              : 'text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => changeLanguage('ar')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${i18n.language === 'ar'
-              ? 'bg-gradient-to-r from-primary to-primary-dark text-white shadow-md'
-              : 'text-gray-700 hover:bg-gray-100'
-              }`}
-          >
-            AR
-          </button>
-        </div>
+    <div className="auth-page">
+      {/* ── Branded Panel ── */}
+      <div className="auth-brand-panel">
+        <div className="auth-orb auth-orb-1" />
+        <div className="auth-orb auth-orb-2" />
+        <div className="auth-orb auth-orb-3" />
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <img
-                src="/logo.png"
-                alt={organization?.name || 'Atsha'}
-                className="h-16 w-32 group-hover:scale-105 transition-transform"
-              />
+        <div className="auth-brand-content">
+          <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
+          <h1 className="auth-brand-title">{t('auth.loginTitle')}</h1>
+          <p className="auth-brand-subtitle">
+            {organization?.name
+              ? `${t('auth.loginSubtitle')} - ${organization.name}`
+              : t('auth.loginWithEmailPassword')}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Form Panel ── */}
+      <div className="auth-form-panel">
+        <div className="auth-form-card">
+          {/* Language switcher */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+            <div className="auth-lang-switcher">
+              <button
+                type="button"
+                onClick={() => changeLanguage('en')}
+                className={`auth-lang-btn ${i18n.language === 'en' ? 'active' : ''}`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => changeLanguage('ar')}
+                className={`auth-lang-btn ${i18n.language === 'ar' ? 'active' : ''}`}
+              >
+                AR
+              </button>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {t('auth.loginTitle')}
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              {organization?.name
-                ? `${t('auth.loginSubtitle')} - ${organization.name}`
-                : t('auth.loginWithEmailPassword')}
-            </p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-primary border-l-4 border-primary text-white px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="relative">
-                <FaEnvelope className="absolute left-3 top-10 text-gray-400" />
-                <Input
-                  label={t('auth.email')}
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="example@gmail.com"
-                  required
-                  className="pl-10"
-                />
-              </div>
-
-              <div className="relative">
-                <FaLock className="absolute left-3 top-10 text-gray-400" />
-                <Input
-                  label={t('auth.password')}
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="********"
-                  required
-                  className="pl-10"
-                />
-              </div>
+          <div className="auth-card-inner">
+            {/* Header */}
+            <div className="auth-form-header">
+              <h2>{t('auth.loginTitle')}</h2>
+              <p>
+                {organization?.name
+                  ? `${t('auth.loginSubtitle')} - ${organization.name}`
+                  : t('auth.loginWithEmailPassword')}
+              </p>
             </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              fullWidth
-            >
-              {loading ? t('common.loading') : t('auth.loginButton')}
-            </Button>
-          </form>
+            {/* Error */}
+            {error && (
+              <div className="auth-alert auth-alert-error">{error}</div>
+            )}
 
-          <div className="text-center space-y-2 mt-4">
-            <Link
-              to={forgotPasswordPath}
-              className="text-sm text-primary hover:text-primary-dark"
-            >
-              {t('auth.forgotPassword')}
-            </Link>
-            <p className="text-sm text-gray-600">
+            {/* Form */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <Input
+                label={t('auth.email')}
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="example@gmail.com"
+                required
+                icon={FaEnvelope}
+              />
+
+              <Input
+                label={t('auth.password')}
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                required
+                icon={FaLock}
+              />
+
+              {/* Forgot password link */}
+              <div style={{ textAlign: 'end', marginTop: '-0.5rem' }}>
+                <Link
+                  to={forgotPasswordPath}
+                  style={{ fontSize: '0.82rem', color: '#059669', fontWeight: 500, textDecoration: 'none' }}
+                >
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
+
+              <div style={{ marginTop: '0.5rem' }}>
+                <Button type="submit" disabled={loading} fullWidth>
+                  {loading ? t('common.loading') : t('auth.loginButton')}
+                </Button>
+              </div>
+            </form>
+
+            {/* Footer */}
+            <p className="auth-footer-text">
               {t('auth.noAccount')}{' '}
-              <Link to="/register" className="text-primary hover:text-primary-dark font-medium">
-                {t('auth.registerOrganization')}
-              </Link>
+              <Link to="/register">{t('auth.registerOrganization')}</Link>
             </p>
           </div>
         </div>

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { usePolling } from '../hooks/usePolling';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { formatRelativeTime, formatDateTime } from '../utils/dateUtils';
+import { formatDateTime } from '../utils/dateUtils';
 import {
   FaBell,
   FaCheck,
@@ -44,11 +43,9 @@ const Notifications = () => {
         setLoading(true);
       }
       const response = await api.get('/notifications?limit=100');
-      setNotifications(response.data.data || []);
-
-      // Fetch unread count
-      const countResponse = await api.get('/notifications/unread-count');
-      setUnreadCount(countResponse.data.data?.count || 0);
+      const notificationsData = response.data.data || [];
+      setNotifications(notificationsData);
+      setUnreadCount(notificationsData.filter(notification => !notification.read).length);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       // Only show error toast on initial load, not on silent polling updates
@@ -208,24 +205,6 @@ const Notifications = () => {
   React.useEffect(() => {
     fetchNotifications(true); // true = show loading spinner on initial load
   }, [fetchNotifications]);
-
-  // Use optimized polling instead of setInterval
-  // Create a wrapper that doesn't show loading spinner during polling updates
-  const pollNotifications = React.useCallback(async () => {
-    await fetchNotifications(false); // false = don't show loading spinner
-  }, [fetchNotifications]);
-
-  usePolling(
-    pollNotifications,
-    30000, // 30 seconds
-    {
-      enabled: true,
-      immediate: false, // Don't call immediately, let the initial useEffect handle it
-      onError: (error) => {
-        console.error('Error polling notifications:', error);
-      }
-    }
-  );
 
   return (
     <Layout>
@@ -422,4 +401,3 @@ const Notifications = () => {
 };
 
 export default Notifications;
-

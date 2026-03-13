@@ -106,109 +106,112 @@ const AcceptInvitation = () => {
   }
 
   const loginPath = buildPathWithOrganization('/login', requestedOrganizationSlug || organizationSlug);
+  const orgDisplayName = preview?.organization?.branding?.displayName || preview?.organization?.name || organization?.name || 'Organization Invitation';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50 px-4 py-12">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary via-primary-dark to-primary-dark px-8 py-6 text-white">
-          <h1 className="text-3xl font-bold">
-            {preview?.organization?.branding?.displayName || preview?.organization?.name || organization?.name || 'Organization Invitation'}
-          </h1>
-          <p className="text-sm text-white/80 mt-2">
+    <div className="auth-page">
+      {/* ── Branded Panel ── */}
+      <div className="auth-brand-panel">
+        <div className="auth-orb auth-orb-1" />
+        <div className="auth-orb auth-orb-2" />
+        <div className="auth-orb auth-orb-3" />
+
+        <div className="auth-brand-content">
+          <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
+          <h1 className="auth-brand-title">{orgDisplayName}</h1>
+          <p className="auth-brand-subtitle">
             Complete your account setup to join this organization.
           </p>
         </div>
+      </div>
 
-        <div className="p-8 space-y-6">
-          {preview && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">{preview.invitation?.email}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Role</p>
-                  <p className="font-medium text-gray-900">{getRoleLabel(preview.invitation?.organizationRole || preview.invitation?.role, t, i18n.language)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Department</p>
-                  <p className="font-medium text-gray-900">
-                    {getDepartmentLabel(preview.invitation?.department, preview.organization, t, i18n.language)}
-                  </p>
+      {/* ── Form Panel ── */}
+      <div className="auth-form-panel">
+        <div className="auth-form-card" style={{ maxWidth: 520 }}>
+          <div className="auth-card-inner">
+            {/* Invitation preview badge */}
+            {preview && (
+              <div className="auth-verify-section verified" style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.85rem' }}>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.75rem', marginBottom: '0.15rem' }}>Email</p>
+                    <p style={{ fontWeight: 600, color: '#111827' }}>{preview.invitation?.email}</p>
+                  </div>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.75rem', marginBottom: '0.15rem' }}>Role</p>
+                    <p style={{ fontWeight: 600, color: '#111827' }}>
+                      {getRoleLabel(preview.invitation?.organizationRole || preview.invitation?.role, t, i18n.language)}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.75rem', marginBottom: '0.15rem' }}>Department</p>
+                    <p style={{ fontWeight: 600, color: '#111827' }}>
+                      {getDepartmentLabel(preview.invitation?.department, preview.organization, t, i18n.language)}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-primary">
-              {error}
-            </div>
-          )}
+            {/* Error */}
+            {error && <div className="auth-alert auth-alert-error">{error}</div>}
 
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
-            <div className="md:col-span-2 relative">
-              <FaUser className="absolute left-3 top-10 text-gray-400" />
+            {/* Form */}
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <Input
                 label={t('auth.name')}
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="pl-10"
+                icon={FaUser}
               />
-            </div>
 
-            <div className="md:col-span-2 relative">
-              <FaPhone className="absolute left-3 top-10 text-gray-400" />
               <Input
                 label={t('auth.phone')}
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="pl-10"
+                icon={FaPhone}
               />
-            </div>
 
-            <div className="relative">
-              <FaLock className="absolute left-3 top-10 text-gray-400" />
-              <Input
-                label={t('auth.password')}
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-                className="pl-10"
-              />
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                <div>
+                  <Input
+                    label={t('auth.password')}
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    icon={FaLock}
+                  />
+                </div>
+                <div>
+                  <Input
+                    label={t('auth.confirmPassword')}
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    required
+                    icon={FaLock}
+                  />
+                </div>
+              </div>
 
-            <div className="relative">
-              <FaLock className="absolute left-3 top-10 text-gray-400" />
-              <Input
-                label={t('auth.confirmPassword')}
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="pl-10"
-              />
-            </div>
-
-            <div className="md:col-span-2">
               <Button type="submit" disabled={submitting} fullWidth>
                 {submitting ? t('common.loading') : 'Accept Invitation'}
               </Button>
-            </div>
-          </form>
+            </form>
 
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <FaEnvelope className="text-primary" />
-            <span>
-              Already have access? <Link to={loginPath} className="text-primary hover:text-primary-dark font-medium">Sign in</Link>
-            </span>
+            {/* Footer */}
+            <div className="auth-footer-text" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <FaEnvelope style={{ color: '#059669', fontSize: '0.85rem' }} />
+              <span>
+                Already have access? <Link to={loginPath}>Sign in</Link>
+              </span>
+            </div>
           </div>
         </div>
       </div>

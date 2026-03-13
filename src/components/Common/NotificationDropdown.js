@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { FaBell, FaCheck, FaCheckDouble, FaTrash, FaTimes, FaFileAlt, FaUserClock, FaUmbrellaBeach, FaUserPlus } from 'react-icons/fa';
+import { FaBell, FaCheck, FaCheckDouble, FaTrash, FaFileAlt, FaUserClock, FaUmbrellaBeach, FaUserPlus } from 'react-icons/fa';
 import api from '../../utils/api';
 import { showSuccess, showError } from '../../utils/toast';
 import { formatDate } from '../../utils/dateUtils';
 import Loading from './Loading';
-import { usePolling } from '../../hooks/usePolling';
 
 const NotificationDropdown = () => {
   const { t, i18n } = useTranslation();
@@ -22,7 +21,7 @@ const NotificationDropdown = () => {
   // Fetch notifications - memoized with useCallback
   const fetchNotifications = useCallback(async (showLoading = false) => {
     try {
-      // Only show loading spinner when explicitly requested (e.g., when dropdown opens)
+      // Only show loading spinner when explicitly requested.
       if (showLoading) {
         setLoading(true);
       }
@@ -160,37 +159,17 @@ const NotificationDropdown = () => {
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      // Show loading when dropdown opens
-      fetchNotifications(true);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, fetchNotifications]);
+  }, [isOpen]);
 
-  // Initial fetch for unread count (without showing loading)
+  // Initial fetch on app load only.
   useEffect(() => {
-    fetchNotifications(false); // Fetch silently on mount to get unread count
+    fetchNotifications(true);
   }, [fetchNotifications]);
-
-  // Use optimized polling instead of setInterval
-  // Create a wrapper that doesn't show loading spinner during polling updates
-  const pollNotifications = useCallback(async () => {
-    await fetchNotifications(false); // false = don't show loading spinner
-  }, [fetchNotifications]);
-
-  usePolling(
-    pollNotifications,
-    30000, // 30 seconds
-    {
-      enabled: true,
-      immediate: false, // Don't call immediately, initial fetch handles it
-      onError: (error) => {
-        console.error('Error polling notifications:', error);
-      }
-    }
-  );
 
   // Check screen size for mobile
   useEffect(() => {
@@ -338,4 +317,3 @@ const NotificationDropdown = () => {
 };
 
 export default NotificationDropdown;
-
