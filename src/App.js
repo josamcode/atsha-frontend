@@ -36,6 +36,7 @@ const EmployeeReportPDF = lazy(() => import('./pages/Users/Employeereportpdf'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Messages = lazy(() => import('./pages/Messages/Messages'));
 const OrganizationSettings = lazy(() => import('./pages/OrganizationSettings'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const DefaultRedirect = () => {
   const { user, loading } = useAuth();
@@ -45,6 +46,20 @@ const DefaultRedirect = () => {
   }
 
   return <Navigate to={getDefaultAuthenticatedPath(user)} replace />;
+};
+
+const SmartHome = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (user) {
+    return <Navigate to={getDefaultAuthenticatedPath(user)} replace />;
+  }
+
+  return <LandingPage />;
 };
 
 function AppContent() {
@@ -281,7 +296,8 @@ function AppContent() {
             )}
           />
 
-          <Route path="/" element={<DefaultRedirect />} />
+          <Route path="/" element={<SmartHome />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="*" element={<DefaultRedirect />} />
         </Routes>
       </Suspense>
