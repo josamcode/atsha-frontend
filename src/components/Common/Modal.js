@@ -1,9 +1,6 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  const { t } = useTranslation();
-
   if (!isOpen) return null;
 
   const sizeClasses = {

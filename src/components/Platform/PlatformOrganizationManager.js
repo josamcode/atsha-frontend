@@ -23,7 +23,7 @@ import {
 } from '../../utils/organizationUi';
 
 const STATUS_OPTIONS = ['active', 'inactive', 'suspended'];
-const PLAN_OPTIONS = ['free', 'plus', 'pro'];
+const DEFAULT_PLAN_OPTIONS = ['free', 'plus', 'pro'];
 
 const buildOrganizationForm = (organization = null) => ({
   name: organization?.name || '',
@@ -51,6 +51,26 @@ const getOrganizationName = (organization) => (
   '--'
 );
 
+const getOrganizationPlanCode = (organization) => (
+  organization?.subscription?.effectivePlanCode
+  || organization?.subscription?.subscribedPlanCode
+  || organization?.subscription?.plan?.code
+  || organization?.plan
+  || 'free'
+);
+
+const getPlanName = (plan, language = 'en') => (
+  plan?.name?.[language]
+  || plan?.name?.en
+  || String(plan?.code || '').toUpperCase()
+);
+
+const getPlanDescription = (plan, language = 'en') => (
+  plan?.description?.[language]
+  || plan?.description?.en
+  || ''
+);
+
 const getStatusClasses = (status) => {
   if (status === 'active') {
     return 'bg-green-100 text-green-800 border border-green-200';
@@ -65,14 +85,14 @@ const getStatusClasses = (status) => {
 
 const getPlanClasses = (plan) => {
   if (plan === 'pro') {
-    return 'bg-slate-900 text-white';
+    return 'bg-slate-900 text-white border border-slate-900';
   }
 
   if (plan === 'plus') {
-    return 'bg-blue-100 text-blue-800';
+    return 'bg-blue-100 text-blue-800 border border-blue-200';
   }
 
-  return 'bg-gray-100 text-gray-700';
+  return 'bg-gray-100 text-gray-700 border border-gray-200';
 };
 
 const PlatformOrganizationManager = ({ mode = 'browse' }) => {
@@ -80,6 +100,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   const isRTL = i18n.language === 'ar';
   const isManagementMode = mode === 'manage';
   const [organizations, setOrganizations] = useState([]);
+  const [planOptions, setPlanOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
@@ -95,6 +116,18 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   const [saving, setSaving] = useState(false);
   const [editingOrganizationId, setEditingOrganizationId] = useState('');
   const [formData, setFormData] = useState(buildOrganizationForm());
+  const availablePlans = planOptions.length > 0
+    ? planOptions
+    : DEFAULT_PLAN_OPTIONS.map((plan) => ({
+      code: plan,
+      name: {
+        en: plan.toUpperCase()
+      }
+    }));
+  const planLookup = useMemo(() => availablePlans.reduce((result, plan) => {
+    result[plan.code] = plan;
+    return result;
+  }, {}), [availablePlans]);
 
   const titleText = isManagementMode
     ? (isRTL ? 'إدارة المنصة' : 'Platform Settings')
@@ -102,6 +135,19 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
   const descriptionText = isManagementMode
     ? (isRTL ? 'إدارة المؤسسات والخطط والإعدادات العامة من مكان واحد.' : 'Manage organizations, plans, and platform-wide setup from one place.')
     : (isRTL ? 'استعرض جميع المؤسسات واعرض أعضاء كل مؤسسة.' : 'Browse every organization in the system and inspect its members.');
+
+  const fetchPlans = useCallback(async () => {
+    try {
+      const response = await api.get('/platform/plans', {
+        params: {
+          includeInactive: true
+        }
+      });
+      setPlanOptions(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      console.error('Error fetching platform plans:', error);
+    }
+  }, []);
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -134,10 +180,28 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     fetchOrganizations();
   }, [fetchOrganizations]);
 
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
+
   const organizationCountLabel = useMemo(() => {
     const count = organizations.length;
     return isRTL ? `${count} مؤسسة` : `${count} organizations`;
   }, [isRTL, organizations.length]);
+
+  const listedSummary = useMemo(() => (
+    organizations.reduce((result, organization) => ({
+      organizations: result.organizations + 1,
+      activeOrganizations: result.activeOrganizations + (organization.status === 'active' ? 1 : 0),
+      users: result.users + (organization?.summary?.users || 0),
+      pendingInvitations: result.pendingInvitations + (organization?.summary?.pendingInvitations || 0)
+    }), {
+      organizations: 0,
+      activeOrganizations: 0,
+      users: 0,
+      pendingInvitations: 0
+    })
+  ), [organizations]);
 
   const openMembersModal = async (organization) => {
     const organizationId = getOrganizationId(organization);
@@ -175,7 +239,10 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
 
   const openCreateModal = () => {
     setEditingOrganizationId('');
-    setFormData(buildOrganizationForm());
+    setFormData({
+      ...buildOrganizationForm(),
+      plan: availablePlans[0]?.code || 'free'
+    });
     setFormModalOpen(true);
   };
 
@@ -319,9 +386,9 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
             className="rounded-xl border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="">{isRTL ? 'كل الخطط' : 'All plans'}</option>
-            {PLAN_OPTIONS.map((plan) => (
-              <option key={plan} value={plan}>
-                {plan.toUpperCase()}
+            {availablePlans.map((plan) => (
+              <option key={plan.code} value={plan.code}>
+                {getPlanName(plan, i18n.language)}
               </option>
             ))}
           </select>
@@ -331,6 +398,48 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
           </Button>
         </div>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {isRTL ? 'المؤسسات' : 'Listed Organizations'}
+          </p>
+          <p className="mt-3 text-3xl font-bold text-gray-900">{listedSummary.organizations}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL ? `نشط: ${listedSummary.activeOrganizations}` : `${listedSummary.activeOrganizations} active`}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {isRTL ? 'المستخدمون' : 'Users'}
+          </p>
+          <p className="mt-3 text-3xl font-bold text-gray-900">{listedSummary.users}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL ? 'عبر جميع المؤسسات' : 'Across the filtered organizations'}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {isRTL ? 'الدعوات' : 'Pending Invites'}
+          </p>
+          <p className="mt-3 text-3xl font-bold text-gray-900">{listedSummary.pendingInvitations}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL ? 'بانتظار التفعيل' : 'Waiting for activation'}
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {isRTL ? 'الخطط' : 'Plan Catalog'}
+          </p>
+          <p className="mt-3 text-3xl font-bold text-gray-900">{availablePlans.length}</p>
+          <p className="mt-1 text-sm text-gray-500">
+            {isRTL ? 'خطط متاحة للتنظيم' : 'Live plans available for assignment'}
+          </p>
+        </div>
+      </div>
 
       {loading ? (
         <Loading />
@@ -344,96 +453,109 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-5 xl:grid-cols-2">
           {organizations.map((organization) => (
-            <Card key={getOrganizationId(organization)} className="h-full">
-              <div className="flex h-full flex-col gap-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-10 w-10 rounded-2xl border"
-                        style={{
-                          background: `linear-gradient(135deg, ${organization?.branding?.primaryColor || '#01c853'}, ${organization?.branding?.secondaryColor || '#059669'})`
-                        }}
-                      />
-                      <div className="min-w-0">
-                        <h3 className="truncate text-lg font-bold text-gray-900">
-                          {getOrganizationName(organization)}
-                        </h3>
-                        <p className="truncate text-sm text-gray-500">{organization.slug}</p>
+            <Card key={getOrganizationId(organization)} className="h-full overflow-hidden rounded-3xl border border-gray-200 p-0 shadow-sm">
+              <div className="flex h-full flex-col">
+                <div
+                  className="px-5 py-5 text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${organization?.branding?.primaryColor || '#0f172a'}, ${organization?.branding?.secondaryColor || '#1d4ed8'})`
+                  }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold uppercase text-white shadow-sm"
+                        >
+                          {(getOrganizationName(organization) || 'O').charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate text-xl font-bold">
+                            {getOrganizationName(organization)}
+                          </h3>
+                          <p className="truncate text-sm text-white/75">{organization.slug}</p>
+                          {getPlanDescription(planLookup[getOrganizationPlanCode(organization)], i18n.language) ? (
+                            <p className="mt-2 line-clamp-2 text-sm text-white/80">
+                              {getPlanDescription(planLookup[getOrganizationPlanCode(organization)], i18n.language)}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(organization.status)}`}>
+                        {organization.status}
+                      </span>
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getPlanClasses(getOrganizationPlanCode(organization))}`}>
+                        {getPlanName(planLookup[getOrganizationPlanCode(organization)] || { code: getOrganizationPlanCode(organization) }, i18n.language)}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClasses(organization.status)}`}>
-                      {organization.status}
-                    </span>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getPlanClasses(organization.plan)}`}>
-                      {(organization.plan || 'free').toUpperCase()}
-                    </span>
+                  <div className="mt-5 grid grid-cols-3 gap-3">
+                    <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+                      <p className="text-xs uppercase tracking-wide text-white/70">
+                        {isRTL ? 'المستخدمون' : 'Users'}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold">{organization?.summary?.users || 0}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+                      <p className="text-xs uppercase tracking-wide text-white/70">
+                        {isRTL ? 'النشطون' : 'Active'}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold">{organization?.summary?.activeUsers || 0}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm">
+                      <p className="text-xs uppercase tracking-wide text-white/70">
+                        {isRTL ? 'الدعوات' : 'Invites'}
+                      </p>
+                      <p className="mt-2 text-2xl font-bold">{organization?.summary?.pendingInvitations || 0}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      {isRTL ? 'المستخدمون' : 'Users'}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">{organization?.summary?.users || 0}</p>
+                <div className="space-y-4 p-5">
+                  <div className="grid gap-3 text-sm text-gray-600 md:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        {isRTL ? 'الموقع' : 'Website'}
+                      </p>
+                      <p className="mt-2 truncate text-sm font-medium text-gray-900">
+                        {organization?.branding?.websiteUrl || '--'}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-4">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        {isRTL ? 'الإعدادات المحلية' : 'Locale'}
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-gray-900">{organization?.locale || '--'} / {organization?.timezone || '--'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-4 md:col-span-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                        {isRTL ? 'النطاقات المسموحة' : 'Allowed Domains'}
+                      </p>
+                      <p className="mt-2 truncate text-sm font-medium text-gray-900">
+                        {Array.isArray(organization?.allowedDomains) && organization.allowedDomains.length > 0
+                          ? organization.allowedDomains.join(', ')
+                          : '--'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      {isRTL ? 'النشطون' : 'Active'}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">{organization?.summary?.activeUsers || 0}</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      {isRTL ? 'الدعوات' : 'Invites'}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">{organization?.summary?.pendingInvitations || 0}</p>
-                  </div>
-                </div>
 
-                <div className="grid gap-3 text-sm text-gray-600 md:grid-cols-2">
-                  <div className="rounded-2xl border border-gray-200 px-4 py-3">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">
-                      {isRTL ? 'الموقع' : 'Website'}
-                    </p>
-                    <p className="truncate">
-                      {organization?.branding?.websiteUrl || '--'}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-gray-200 px-4 py-3">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">
-                      {isRTL ? 'الإعدادات المحلية' : 'Locale'}
-                    </p>
-                    <p>{organization?.locale || '--'} / {organization?.timezone || '--'}</p>
-                  </div>
-                  <div className="rounded-2xl border border-gray-200 px-4 py-3 md:col-span-2">
-                    <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">
-                      {isRTL ? 'النطاقات المسموحة' : 'Allowed Domains'}
-                    </p>
-                    <p className="truncate">
-                      {Array.isArray(organization?.allowedDomains) && organization.allowedDomains.length > 0
-                        ? organization.allowedDomains.join(', ')
-                        : '--'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
-                  <Button variant="outline" onClick={() => openMembersModal(organization)} icon={FaUsers}>
-                    {isRTL ? 'عرض الأعضاء' : 'View Members'}
-                  </Button>
-
-                  {isManagementMode && (
-                    <Button onClick={() => openEditModal(organization)} icon={FaEdit}>
-                      {isRTL ? 'تعديل المؤسسة' : 'Edit Organization'}
+                  <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+                    <Button variant="outline" onClick={() => openMembersModal(organization)} icon={FaUsers}>
+                      {isRTL ? 'عرض الأعضاء' : 'View Members'}
                     </Button>
-                  )}
+
+                    {isManagementMode && (
+                      <Button onClick={() => openEditModal(organization)} icon={FaEdit}>
+                        {isRTL ? 'تعديل المؤسسة' : 'Edit Organization'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
@@ -538,9 +660,9 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
                   onChange={handleFormChange}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  {PLAN_OPTIONS.map((plan) => (
-                    <option key={plan} value={plan}>
-                      {plan.toUpperCase()}
+                  {availablePlans.map((plan) => (
+                    <option key={plan.code} value={plan.code}>
+                      {getPlanName(plan, i18n.language)}
                     </option>
                   ))}
                 </select>

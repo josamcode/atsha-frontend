@@ -235,15 +235,13 @@ const Messages = () => {
                   ) : null
                 }
               />
-              {!platformAdminView && (
-                <Button
-                  onClick={() => setShowNewMessageModal(true)}
-                  icon={FaPlus}
-                  className="w-full"
-                >
-                  {t('messages.newMessage')}
-                </Button>
-              )}
+              <Button
+                onClick={() => setShowNewMessageModal(true)}
+                icon={FaPlus}
+                className="w-full"
+              >
+                {t('messages.newMessage')}
+              </Button>
             </div>
 
             {/* Tabs */}
@@ -419,9 +417,7 @@ const Messages = () => {
             <MessageView
               message={selectedMessage}
               onReply={() => {
-                if (!platformAdminView) {
-                  setShowNewMessageModal(true);
-                }
+                setShowNewMessageModal(true);
               }}
               onDelete={() => {
                 if (!platformAdminView) {
@@ -431,6 +427,8 @@ const Messages = () => {
               }}
               isInbox={filter === 'inbox'}
               readOnly={platformAdminView}
+              allowReply={true}
+              allowDelete={!platformAdminView}
               scopeLabel={platformAdminView
                 ? (selectedMessage.organizationId?.branding?.displayName || selectedMessage.organizationId?.name || '')
                 : ''}
@@ -452,17 +450,15 @@ const Messages = () => {
       </div>
 
       {/* New Message Modal */}
-      {!platformAdminView && (
-        <NewMessageModal
-          isOpen={showNewMessageModal}
-          onClose={() => setShowNewMessageModal(false)}
-          onSend={() => {
-            setShowNewMessageModal(false);
-            fetchMessages(true); // Show loading when sending a new message
-          }}
-          replyTo={selectedMessage}
-        />
-      )}
+      <NewMessageModal
+        isOpen={showNewMessageModal}
+        onClose={() => setShowNewMessageModal(false)}
+        onSend={() => {
+          setShowNewMessageModal(false);
+          fetchMessages(true); // Show loading when sending a new message
+        }}
+        replyTo={selectedMessage}
+      />
 
       {/* Delete Confirmation Dialog */}
       {!platformAdminView && (

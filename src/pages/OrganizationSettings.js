@@ -26,7 +26,7 @@ import {
   getRoleLabel
 } from '../utils/organizationUi';
 import PageTitle from '../components/Common/PageTilte';
-import PlatformOrganizationManager from '../components/Platform/PlatformOrganizationManager';
+import PlatformSettings from '../components/Platform/PlatformSettings';
 
 const normalizeDepartmentCode = (value) => String(value || '')
   .trim()
@@ -132,9 +132,6 @@ const OrganizationSettings = () => {
       .replace(/_/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase())
   });
-  const getSubscriptionFeatureLabel = (key) => t(`organizationSettings.subscription.features.${key}`, {
-    defaultValue: getFeatureFlagLabel(key)
-  });
   const getSubscriptionUsageText = (metric) => {
     const used = metric?.used ?? 0;
     const limit = metric?.limit;
@@ -148,7 +145,6 @@ const OrganizationSettings = () => {
     || settings?.subscription?.subscribedPlanCode
     || '--';
   const subscriptionUsageEntries = Object.entries(settings?.subscription?.usage || {});
-  const subscriptionFeatureEntries = Object.entries(settings?.subscription?.entitlements?.features || {});
 
   const loadData = useCallback(async () => {
     try {
@@ -337,7 +333,7 @@ const OrganizationSettings = () => {
   if (platformAdminView) {
     return (
       <Layout>
-        <PlatformOrganizationManager mode="manage" />
+        <PlatformSettings />
       </Layout>
     );
   }

@@ -25,10 +25,12 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
     recipients: [], // For broadcast
     subject: '',
     content: '',
-    isBroadcast: false
+    isBroadcast: false,
+    selectAllUsers: false
   });
   const organizationRole = getUserOrganizationRole(user);
   const isEmployee = organizationRole === 'employee';
+  const platformAdminView = organizationRole === 'platform_admin';
   const canBroadcast = roleMatches(user, ['platform_admin', 'organization_admin']);
   const canChooseDirectRecipient = !isEmployee;
   const currentUserId = user?._id || user?.id;
@@ -41,7 +43,8 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
         recipients: [],
         subject: `Re: ${replyTo.subject}`,
         content: '',
-        isBroadcast: false
+        isBroadcast: false,
+        selectAllUsers: false
       });
     } else {
       setFormData({
@@ -49,7 +52,8 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
         recipients: [],
         subject: '',
         content: '',
-        isBroadcast: false
+        isBroadcast: false,
+        selectAllUsers: false
       });
     }
   }, [replyTo, isOpen]);
@@ -57,7 +61,20 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/users?isActive=true');
+      const response = await api.get('/users', {
+        params: platformAdminView
+          ? {
+            scope: 'system',
+            isActive: true,
+            limit: 500,
+            sort: 'name'
+          }
+          : {
+            isActive: true,
+            limit: 500,
+            sort: 'name'
+          }
+      });
       const responseUsers = Array.isArray(response.data?.data) ? response.data.data : [];
       const filteredUsers = responseUsers.filter((candidate) => {
         const candidateId = candidate?._id || candidate?.id;
@@ -75,7 +92,7 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
     } finally {
       setLoading(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, platformAdminView]);
 
   // Fetch users for recipient selection
   useEffect(() => {
@@ -86,10 +103,30 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => {
+      const nextValue = type === 'checkbox' ? checked : value;
+      if (name === 'isBroadcast') {
+        return {
+          ...prev,
+          isBroadcast: Boolean(nextValue),
+          recipients: Boolean(nextValue) ? prev.recipients : [],
+          selectAllUsers: Boolean(nextValue) ? prev.selectAllUsers : false
+        };
+      }
+
+      if (name === 'selectAllUsers') {
+        return {
+          ...prev,
+          selectAllUsers: Boolean(nextValue),
+          recipients: Boolean(nextValue) ? [] : prev.recipients
+        };
+      }
+
+      return {
+        ...prev,
+        [name]: nextValue
+      };
+    });
   };
 
   const handleRecipientChange = (e) => {
@@ -115,7 +152,7 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
       return;
     }
 
-    if (formData.isBroadcast && formData.recipients.length === 0) {
+    if (formData.isBroadcast && !formData.selectAllUsers && formData.recipients.length === 0) {
       showError(t('messages.recipientsRequired'));
       return;
     }
@@ -137,8 +174,13 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
         content: formData.content
       };
 
+      if (platformAdminView) {
+        payload.scope = 'system';
+      }
+
       if (formData.isBroadcast) {
         payload.isBroadcast = true;
+        payload.selectAllUsers = formData.selectAllUsers;
         payload.recipients = formData.recipients;
       } else {
         // For employees, use adminUser._id if available
@@ -199,6 +241,12 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {platformAdminView && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+              You can message any active user in the system, or broadcast to everyone at once.
+            </div>
+          )}
+
           {/* Broadcast option (Admin only) */}
           {canBroadcast && (
             <div className="flex items-center gap-2">
@@ -213,6 +261,22 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
               <label htmlFor="isBroadcast" className="flex items-center gap-2 text-sm text-gray-700">
                 <FaUsers className="text-primary" />
                 {t('messages.sendToMultiple')}
+              </label>
+            </div>
+          )}
+
+          {platformAdminView && formData.isBroadcast && (
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-3">
+              <input
+                type="checkbox"
+                id="selectAllUsers"
+                name="selectAllUsers"
+                checked={formData.selectAllUsers}
+                onChange={handleChange}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <label htmlFor="selectAllUsers" className="text-sm text-gray-700">
+                Send to all active users
               </label>
             </div>
           )}
@@ -246,7 +310,7 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
                 />
               ) : null}
             </div>
-          ) : (
+          ) : !formData.selectAllUsers ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t('messages.recipients')}
@@ -261,6 +325,10 @@ const NewMessageModal = ({ isOpen, onClose, onSend, replyTo }) => {
                 multiple
                 placeholder={t('messages.recipients')}
               />
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-4 text-sm text-gray-600">
+              The message will be delivered to every active user except your own account.
             </div>
           )}
 

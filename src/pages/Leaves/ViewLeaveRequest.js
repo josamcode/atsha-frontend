@@ -280,7 +280,6 @@ const ViewLeaveRequest = () => {
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{t('leaves.leaveRequestDetails')}</h1>
-                <p className="text-white/80">ID: {leave._id}</p>
               </div>
               <div className={`px-6 py-3 rounded-lg border-2 ${getStatusColor(leave.status)} bg-white flex items-center gap-2`}>
                 {getStatusIcon(leave.status)}

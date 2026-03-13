@@ -10,7 +10,9 @@ const MessageView = ({
   onDelete,
   isInbox,
   readOnly = false,
-  scopeLabel = ''
+  scopeLabel = '',
+  allowReply = false,
+  allowDelete = false
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -70,9 +72,9 @@ const MessageView = ({
               </div>
             </div>
           </div>
-          {!readOnly && (
+          {(!readOnly || allowReply || allowDelete) && (
             <div className="flex items-center gap-2">
-              {isInbox && (
+              {(isInbox || readOnly) && allowReply && (
                 <Button
                   onClick={onReply}
                   variant="outline"
@@ -82,15 +84,17 @@ const MessageView = ({
                   {t('messages.reply')}
                 </Button>
               )}
-              <Button
-                onClick={onDelete}
-                variant="outline"
-                icon={FaTrash}
-                size="sm"
-                className="text-primary hover:text-primary hover:border-primary"
-              >
-                {t('messages.delete')}
-              </Button>
+              {allowDelete && (
+                <Button
+                  onClick={onDelete}
+                  variant="outline"
+                  icon={FaTrash}
+                  size="sm"
+                  className="text-primary hover:text-primary hover:border-primary"
+                >
+                  {t('messages.delete')}
+                </Button>
+              )}
             </div>
           )}
         </div>

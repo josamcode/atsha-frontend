@@ -48,13 +48,22 @@ const UserAvatar = ({ user, size = 'md' }) => {
 const UserCard = ({ user, organization, selected = false, compact = false, trailing = null }) => {
   const { t, i18n } = useTranslation();
   const role = user?.organizationRole || user?.role;
+  const resolvedOrganization = organization
+    || (user?.organizationId && typeof user.organizationId === 'object' ? user.organizationId : null)
+    || (user?.organization && typeof user.organization === 'object' ? user.organization : null);
   const roleLabel = getRoleLabel(role, t, i18n.language);
   const departmentLabel = getDepartmentLabel(
     user?.department,
-    organization,
+    resolvedOrganization,
     t,
     i18n.language
   );
+  const organizationName = resolvedOrganization?.branding?.displayName
+    || resolvedOrganization?.name
+    || '';
+  const metaLine = organizationName
+    ? `${organizationName}${departmentLabel && departmentLabel !== '--' ? ` • ${departmentLabel}` : ''}`
+    : departmentLabel;
 
   return (
     <div className={`flex items-center gap-3 rounded-2xl ${compact ? 'p-2.5' : 'p-3.5'} ${selected ? 'bg-primary/5' : 'bg-white'}`}>
@@ -69,7 +78,7 @@ const UserCard = ({ user, organization, selected = false, compact = false, trail
           )}
         </div>
         <p className="truncate text-xs text-slate-500">{user?.email || '--'}</p>
-        <p className="truncate text-xs text-slate-400">{departmentLabel}</p>
+        <p className="truncate text-xs text-slate-400">{metaLine}</p>
       </div>
       {trailing}
     </div>
@@ -119,16 +128,24 @@ const UserPicker = ({
       const roleLabel = getRoleLabel(user?.organizationRole || user?.role, t, i18n.language);
       const departmentLabel = getDepartmentLabel(
         user?.department,
-        organization,
+        organization
+          || (user?.organizationId && typeof user.organizationId === 'object' ? user.organizationId : null)
+          || (user?.organization && typeof user.organization === 'object' ? user.organization : null),
         t,
         i18n.language
       );
+      const organizationName = user?.organizationId?.branding?.displayName
+        || user?.organizationId?.name
+        || user?.organization?.branding?.displayName
+        || user?.organization?.name
+        || '';
 
       return [
         user?.name,
         user?.email,
         roleLabel,
-        departmentLabel
+        departmentLabel,
+        organizationName
       ]
         .filter(Boolean)
         .join(' ')
