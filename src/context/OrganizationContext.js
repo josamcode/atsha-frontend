@@ -5,6 +5,7 @@ import {
   buildOrganizationHeaders,
   clearStoredOrganization,
   clearStoredOrganizationSlug,
+  getStoredAccessToken,
   getOrganizationSlugFromSearch,
   getResolvedOrganizationSlug,
   getStoredOrganization,
@@ -15,12 +16,33 @@ import {
 } from '../utils/organization';
 
 const OrganizationContext = createContext(null);
+const PUBLIC_AUTH_PATH_PREFIXES = ['/reset-password/'];
+const PUBLIC_AUTH_PATHS = new Set([
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/request-password-reset'
+]);
+
+const isPublicAuthRoute = (pathname = '') => (
+  PUBLIC_AUTH_PATHS.has(pathname)
+  || PUBLIC_AUTH_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+);
 
 const fetchOrganizationContext = async (organizationSlug) => {
+  const normalizedSlug = normalizeOrganizationSlug(organizationSlug);
+
+  if (!normalizedSlug) {
+    return {
+      success: true,
+      organization: null
+    };
+  }
+
   try {
     const response = await api.get('/auth/organization', {
-      params: organizationSlug ? { organization: organizationSlug } : undefined,
-      headers: buildOrganizationHeaders(organizationSlug)
+      params: { organization: normalizedSlug },
+      headers: buildOrganizationHeaders(normalizedSlug)
     });
 
     return {
@@ -55,6 +77,8 @@ export const OrganizationProvider = ({ children }) => {
       setOrganizationSlug(nextSlug);
       if (nextSlug) {
         setStoredOrganizationSlug(nextSlug);
+      } else {
+        clearStoredOrganizationSlug();
       }
 
       return null;
@@ -95,6 +119,8 @@ export const OrganizationProvider = ({ children }) => {
 
     if (nextSlug) {
       setStoredOrganizationSlug(nextSlug);
+    } else {
+      clearStoredOrganizationSlug();
     }
 
     const result = await fetchOrganizationContext(nextSlug);
@@ -135,13 +161,26 @@ export const OrganizationProvider = ({ children }) => {
         organization: getStoredOrganization(),
         fallbackSlug: getStoredOrganizationSlug()
       });
+      const shouldSkipBootstrap = (
+        !searchSlug
+        && !getStoredAccessToken()
+        && isPublicAuthRoute(location.pathname)
+      );
 
       if (searchSlug) {
         setStoredOrganizationSlug(searchSlug);
+      } else if (!nextSlug) {
+        clearStoredOrganizationSlug();
       }
 
       setLoading(true);
       setError('');
+
+      if (shouldSkipBootstrap) {
+        applyOrganization(null, null);
+        setLoading(false);
+        return;
+      }
 
       const result = await fetchOrganizationContext(nextSlug);
       if (ignore) {
@@ -165,7 +204,7 @@ export const OrganizationProvider = ({ children }) => {
     return () => {
       ignore = true;
     };
-  }, [applyOrganization, location.search]);
+  }, [applyOrganization, location.pathname, location.search]);
 
   const setOrganizationContext = useCallback((nextOrganization) => {
     return applyOrganization(nextOrganization, organizationSlug);

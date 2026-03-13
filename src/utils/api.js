@@ -1,6 +1,13 @@
 import axios from 'axios';
 import { showError } from './toast';
 import {
+  getLocalizedAuthenticationFailedMessage,
+  getLocalizedRateLimitMessage,
+  getLocalizedSessionExpiredMessage,
+  localizeBackendPayload,
+  translateBackendMessage
+} from './backendMessageTranslations';
+import {
   buildLoginPath,
   buildOrganizationHeaders,
   clearStoredAuthSession,
@@ -87,11 +94,30 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response?.data && typeof response.data === 'object') {
+      localizeBackendPayload(response.data);
+    }
+
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config || {};
+    const rawResponseMessage = error.response?.data?.message;
+    const rawResponseError = error.response?.data?.error;
+    const isRateLimitConflict = (
+      error.response?.status === 409
+      && Boolean(
+        error.response?.data?.retryAfter
+        || /too many requests|too many login attempts/i.test(`${rawResponseMessage || ''} ${rawResponseError || ''}`)
+      )
+    );
 
-    if (error.response?.status === 429 || error.response?.status === 409) {
+    if (error.response?.data && typeof error.response.data === 'object') {
+      localizeBackendPayload(error.response.data);
+    }
+
+    if (error.response?.status === 429 || isRateLimitConflict) {
       const retryAfterFromBody = error.response?.data?.retryAfter;
       const retryAfterFromHeader = error.response.headers['retry-after'] ||
         error.response.headers['Retry-After'] ||
@@ -99,15 +125,7 @@ api.interceptors.response.use(
       const retryAfter = retryAfterFromBody || (retryAfterFromHeader ? parseInt(retryAfterFromHeader, 10) : null);
       const retryAfterSeconds = retryAfter || 60;
 
-      let retryMessage = 'Too many requests. Please wait a moment before trying again.';
-      if (retryAfter) {
-        if (retryAfterSeconds < 60) {
-          retryMessage = `Too many requests. Please wait ${retryAfterSeconds} second${retryAfterSeconds > 1 ? 's' : ''} before trying again.`;
-        } else {
-          const minutes = Math.floor(retryAfterSeconds / 60);
-          retryMessage = `Too many requests. Please wait ${minutes} minute${minutes > 1 ? 's' : ''} before trying again.`;
-        }
-      }
+      const retryMessage = getLocalizedRateLimitMessage(retryAfter ? retryAfterSeconds : null);
 
       showError(retryMessage);
 
@@ -198,7 +216,7 @@ api.interceptors.response.use(
 
       clearStoredAuthSession({ preserveOrganization: true });
 
-      const errorMessage = error.response?.data?.message || 'Your session has expired';
+      const errorMessage = rawResponseMessage || 'Your session has expired';
       if (
         errorMessage === 'Token is not valid' ||
         errorMessage.includes('expired') ||
@@ -206,9 +224,9 @@ api.interceptors.response.use(
         errorMessage.includes('organization') ||
         errorMessage === 'Not authorized to access this route'
       ) {
-        showError('Your session has expired. Please log in again.');
+        showError(getLocalizedSessionExpiredMessage());
       } else {
-        showError('Authentication failed. Please log in again.');
+        showError(getLocalizedAuthenticationFailedMessage());
       }
 
       setTimeout(() => {
@@ -244,16 +262,7 @@ export const getRateLimitMessage = (error) => {
       parseInt(error.response.headers['Retry-After'], 10)
     ));
 
-  if (retryAfter) {
-    if (retryAfter < 60) {
-      return `Too many requests. Please wait ${retryAfter} second${retryAfter > 1 ? 's' : ''} before trying again.`;
-    }
-
-    const minutes = Math.floor(retryAfter / 60);
-    return `Too many requests. Please wait ${minutes} minute${minutes > 1 ? 's' : ''} before trying again.`;
-  }
-
-  return 'Too many requests. Please wait a moment before trying again.';
+  return getLocalizedRateLimitMessage(retryAfter || null);
 };
 
 export const isTokenExpired = (token) => {
@@ -275,12 +284,12 @@ export const refreshAccessToken = async () => {
   const refreshToken = getStoredRefreshToken();
 
   if (!refreshToken) {
-    return { success: false, error: 'No refresh token available' };
+    return { success: false, error: translateBackendMessage('No refresh token available') };
   }
 
   if (isTokenExpired(refreshToken)) {
     clearStoredAuthSession({ preserveOrganization: true });
-    return { success: false, error: 'Refresh token expired' };
+    return { success: false, error: translateBackendMessage('Refresh token expired') };
   }
 
   try {
@@ -313,13 +322,13 @@ export const refreshAccessToken = async () => {
       };
     }
 
-    return { success: false, error: 'Invalid response from server' };
+    return { success: false, error: translateBackendMessage('Invalid response from server') };
   } catch (error) {
     clearStoredAuthSession({ preserveOrganization: true });
 
     return {
       success: false,
-      error: error.response?.data?.message || error.message || 'Token refresh failed'
+      error: translateBackendMessage(error.response?.data?.message || error.message || 'Token refresh failed')
     };
   }
 };

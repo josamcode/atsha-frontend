@@ -1,29 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaBuilding, FaCheckCircle, FaLock } from 'react-icons/fa';
+import { FaCheckCircle, FaLock } from 'react-icons/fa';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import api from '../utils/api';
 import { showError, showSuccess } from '../utils/toast';
-import { useOrganization } from '../context/OrganizationContext';
-import { buildPathWithOrganization, normalizeOrganizationSlug } from '../utils/organization';
 
 const ResetPassword = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { token } = useParams();
-  const {
-    organization,
-    organizationSlug,
-    loading: organizationLoading,
-    error: organizationError,
-    updateOrganizationSlug
-  } = useOrganization();
   const [formData, setFormData] = useState({
     password: '',
-    confirmPassword: '',
-    organizationSlug: organizationSlug || organization?.slug || ''
+    confirmPassword: ''
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -31,16 +21,9 @@ const ResetPassword = () => {
   useEffect(() => {
     if (!token) {
       showError(t('auth.invalidResetToken'));
-      navigate(buildPathWithOrganization('/forgot-password', organizationSlug), { replace: true });
+      navigate('/forgot-password', { replace: true });
     }
-  }, [token, navigate, t, organizationSlug]);
-
-  useEffect(() => {
-    setFormData((currentValue) => ({
-      ...currentValue,
-      organizationSlug: organizationSlug || organization?.slug || currentValue.organizationSlug
-    }));
-  }, [organizationSlug, organization?.slug]);
+  }, [token, navigate, t]);
 
   const handleChange = (event) => {
     setFormData((currentValue) => ({
@@ -64,34 +47,16 @@ const ResetPassword = () => {
 
     setLoading(true);
 
-    const requestedOrganizationSlug = normalizeOrganizationSlug(formData.organizationSlug);
-
-    if (requestedOrganizationSlug && requestedOrganizationSlug !== organizationSlug) {
-      const bootstrapResult = await updateOrganizationSlug(requestedOrganizationSlug);
-      if (!bootstrapResult.success) {
-        showError(bootstrapResult.message || 'Organization not found');
-        setLoading(false);
-        return;
-      }
-    }
-
     try {
-      const response = await api.post(
-        `/auth/reset-password/${token}`,
-        {
-          password: formData.password,
-          organization: requestedOrganizationSlug || undefined
-        },
-        {
-          organizationSlug: requestedOrganizationSlug || undefined
-        }
-      );
+      const response = await api.post(`/auth/reset-password/${token}`, {
+        password: formData.password
+      });
 
       if (response.data.success) {
         showSuccess(t('auth.passwordResetSuccess'));
         setSuccess(true);
         setTimeout(() => {
-          navigate(buildPathWithOrganization('/login', requestedOrganizationSlug || organizationSlug), { replace: true });
+          navigate('/login', { replace: true });
         }, 2000);
       }
     } catch (error) {
@@ -107,7 +72,7 @@ const ResetPassword = () => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   };
 
-  const loginPath = buildPathWithOrganization('/login', formData.organizationSlug || organizationSlug);
+  const loginPath = '/login';
 
   if (success) {
     return (
@@ -116,7 +81,7 @@ const ResetPassword = () => {
           <div className="auth-orb auth-orb-1" />
           <div className="auth-orb auth-orb-2" />
           <div className="auth-brand-content">
-            <img src="/logo.png" alt={organization?.name || 'Atsha'} className="auth-brand-logo" />
+            <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
             <h1 className="auth-brand-title">{t('auth.passwordResetSuccess')}</h1>
           </div>
         </div>
@@ -146,7 +111,7 @@ const ResetPassword = () => {
         <div className="auth-orb auth-orb-3" />
 
         <div className="auth-brand-content">
-          <img src="/logo.png" alt={organization?.name || 'Atsha'} className="auth-brand-logo" />
+          <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
           <h1 className="auth-brand-title">{t('auth.resetPasswordTitle')}</h1>
           <p className="auth-brand-subtitle">{t('auth.resetPasswordSubtitle')}</p>
         </div>
@@ -181,33 +146,7 @@ const ResetPassword = () => {
               <p>{t('auth.resetPasswordSubtitle')}</p>
             </div>
 
-            {/* Organization info badge */}
-            <div className={`auth-verify-section ${organization ? 'verified' : ''}`} style={{ marginBottom: '1.25rem' }}>
-              <div className="auth-verify-status">
-                <span className="auth-verify-status-dot" />
-                <span style={{ fontWeight: 600, color: '#111827', fontSize: '0.82rem' }}>
-                  {organization?.name || (organizationLoading ? 'Resolving organization...' : 'No organization selected')}
-                </span>
-              </div>
-              <p className="auth-verify-hint" style={{ marginTop: '0.25rem' }}>
-                {organization?.slug || formData.organizationSlug || 'Reset tokens must match the active organization.'}
-              </p>
-              {!organization && organizationError && (
-                <p style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.25rem' }}>{organizationError}</p>
-              )}
-            </div>
-
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <Input
-                label="Organization Slug"
-                type="text"
-                name="organizationSlug"
-                value={formData.organizationSlug}
-                onChange={handleChange}
-                placeholder="your-organization"
-                icon={FaBuilding}
-              />
-
               <Input
                 label={t('auth.newPassword')}
                 type="password"
@@ -232,7 +171,7 @@ const ResetPassword = () => {
 
               <Button
                 type="submit"
-                disabled={loading || organizationLoading}
+                disabled={loading}
                 fullWidth
               >
                 {loading ? t('common.loading') : t('auth.resetPassword')}

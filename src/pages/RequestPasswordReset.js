@@ -1,63 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaBuilding, FaCheckCircle, FaEnvelope } from 'react-icons/fa';
+import { FaCheckCircle, FaEnvelope } from 'react-icons/fa';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import api from '../utils/api';
 import { showError, showSuccess } from '../utils/toast';
-import { useOrganization } from '../context/OrganizationContext';
-import { buildPathWithOrganization, normalizeOrganizationSlug } from '../utils/organization';
 
 const RequestPasswordReset = () => {
   const { t, i18n } = useTranslation();
-  const {
-    organization,
-    organizationSlug,
-    loading: organizationLoading,
-    error: organizationError,
-    updateOrganizationSlug
-  } = useOrganization();
+  const location = useLocation();
   const [formData, setFormData] = useState({
-    email: '',
-    organizationSlug: organizationSlug || organization?.slug || ''
+    email: location.state?.email || ''
   });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [notice, setNotice] = useState(location.state?.notice || '');
 
   useEffect(() => {
+    if (!location.state?.email && !location.state?.notice) {
+      return;
+    }
+
     setFormData((currentValue) => ({
       ...currentValue,
-      organizationSlug: organizationSlug || organization?.slug || currentValue.organizationSlug
+      email: location.state?.email || currentValue.email
     }));
-  }, [organizationSlug, organization?.slug]);
+    setNotice(location.state?.notice || '');
+  }, [location.state]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
-
-    const requestedOrganizationSlug = normalizeOrganizationSlug(formData.organizationSlug);
-
-    if (requestedOrganizationSlug && requestedOrganizationSlug !== organizationSlug) {
-      const bootstrapResult = await updateOrganizationSlug(requestedOrganizationSlug);
-      if (!bootstrapResult.success) {
-        showError(bootstrapResult.message || 'Organization not found');
-        setLoading(false);
-        return;
-      }
-    }
+    setNotice('');
 
     try {
-      const response = await api.post(
-        '/auth/request-password-reset',
-        {
-          email: formData.email,
-          organization: requestedOrganizationSlug || undefined
-        },
-        {
-          organizationSlug: requestedOrganizationSlug || undefined
-        }
-      );
+      const response = await api.post('/auth/request-password-reset', {
+        email: formData.email
+      });
 
       if (response.data.success) {
         showSuccess(response.data.message || t('auth.requestPasswordResetSuccess'));
@@ -76,8 +56,8 @@ const RequestPasswordReset = () => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   };
 
-  const loginPath = buildPathWithOrganization('/login', formData.organizationSlug || organizationSlug);
-  const forgotPasswordPath = buildPathWithOrganization('/forgot-password', formData.organizationSlug || organizationSlug);
+  const loginPath = '/login';
+  const forgotPasswordPath = '/forgot-password';
 
   if (sent) {
     return (
@@ -86,7 +66,7 @@ const RequestPasswordReset = () => {
           <div className="auth-orb auth-orb-1" />
           <div className="auth-orb auth-orb-2" />
           <div className="auth-brand-content">
-            <img src="/logo.png" alt={organization?.name || 'Atsha'} className="auth-brand-logo" />
+            <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
             <h1 className="auth-brand-title">{t('auth.requestSent')}</h1>
           </div>
         </div>
@@ -119,7 +99,7 @@ const RequestPasswordReset = () => {
         <div className="auth-orb auth-orb-3" />
 
         <div className="auth-brand-content">
-          <img src="/logo.png" alt={organization?.name || 'Atsha'} className="auth-brand-logo" />
+          <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
           <h1 className="auth-brand-title">{t('auth.requestPasswordResetTitle')}</h1>
           <p className="auth-brand-subtitle">{t('auth.requestPasswordResetSubtitle')}</p>
         </div>
@@ -154,36 +134,11 @@ const RequestPasswordReset = () => {
               <p>{t('auth.requestPasswordResetSubtitle')}</p>
             </div>
 
-            {/* Organization info badge */}
-            <div className={`auth-verify-section ${organization ? 'verified' : ''}`} style={{ marginBottom: '1.25rem' }}>
-              <div className="auth-verify-status">
-                <span className="auth-verify-status-dot" />
-                <span style={{ fontWeight: 600, color: '#111827', fontSize: '0.82rem' }}>
-                  {organization?.name || (organizationLoading ? 'Resolving organization...' : 'No organization selected')}
-                </span>
-              </div>
-              <p className="auth-verify-hint" style={{ marginTop: '0.25rem' }}>
-                {organization?.slug || formData.organizationSlug || 'Admin reset requests are scoped to an organization.'}
-              </p>
-              {!organization && organizationError && (
-                <p style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.25rem' }}>{organizationError}</p>
-              )}
-            </div>
+            {notice && (
+              <div className="auth-alert auth-alert-info">{notice}</div>
+            )}
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              <Input
-                label="Organization Slug"
-                type="text"
-                name="organizationSlug"
-                value={formData.organizationSlug}
-                onChange={(event) => setFormData((currentValue) => ({
-                  ...currentValue,
-                  organizationSlug: event.target.value
-                }))}
-                placeholder="your-organization"
-                icon={FaBuilding}
-              />
-
               <Input
                 label={t('auth.email')}
                 type="email"
@@ -200,7 +155,7 @@ const RequestPasswordReset = () => {
 
               <Button
                 type="submit"
-                disabled={loading || organizationLoading}
+                disabled={loading}
                 fullWidth
               >
                 {loading ? t('common.loading') : t('auth.sendRequest')}

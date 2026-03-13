@@ -7,7 +7,6 @@ import { useOrganization } from '../context/OrganizationContext';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import {
-  buildPathWithOrganization,
   getDefaultAuthenticatedPath,
   getOrganizationSlugFromSearch
 } from '../utils/organization';
@@ -15,7 +14,7 @@ import {
 const Login = () => {
   const { t, i18n } = useTranslation();
   const { login } = useAuth();
-  const { organization, organizationSlug } = useOrganization();
+  const { organization } = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTarget = new URLSearchParams(location.search).get('redirect');
@@ -68,7 +67,7 @@ const Login = () => {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   };
 
-  const forgotPasswordPath = buildPathWithOrganization('/forgot-password', organizationSlug);
+  const forgotPasswordPath = '/forgot-password';
 
   return (
     <div className="auth-page">

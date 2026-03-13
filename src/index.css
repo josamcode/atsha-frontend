@@ -518,11 +518,16 @@ textarea {
   position: relative;
   z-index: 1;
   max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-items: center;
+  align-items: center;
 }
 
 .auth-brand-logo {
   height: 48px;
   width: auto;
+  max-width: 200px;
   margin-bottom: 2rem;
   filter: brightness(0) invert(1);
 }
