@@ -994,6 +994,11 @@
       "noInvitations": "No invitations yet.",
       "notAvailable": "--"
     },
+    "featureFlags": {
+      "multiOrganization": "Multi Organization",
+      "invitations": "Invitations",
+      "customBranding": "Custom Branding"
+    },
     "feedback": {
       "loadError": "Failed to load organization settings",
       "saveSuccess": "Organization settings updated",

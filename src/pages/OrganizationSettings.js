@@ -110,6 +110,12 @@ const OrganizationSettings = () => {
   const getInvitationStatusLabel = (status) => (
     t(`organizationSettings.invitationStatus.${status}`, { defaultValue: status || '--' })
   );
+  const getFeatureFlagLabel = (key) => t(`organizationSettings.featureFlags.${key}`, {
+    defaultValue: String(key || '')
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  });
 
   const loadData = useCallback(async () => {
     try {
@@ -338,7 +344,7 @@ const OrganizationSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input label={t('organizationSettings.fields.displayName')} value={settings.branding.displayName} onChange={(event) => updateGroupField('branding', 'displayName', event.target.value)} />
                   <Input label={t('organizationSettings.fields.shortName')} value={settings.branding.shortName} onChange={(event) => updateGroupField('branding', 'shortName', event.target.value)} />
-                  <Input label={t('organizationSettings.fields.supportEmail')} type="email" value={settings.branding.supportEmail} onChange={(event) => updateGroupField('branding', 'supportEmail', event.target.value)} />
+                  <Input label={t('organizationSettings.fields.supportEmail')} type="email" value={settings.branding.supportEmail} onChange={(event) => updateGroupField('branding', 'supportEmail', event.target.value)} disabled />
                   <Input label={t('organizationSettings.fields.emailSenderName')} value={settings.branding.emailFromName} onChange={(event) => updateGroupField('branding', 'emailFromName', event.target.value)} />
                   <Input label={t('organizationSettings.fields.websiteUrl')} value={settings.branding.websiteUrl} onChange={(event) => updateGroupField('branding', 'websiteUrl', event.target.value)} />
                   <Input label={t('organizationSettings.fields.timezone')} value={settings.timezone} onChange={(event) => updateField('timezone', event.target.value)} />
@@ -440,7 +446,7 @@ const OrganizationSettings = () => {
               <div className="space-y-2">
                 {Object.entries(settings.featureFlags || {}).map(([key, enabled]) => (
                   <div key={key} className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
-                    <span className="text-sm text-gray-700">{key}</span>
+                    <span className="text-sm text-gray-700">{getFeatureFlagLabel(key)}</span>
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
                       {enabled ? t('organizationSettings.states.enabled') : t('organizationSettings.states.disabled')}
                     </span>

@@ -988,6 +988,11 @@
       "noInvitations": "لا توجد دعوات بعد.",
       "notAvailable": "--"
     },
+    "featureFlags": {
+      "multiOrganization": "متعدد المنظمات",
+      "invitations": "الدعوات",
+      "customBranding": "الهوية البصرية المخصصة"
+    },
     "feedback": {
       "loadError": "فشل تحميل إعدادات المنظمة",
       "saveSuccess": "تم تحديث إعدادات المنظمة",
