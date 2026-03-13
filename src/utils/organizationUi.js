@@ -42,6 +42,29 @@ const translateFallback = (t, key, fallbackValue) => {
   return translatedValue === key ? fallbackValue : translatedValue;
 };
 
+const normalizeLanguage = (language = 'en') => String(language || 'en')
+  .toLowerCase()
+  .split('-')[0];
+
+const getDepartmentNameMap = (department) => {
+  if (!department) {
+    return null;
+  }
+
+  if (department.name && typeof department.name === 'object') {
+    return department.name;
+  }
+
+  if (department.nameEn || department.nameAr) {
+    return {
+      en: department.nameEn,
+      ar: department.nameAr
+    };
+  }
+
+  return null;
+};
+
 export const getOrganizationDepartments = (organization, { includeInactive = false } = {}) => {
   const departments = Array.isArray(organization?.departments)
     ? organization.departments
@@ -66,6 +89,8 @@ export const getDepartmentLabel = (departmentCode, organization, t, language = '
     return '--';
   }
 
+  const normalizedLanguage = normalizeLanguage(language);
+
   if (departmentCode === 'all') {
     return translateFallback(t, 'common.allDepartments', 'All Departments');
   }
@@ -74,14 +99,16 @@ export const getDepartmentLabel = (departmentCode, organization, t, language = '
     .find((department) => department.code === departmentCode);
 
   if (organizationDepartment) {
-    return organizationDepartment.name?.[language] ||
-      organizationDepartment.name?.en ||
+    const departmentName = getDepartmentNameMap(organizationDepartment);
+
+    return departmentName?.[normalizedLanguage] ||
+      departmentName?.en ||
       organizationDepartment.code;
   }
 
   const fallbackLabels = DEFAULT_DEPARTMENT_LABELS[departmentCode];
   if (fallbackLabels) {
-    return fallbackLabels[language] || fallbackLabels.en;
+    return fallbackLabels[normalizedLanguage] || fallbackLabels.en;
   }
 
   const translatedValue = t(`departments.${departmentCode}`);

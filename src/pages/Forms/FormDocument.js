@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 import { useTranslation } from 'react-i18next';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { formatDate, formatTime, formatDateTime } from '../../utils/dateUtils';
 import Button from '../../components/Common/Button';
 
@@ -1297,14 +1297,20 @@ const FormDocument = ({
                   </div>
                 ) : null;
 
+                const qrCodeProps = {
+                  value: qrCodeValue,
+                  size: qrCodeSize,
+                  bgColor: '#ffffff',
+                  fgColor: pdfStyle.colors?.primary || branding.primaryColor || '#111827'
+                };
+
                 const qrBlock = showQRCode ? (
                   <div className="inline-flex rounded-2xl bg-white p-3 shadow-sm">
-                    <QRCodeSVG
-                      value={qrCodeValue}
-                      size={qrCodeSize}
-                      bgColor="#ffffff"
-                      fgColor={pdfStyle.colors?.primary || branding.primaryColor || '#111827'}
-                    />
+                    {isPrintMode ? (
+                      <QRCodeCanvas {...qrCodeProps} />
+                    ) : (
+                      <QRCodeSVG {...qrCodeProps} />
+                    )}
                   </div>
                 ) : null;
 
