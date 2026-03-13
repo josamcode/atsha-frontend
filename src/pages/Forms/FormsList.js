@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import { formatDate } from '../../utils/dateUtils';
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/Common/Card';
+import DataTable from '../../components/Common/DataTable';
 import Button from '../../components/Common/Button';
 import Loading from '../../components/Common/Loading';
 import FilterBar from '../../components/Common/FilterBar';
@@ -187,6 +188,123 @@ const FormsList = () => {
 
   if (loading) return <Loading />;
 
+  const formColumns = [
+    {
+      key: 'templateDetails',
+      header: t('forms.templateDetails'),
+      render: (form) => (
+        <Link
+          to={`/forms/view/${form._id}`}
+          className="text-primary hover:text-primary-dark font-medium"
+        >
+          {isRTL ? (form.templateId?.title?.ar || 'N/A') : (form.templateId?.title?.en || 'N/A')}
+        </Link>
+      )
+    },
+    {
+      key: 'filledBy',
+      header: t('forms.filledBy'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-900',
+      render: (form) => form.filledBy?.name || 'N/A'
+    },
+    {
+      key: 'department',
+      header: t('forms.department'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-500',
+      render: (form) => (
+        form.department
+          ? getDepartmentLabel(form.department, organization, t, i18n.language)
+          : t('common.na')
+      )
+    },
+    {
+      key: 'status',
+      header: t('forms.status'),
+      render: (form) => (
+        <span
+          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${form.status === 'approved'
+            ? 'bg-green-100 text-green-800'
+            : form.status === 'submitted'
+              ? 'bg-yellow-100 text-yellow-800'
+              : form.status === 'rejected'
+                ? 'bg-primary text-primary-darko'
+                : 'bg-gray-100 text-gray-800'
+            }`}
+        >
+          {t(`forms.${form.status}`)}
+        </span>
+      )
+    },
+    {
+      key: 'date',
+      header: t('forms.date'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-500',
+      render: (form) => formatDate(form.date, i18n.language)
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      cellClassName: 'px-6 py-4 text-sm',
+      render: (form) => (
+        <div className="flex items-center space-x-3">
+          <Link
+            to={`/forms/view/${form._id}`}
+            className={`text-blue-600 hover:text-blue-800 hover:scale-110 transition-all ${isRTL ? 'ml-2' : ''}`}
+            title={t('common.view')}
+          >
+            <FaEye className="text-xl" />
+          </Link>
+          <button
+            onClick={() => navigate(`/forms/print/${form._id}`)}
+            className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
+            title={t('forms.exportPDF')}
+          >
+            <FaFilePdf className="text-xl" />
+          </button>
+
+          {form.status === 'draft' && (
+            <button
+              onClick={() => handleSubmit(form._id)}
+              className="text-blue-600 hover:text-blue-800 hover:scale-110 transition-all"
+              title={t('forms.submitForm')}
+            >
+              <FaPaperPlane className="text-xl" />
+            </button>
+          )}
+
+          {canReviewForms(user) && form.status === 'submitted' && (
+            <>
+              <button
+                onClick={() => handleApprove(form._id, 'approved')}
+                className="text-green-600 hover:text-green-800 hover:scale-110 transition-all"
+                title={t('forms.approveForm')}
+              >
+                <FaCheckCircle className="text-xl" />
+              </button>
+              <button
+                onClick={() => handleApprove(form._id, 'rejected')}
+                className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
+                title={t('forms.rejectForm')}
+              >
+                <FaTimesCircle className="text-xl" />
+              </button>
+            </>
+          )}
+
+          {canDeleteForms(user) && (
+            <button
+              onClick={() => handleDelete(form._id)}
+              className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
+              title={t('common.delete')}
+            >
+              <FaTrashAlt className="text-xl" />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -276,129 +394,15 @@ const FormsList = () => {
 
               {/* Table View */}
               {viewMode === 'table' && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className={`bg-gray-50 ${t('language') === 'ar' ? 'text-right' : 'text-left'}`}>
-                      <tr>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('forms.templateDetails')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('forms.filledBy')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('forms.department')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('forms.status')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('forms.date')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('common.actions')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {forms.map((form) => (
-                        <tr key={form._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
-                            <Link
-                              to={`/forms/view/${form._id}`}
-                              className="text-primary hover:text-primary-dark font-medium"
-                            >
-                              {isRTL ? (form.templateId?.title?.ar || 'N/A') : (form.templateId?.title?.en || 'N/A')}
-                            </Link>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {form.filledBy?.name || 'N/A'}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {form.department
-                              ? getDepartmentLabel(form.department, organization, t, i18n.language)
-                              : t('common.na')}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${form.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
-                                : form.status === 'submitted'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : form.status === 'rejected'
-                                    ? 'bg-primary text-primary-darko'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                              {t(`forms.${form.status}`)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {formatDate(form.date, i18n.language)}
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <div className="flex items-center space-x-3">
-                              <Link
-                                to={`/forms/view/${form._id}`}
-                                className={`text-blue-600 hover:text-blue-800 hover:scale-110 transition-all ${isRTL ? 'ml-2' : ''}`}
-                                title={t('common.view')}
-                              >
-                                <FaEye className="text-xl" />
-                              </Link>
-                              <button
-                                onClick={() => navigate(`/forms/print/${form._id}`)}
-                                className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
-                                title={t('forms.exportPDF')}
-                              >
-                                <FaFilePdf className="text-xl" />
-                              </button>
-
-                              {form.status === 'draft' && (
-                                <button
-                                  onClick={() => handleSubmit(form._id)}
-                                  className="text-blue-600 hover:text-blue-800 hover:scale-110 transition-all"
-                                  title={t('forms.submitForm')}
-                                >
-                                  <FaPaperPlane className="text-xl" />
-                                </button>
-                              )}
-
-                              {canReviewForms(user) &&
-                                form.status === 'submitted' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleApprove(form._id, 'approved')}
-                                      className="text-green-600 hover:text-green-800 hover:scale-110 transition-all"
-                                      title={t('forms.approveForm')}
-                                    >
-                                      <FaCheckCircle className="text-xl" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleApprove(form._id, 'rejected')}
-                                      className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
-                                      title={t('forms.rejectForm')}
-                                    >
-                                      <FaTimesCircle className="text-xl" />
-                                    </button>
-                                  </>
-                                )}
-
-                              {canDeleteForms(user) && (
-                                <button
-                                  onClick={() => handleDelete(form._id)}
-                                  className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
-                                  title={t('common.delete')}
-                                >
-                                  <FaTrashAlt className="text-xl" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={formColumns}
+                  data={forms}
+                  rowKey="_id"
+                  isRTL={isRTL}
+                  bodyClassName="bg-white divide-y divide-gray-200"
+                  headerCellClassName="px-6 py-3 text-xs font-medium text-gray-500 uppercase"
+                  rowClassName="hover:bg-gray-50"
+                />
               )}
 
               {/* Cards View */}
@@ -430,7 +434,7 @@ const FormsList = () => {
                         <div className="space-y-2 mb-4">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                              {form.filledBy?.name?.charAt(0).toUpperCase() || 'N'}
+                              {form.filledBy?.name?.charAt(0)?.toUpperCase() || 'N'}
                             </div>
                             <span className="text-xs text-gray-600 truncate">{form.filledBy?.name || 'N/A'}</span>
                           </div>

@@ -6,6 +6,7 @@ import api from '../utils/api';
 import { formatDate, formatTime, SAUDI_TIMEZONE } from '../utils/dateUtils';
 import Layout from '../components/Layout/Layout';
 import Card from '../components/Common/Card';
+import DataTable from '../components/Common/DataTable';
 import Loading from '../components/Common/Loading';
 import {
   FaFileAlt,
@@ -69,6 +70,77 @@ const Dashboard = () => {
       </div>
     </Link>
   );
+
+  const recentFormsColumns = [
+    {
+      key: 'templateDetails',
+      header: t('forms.templateDetails'),
+      render: (form) => (
+        <Link
+          to={`/forms/view/${form._id}`}
+          className="flex items-center gap-3 group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <FaFileAlt className="text-blue-600 text-sm" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900 group-hover:text-primary transition-colors">
+              {isRTL ? (form.templateId?.title?.ar || 'N/A') : (form.templateId?.title?.en || 'N/A')}
+            </p>
+            <p className="text-xs text-gray-500">#{form._id.slice(-6)}</p>
+          </div>
+        </Link>
+      )
+    },
+    {
+      key: 'filledBy',
+      header: t('forms.filledBy'),
+      render: (form) => (
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 flex-shrink-0 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold">
+            {form.filledBy?.name?.charAt(0)?.toUpperCase()}
+          </div>
+          <span className="text-sm text-gray-900">{form.filledBy?.name || 'N/A'}</span>
+        </div>
+      )
+    },
+    {
+      key: 'department',
+      header: t('forms.department'),
+      render: (form) => (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+          {form.filledBy?.department ? t(`departments.${form.filledBy.department}`) : t('common.na')}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      header: t('forms.status'),
+      render: (form) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${form.status === 'approved'
+            ? 'bg-green-100 text-green-800'
+            : form.status === 'submitted'
+              ? 'bg-amber-100 text-amber-800'
+              : form.status === 'rejected'
+                ? 'bg-primary text-primary-darko'
+                : 'bg-gray-100 text-gray-800'
+            }`}
+        >
+          {t(`forms.${form.status}`)}
+        </span>
+      )
+    },
+    {
+      key: 'date',
+      header: t('forms.date'),
+      render: (form) => (
+        <span className="text-sm text-gray-600">
+          {formatDate(form.createdAt, i18n.language)}
+        </span>
+      )
+    }
+  ];
 
   return (
     <Layout>
@@ -285,83 +357,13 @@ const Dashboard = () => {
 
             {/* Table View */}
             {recentFormsView === 'table' && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className={`bg-gray-50 ${t('language') === 'ar' ? 'text-right' : 'text-left'}`}>
-                    <tr>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('forms.templateDetails')}
-                      </th>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('forms.filledBy')}
-                      </th>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('forms.department')}
-                      </th>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('forms.status')}
-                      </th>
-                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {t('forms.date')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {stats.recentForms.map((form) => (
-                      <tr key={form._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <Link
-                            to={`/forms/view/${form._id}`}
-                            className="flex items-center gap-3 group"
-                          >
-                            <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                              <FaFileAlt className="text-blue-600 text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 group-hover:text-primary transition-colors">
-                                {isRTL ? (form.templateId?.title?.ar || 'N/A') : (form.templateId?.title?.en || 'N/A')}
-                              </p>
-                              <p className="text-xs text-gray-500">#{form._id.slice(-6)}</p>
-                            </div>
-                          </Link>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 flex-shrink-0 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold">
-                              {form.filledBy?.name?.charAt(0).toUpperCase()}
-                            </div>
-                            <span className="text-sm text-gray-900">{form.filledBy?.name || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                            {form.filledBy?.department ? t(`departments.${form.filledBy.department}`) : t('common.na')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${form.status === 'approved'
-                              ? 'bg-green-100 text-green-800'
-                              : form.status === 'submitted'
-                                ? 'bg-amber-100 text-amber-800'
-                                : form.status === 'rejected'
-                                  ? 'bg-primary text-primary-darko'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                          >
-                            {t(`forms.${form.status}`)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-gray-600">
-                            {formatDate(form.createdAt, i18n.language)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={recentFormsColumns}
+                data={stats.recentForms}
+                rowKey="_id"
+                isRTL={isRTL}
+                bodyClassName="bg-white divide-y divide-gray-100"
+              />
             )}
 
             {/* Cards View */}
@@ -389,7 +391,7 @@ const Dashboard = () => {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                            {form.filledBy?.name?.charAt(0).toUpperCase()}
+                            {form.filledBy?.name?.charAt(0)?.toUpperCase()}
                           </div>
                           <span className="text-xs text-gray-600 truncate">{form.filledBy?.name || 'N/A'}</span>
                         </div>
@@ -486,4 +488,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

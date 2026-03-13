@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import { formatDate, formatTime } from '../../utils/dateUtils';
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/Common/Card';
+import DataTable from '../../components/Common/DataTable';
 import Button from '../../components/Common/Button';
 import Loading from '../../components/Common/Loading';
 import FilterBar from '../../components/Common/FilterBar';
@@ -135,6 +136,149 @@ const LeavesList = () => {
 
   if (loading) return <Loading />;
 
+  const leaveColumns = [
+    (user?.role === 'admin' || user?.role === 'supervisor') && {
+      key: 'employee',
+      header: t('users.employee'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-900',
+      render: (leave) => leave.userId?.name || t('common.na')
+    },
+    {
+      key: 'type',
+      header: t('leaves.leaveType'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-900',
+      render: (leave) => t(`leaves.${leave.type}`)
+    },
+    {
+      key: 'startDate',
+      header: t('leaves.startDate'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-500',
+      render: (leave) => (
+        leave.type === 'permission' ? (
+          <div>
+            <div>{formatDate(leave.startDate, i18n.language)}</div>
+            <div className="text-xs text-gray-400">
+              {formatTime(leave.startDate, i18n.language)}
+            </div>
+          </div>
+        ) : (
+          formatDate(leave.startDate, i18n.language)
+        )
+      )
+    },
+    {
+      key: 'endDate',
+      header: t('leaves.endDate'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-500',
+      render: (leave) => (
+        leave.type === 'permission' ? (
+          <div>
+            <div>{formatDate(leave.endDate, i18n.language)}</div>
+            <div className="text-xs text-gray-400">
+              {formatTime(leave.endDate, i18n.language)}
+            </div>
+          </div>
+        ) : (
+          formatDate(leave.endDate, i18n.language)
+        )
+      )
+    },
+    {
+      key: 'days',
+      header: t('leaves.days'),
+      cellClassName: 'px-6 py-4 text-sm text-gray-900',
+      render: (leave) => (
+        leave.type === 'permission' ? (
+          <div>
+            <div>{(() => {
+              const start = new Date(leave.startDate);
+              const end = new Date(leave.endDate);
+              const diffTime = Math.abs(end - start);
+              const hours = (diffTime / (1000 * 60 * 60)).toFixed(2);
+              return `${hours} ${t('leaves.hours')}`;
+            })()}</div>
+            <div className="text-xs text-gray-500">({leave.days} {t('leaves.days')})</div>
+          </div>
+        ) : (
+          leave.days
+        )
+      )
+    },
+    {
+      key: 'status',
+      header: t('leaves.status'),
+      render: (leave) => (
+        <span
+          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${leave.status === 'approved'
+            ? 'bg-green-100 text-green-800'
+            : leave.status === 'pending'
+              ? 'bg-yellow-100 text-yellow-800'
+              : leave.status === 'rejected'
+                ? 'bg-primary text-primary-darko'
+                : 'bg-gray-100 text-gray-800'
+            }`}
+        >
+          {t(`leaves.${leave.status}`)}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      cellClassName: 'px-6 py-4 text-sm',
+      render: (leave) => (
+        <div className="flex items-center gap-x-3">
+          <Link
+            to={`/leaves/${leave._id}`}
+            className="text-blue-600 hover:text-blue-800 hover:scale-110 transition-all"
+            title={t('common.view')}
+          >
+            <FaEye className="text-xl" />
+          </Link>
+
+          {(user?.role === 'admin' || user?.role === 'supervisor') && leave.status === 'pending' && (
+            <>
+              <button
+                onClick={() => handleApprove(leave._id, 'approved')}
+                className="text-green-600 hover:text-green-800 hover:scale-110 transition-all"
+                title={t('leaves.approveLeave')}
+              >
+                <FaCheckCircle className="text-xl" />
+              </button>
+              <button
+                onClick={() => handleApprove(leave._id, 'rejected')}
+                className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
+                title={t('leaves.rejectLeave')}
+              >
+                <FaTimesCircle className="text-xl" />
+              </button>
+            </>
+          )}
+
+          {user?.id === leave.userId?._id && leave.status === 'pending' && (
+            <button
+              onClick={() => handleCancel(leave._id)}
+              className="text-orange-600 hover:text-orange-800 hover:scale-110 transition-all"
+              title={t('leaves.cancelLeave')}
+            >
+              <FaBan className="text-xl" />
+            </button>
+          )}
+
+          {user?.id === leave.userId?._id && leave.status === 'pending' && (
+            <button
+              onClick={() => handleDelete(leave._id)}
+              className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
+              title={t('common.delete')}
+            >
+              <FaTrashAlt className="text-xl" />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -256,158 +400,15 @@ const LeavesList = () => {
 
               {/* Table View */}
               {viewMode === 'table' && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className={`bg-gray-50 ${t('language') === 'ar' ? 'text-right' : 'text-left'}`}>
-                      <tr>
-                        {(user?.role === 'admin' || user?.role === 'supervisor') && (
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                            {t('users.employee')}
-                          </th>
-                        )}
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('leaves.leaveType')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('leaves.startDate')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('leaves.endDate')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('leaves.days')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('leaves.status')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">
-                          {t('common.actions')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {leaves.map((leave) => (
-                        <tr key={leave._id} className="hover:bg-gray-50">
-                          {(user?.role === 'admin' || user?.role === 'supervisor') && (
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              {leave.userId?.name || t('common.na')}
-                            </td>
-                          )}
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {t(`leaves.${leave.type}`)}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {leave.type === 'permission' ? (
-                              <div>
-                                <div>{formatDate(leave.startDate, i18n.language)}</div>
-                                <div className="text-xs text-gray-400">
-                                  {formatTime(leave.startDate, i18n.language)}
-                                </div>
-                              </div>
-                            ) : (
-                              formatDate(leave.startDate, i18n.language)
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {leave.type === 'permission' ? (
-                              <div>
-                                <div>{formatDate(leave.endDate, i18n.language)}</div>
-                                <div className="text-xs text-gray-400">
-                                  {formatTime(leave.endDate, i18n.language)}
-                                </div>
-                              </div>
-                            ) : (
-                              formatDate(leave.endDate, i18n.language)
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {leave.type === 'permission' ? (
-                              <div>
-                                <div>{(() => {
-                                  const start = new Date(leave.startDate);
-                                  const end = new Date(leave.endDate);
-                                  const diffTime = Math.abs(end - start);
-                                  const hours = (diffTime / (1000 * 60 * 60)).toFixed(2);
-                                  return `${hours} ${t('leaves.hours')}`;
-                                })()}</div>
-                                <div className="text-xs text-gray-500">({leave.days} {t('leaves.days')})</div>
-                              </div>
-                            ) : (
-                              leave.days
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${leave.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
-                                : leave.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : leave.status === 'rejected'
-                                    ? 'bg-primary text-primary-darko'
-                                    : 'bg-gray-100 text-gray-800'
-                                }`}
-                            >
-                              {t(`leaves.${leave.status}`)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <div className="flex items-center gap-x-3">
-                              {/* View Button */}
-                              <Link
-                                to={`/leaves/${leave._id}`}
-                                className="text-blue-600 hover:text-blue-800 hover:scale-110 transition-all"
-                                title={t('common.view')}
-                              >
-                                <FaEye className="text-xl" />
-                              </Link>
-
-                              {(user?.role === 'admin' || user?.role === 'supervisor') &&
-                                leave.status === 'pending' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleApprove(leave._id, 'approved')}
-                                      className="text-green-600 hover:text-green-800 hover:scale-110 transition-all"
-                                      title={t('leaves.approveLeave')}
-                                    >
-                                      <FaCheckCircle className="text-xl" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleApprove(leave._id, 'rejected')}
-                                      className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
-                                      title={t('leaves.rejectLeave')}
-                                    >
-                                      <FaTimesCircle className="text-xl" />
-                                    </button>
-                                  </>
-                                )}
-
-                              {user?.id === leave.userId?._id &&
-                                leave.status === 'pending' && (
-                                  <button
-                                    onClick={() => handleCancel(leave._id)}
-                                    className="text-orange-600 hover:text-orange-800 hover:scale-110 transition-all"
-                                    title={t('leaves.cancelLeave')}
-                                  >
-                                    <FaBan className="text-xl" />
-                                  </button>
-                                )}
-
-                              {user?.id === leave.userId?._id && leave.status === 'pending' && (
-                                <button
-                                  onClick={() => handleDelete(leave._id)}
-                                  className="text-primary hover:text-primary-darko hover:scale-110 transition-all"
-                                  title={t('common.delete')}
-                                >
-                                  <FaTrashAlt className="text-xl" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={leaveColumns}
+                  data={leaves}
+                  rowKey="_id"
+                  isRTL={i18n.language === 'ar'}
+                  bodyClassName="bg-white divide-y divide-gray-200"
+                  headerCellClassName="px-6 py-3 text-xs font-medium text-gray-500 uppercase"
+                  rowClassName="hover:bg-gray-50"
+                />
               )}
 
               {/* Cards View */}
@@ -423,7 +424,7 @@ const LeavesList = () => {
                         {(user?.role === 'admin' || user?.role === 'supervisor') && (
                           <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-100">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center font-semibold text-sm">
-                              {leave.userId?.name?.charAt(0).toUpperCase() || '?'}
+                              {leave.userId?.name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h4 className="text-sm font-semibold text-gray-900 truncate">
@@ -610,4 +611,3 @@ const LeavesList = () => {
 };
 
 export default LeavesList;
-

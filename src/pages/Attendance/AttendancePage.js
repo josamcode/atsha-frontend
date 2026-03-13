@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import { formatDateWithWeekday, formatTime, getDateTimeInputValue, convertDateTimeLocalToUTC } from '../../utils/dateUtils';
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/Common/Card';
+import DataTable from '../../components/Common/DataTable';
 import Button from '../../components/Common/Button';
 import Loading from '../../components/Common/Loading';
 import FilterBar from '../../components/Common/FilterBar';
@@ -362,6 +363,164 @@ const AttendancePage = () => {
     ? ((attendedCount / totalEmployees) * 100).toFixed(1)
     : '0.0';
 
+  const getAttendanceDuration = (record) => {
+    if (!record.checkin || !record.checkout) {
+      return '-';
+    }
+
+    const checkInTime = new Date(record.checkin.timestamp);
+    const checkOutTime = new Date(record.checkout.timestamp);
+    const diffMs = checkOutTime - checkInTime;
+
+    if (diffMs < 0) {
+      return 'Invalid';
+    }
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
+  };
+
+  const getAttendancePerson = (record) => ({
+    id: record.userId?._id || record.checkin?.userId?._id || record.checkout?.userId?._id,
+    name: record.userId?.name || record.checkin?.userId?.name || record.checkout?.userId?.name || t('common.unknown'),
+    department: record.userId?.department || record.checkin?.userId?.department || record.checkout?.userId?.department || '-',
+    initial: record.userId?.name?.charAt(0)?.toUpperCase()
+      || record.checkin?.userId?.name?.charAt(0)?.toUpperCase()
+      || record.checkout?.userId?.name?.charAt(0)?.toUpperCase()
+      || '?'
+  });
+
+  const attendanceColumns = [
+    isAdmin && {
+      key: 'employee',
+      header: t('users.employee'),
+      cellClassName: (record) => `px-6 py-4 whitespace-nowrap ${getAttendancePerson(record).id ? 'cursor-pointer' : ''}`,
+      render: (record) => {
+        const person = getAttendancePerson(record);
+
+        return (
+          <div onClick={() => person.id && navigate(`/users/${person.id}/analytics`)}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center font-semibold text-xs">
+                {person.initial}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {person.name}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {person.department}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'date',
+      header: t('forms.date'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (record) => (
+        <div className="flex items-center gap-2">
+          <FaCalendarAlt className="text-gray-400 flex-shrink-0" />
+          <span className="text-sm font-medium text-gray-900">
+            {formatDateWithWeekday(record.date, i18n.language)}
+          </span>
+        </div>
+      )
+    },
+    {
+      key: 'checkIn',
+      header: t('attendance.checkInTime'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (record) => (
+        record.checkin ? (
+          <div className="flex items-center gap-2">
+            <FaClock className="text-green-500 flex-shrink-0" />
+            <span className="text-sm text-gray-900">
+              {formatTime(record.checkin.timestamp, i18n.language)}
+            </span>
+            {user?.role === 'admin' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditAttendance(record.checkin, 'checkin');
+                }}
+                className="p-1 text-primary hover:text-primary-dark transition-colors"
+                title={t('common.edit') || 'Edit'}
+              >
+                <FaEdit className="text-xs" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <span className="text-sm text-gray-400">-</span>
+        )
+      )
+    },
+    {
+      key: 'checkOut',
+      header: t('attendance.checkOutTime'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (record) => (
+        record.checkout ? (
+          <div className="flex items-center gap-2">
+            <FaClock className="text-primary flex-shrink-0" />
+            <span className="text-sm text-gray-900">
+              {formatTime(record.checkout.timestamp, i18n.language)}
+            </span>
+            {user?.role === 'admin' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditAttendance(record.checkout, 'checkout');
+                }}
+                className="p-1 text-primary hover:text-primary-dark transition-colors"
+                title={t('common.edit') || 'Edit'}
+              >
+                <FaEdit className="text-xs" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <span className="text-sm text-gray-400">-</span>
+        )
+      )
+    },
+    {
+      key: 'duration',
+      header: t('attendance.duration'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900',
+      render: (record) => getAttendanceDuration(record)
+    },
+    {
+      key: 'status',
+      header: t('forms.status'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (record) => (
+        <span
+          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${record.checkin && record.checkout
+            ? 'bg-green-100 text-green-800'
+            : record.checkin
+              ? 'bg-amber-100 text-amber-800'
+              : 'bg-primary text-primary-darko'
+            }`}
+        >
+          {record.checkin && record.checkout ? (
+            <><FaCheckCircle /> {t('templates.complete')}</>
+          ) : record.checkin ? (
+            <><FaClock /> {t('templates.checkedIn')}</>
+          ) : (
+            <><FaTimesCircle /> {t('attendance.absent')}</>
+          )}
+        </span>
+      )
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -630,154 +789,16 @@ const AttendancePage = () => {
             <>
               {/* Table View */}
               {viewMode === 'table' && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className={`bg-gray-50 ${i18n.language === 'ar' ? 'text-right' : 'text-left'}`}>
-                      <tr>
-                        {isAdmin && (
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {t('users.employee')}
-                          </th>
-                        )}
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('forms.date')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('attendance.checkInTime')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('attendance.checkOutTime')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('attendance.duration')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('forms.status')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {attendanceData.map((record, index) => {
-                        // Calculate duration if both check-in and check-out exist
-                        let duration = '-';
-                        if (record.checkin && record.checkout) {
-                          const checkInTime = new Date(record.checkin.timestamp);
-                          const checkOutTime = new Date(record.checkout.timestamp);
-                          const diffMs = checkOutTime - checkInTime;
-
-                          // Ensure check-out is after check-in (should always be true now, but add safeguard)
-                          if (diffMs >= 0) {
-                            const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                            duration = `${hours}h ${minutes}m`;
-                          } else {
-                            // Fallback: should not happen, but handle gracefully
-                            duration = 'Invalid';
-                          }
-                        }
-
-                        return (
-                          <tr key={index} className="hover:bg-gray-50 transition-colors">
-                            {isAdmin && (
-                              <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => navigate(`/users/${record.userId._id}/analytics`)}>
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center font-semibold text-xs">
-                                    {record.userId?.name?.charAt(0).toUpperCase() || record.checkin?.userId?.name?.charAt(0).toUpperCase() || record.checkout?.userId?.name?.charAt(0).toUpperCase() || '?'}
-                                  </div>
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      {record.userId?.name || record.checkin?.userId?.name || record.checkout?.userId?.name || t('common.unknown')}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                      {record.userId?.department || record.checkin?.userId?.department || record.checkout?.userId?.department || '-'}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                            )}
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center gap-2">
-                                <FaCalendarAlt className="text-gray-400 flex-shrink-0" />
-                                <span className="text-sm font-medium text-gray-900">
-                                  {formatDateWithWeekday(record.date, i18n.language)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {record.checkin ? (
-                                <div className="flex items-center gap-2">
-                                  <FaClock className="text-green-500 flex-shrink-0" />
-                                  <span className="text-sm text-gray-900">
-                                    {formatTime(record.checkin.timestamp, i18n.language)}
-                                  </span>
-                                  {user?.role === 'admin' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditAttendance(record.checkin, 'checkin');
-                                      }}
-                                      className="p-1 text-primary hover:text-primary-dark transition-colors"
-                                      title={t('common.edit') || 'Edit'}
-                                    >
-                                      <FaEdit className="text-xs" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-sm text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {record.checkout ? (
-                                <div className="flex items-center gap-2">
-                                  <FaClock className="text-primary flex-shrink-0" />
-                                  <span className="text-sm text-gray-900">
-                                    {formatTime(record.checkout.timestamp, i18n.language)}
-                                  </span>
-                                  {user?.role === 'admin' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditAttendance(record.checkout, 'checkout');
-                                      }}
-                                      className="p-1 text-primary hover:text-primary-dark transition-colors"
-                                      title={t('common.edit') || 'Edit'}
-                                    >
-                                      <FaEdit className="text-xs" />
-                                    </button>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-sm text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {duration}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${record.checkin && record.checkout
-                                  ? 'bg-green-100 text-green-800'
-                                  : record.checkin
-                                    ? 'bg-amber-100 text-amber-800'
-                                    : 'bg-primary text-primary-darko'
-                                  }`}
-                              >
-                                {record.checkin && record.checkout ? (
-                                  <><FaCheckCircle /> {t('templates.complete')}</>
-                                ) : record.checkin ? (
-                                  <><FaClock /> {t('templates.checkedIn')}</>
-                                ) : (
-                                  <><FaTimesCircle /> {t('attendance.absent')}</>
-                                )}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={attendanceColumns}
+                  data={attendanceData}
+                  rowKey={(record, index) => {
+                    const person = getAttendancePerson(record);
+                    return person.id ? `${person.id}-${record.date}` : index;
+                  }}
+                  isRTL={i18n.language === 'ar'}
+                  bodyClassName="bg-white divide-y divide-gray-100"
+                />
               )}
 
               {/* Cards View */}
@@ -960,4 +981,3 @@ const AttendancePage = () => {
 };
 
 export default AttendancePage;
-

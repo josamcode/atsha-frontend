@@ -392,7 +392,7 @@ const Notifications = () => {
                           e.stopPropagation();
                           deleteNotification(notification._id);
                         }}
-                        className="px-3 py-1.5 text-xs font-medium text-primary bg-primary hover:bg-primary rounded-lg transition-colors flex items-center gap-1.5"
+                        className="px-3 py-1.5 text-xs font-medium text-white bg-primary hover:bg-primary rounded-lg transition-colors flex items-center gap-1.5"
                       >
                         <FaTrash className="text-xs" />
                         {t('notifications.delete')}

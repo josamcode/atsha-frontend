@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
 import Button from '../../components/Common/Button';
+import DataTable from '../../components/Common/DataTable';
 import ConfirmDialog from '../../components/Common/ConfirmDialog';
 import { showSuccess, showError } from '../../utils/toast';
 import { useConfirm } from '../../hooks/useConfirm';
@@ -121,6 +122,113 @@ const TemplatesList = () => {
 
   if (loading) return <Loading />;
 
+  const templateColumns = [
+    {
+      key: 'template',
+      header: t('templates.template'),
+      render: (template) => (
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            {isRTL ? template.title.ar : template.title.en}
+          </p>
+          {template.description && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-1">
+              {isRTL ? template.description.ar : template.description.en}
+            </p>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'sections',
+      header: t('templates.sections'),
+      render: (template) => (
+        <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+          {template.sections.length} {t('forms.sections')}
+        </span>
+      )
+    },
+    {
+      key: 'departments',
+      header: t('templates.departments'),
+      render: (template) => (
+        <div className="flex flex-wrap gap-1">
+          {template.departments.slice(0, 2).map((dept) => (
+            <span
+              key={dept}
+              className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+            >
+              {getDepartmentLabel(dept, organization, t, i18n.language)}
+            </span>
+          ))}
+          {template.departments.length > 2 && (
+            <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+              +{template.departments.length - 2}
+            </span>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      header: t('common.status'),
+      render: (template) => (
+        template.isActive ? (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+            <FaEye />
+            {t('templates.active')}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+            <FaEyeSlash />
+            {t('templates.inactive')}
+          </span>
+        )
+      )
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      headerClassName: 'text-right',
+      render: (template) => (
+        <div className="flex items-center justify-end gap-2">
+          {canManageCurrentTemplates && (
+            <>
+              <button
+                onClick={() => handleToggleActive(template)}
+                className="p-2 text-gray-600 hover:text-primary transition-colors"
+                title={template.isActive ? t('templates.deactivate') : t('templates.activate')}
+              >
+                {template.isActive ? <FaEyeSlash /> : <FaEye />}
+              </button>
+              <button
+                onClick={() => navigate(`/templates/edit/${template._id}`)}
+                className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
+                title={t('common.edit')}
+              >
+                <FaEdit />
+              </button>
+              <button
+                onClick={() => handleDuplicate(template._id)}
+                className="p-2 text-green-600 hover:text-green-700 transition-colors"
+                title={t('templates.duplicate')}
+              >
+                <FaCopy />
+              </button>
+              <button
+                onClick={() => handleDelete(template._id)}
+                className="p-2 text-primary hover:text-primary transition-colors"
+                title={t('common.delete')}
+              >
+                <FaTrash />
+              </button>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -212,118 +320,15 @@ const TemplatesList = () => {
 
             {/* Table View */}
             {viewMode === 'table' && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className={`bg-gradient-to-r from-gray-50 to-white ${t('language') === 'ar' ? 'text-right' : 'text-left'}`}>
-                    <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        {t('templates.template')}
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        {t('templates.sections')}
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        {t('templates.departments')}
-                      </th>
-                      <th className="px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        {t('common.status')}
-                      </th>
-                      <th className="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        {t('common.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {filteredTemplates.map((template) => (
-                      <tr key={template._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {isRTL ? template.title.ar : template.title.en}
-                            </p>
-                            {template.description && (
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-                                {isRTL ? template.description.ar : template.description.en}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                            {template.sections.length} {t('forms.sections')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {template.departments.slice(0, 2).map((dept) => (
-                              <span
-                                key={dept}
-                                className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                              >
-                                {getDepartmentLabel(dept, organization, t, i18n.language)}
-                              </span>
-                            ))}
-                            {template.departments.length > 2 && (
-                              <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                                +{template.departments.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {template.isActive ? (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                              <FaEye />
-                              {t('templates.active')}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
-                              <FaEyeSlash />
-                              {t('templates.inactive')}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end gap-2">
-                            {canManageCurrentTemplates && (
-                              <>
-                                <button
-                                  onClick={() => handleToggleActive(template)}
-                                  className="p-2 text-gray-600 hover:text-primary transition-colors"
-                                  title={template.isActive ? t('templates.deactivate') : t('templates.activate')}
-                                >
-                                  {template.isActive ? <FaEyeSlash /> : <FaEye />}
-                                </button>
-                                <button
-                                  onClick={() => navigate(`/templates/edit/${template._id}`)}
-                                  className="p-2 text-blue-600 hover:text-blue-700 transition-colors"
-                                  title={t('common.edit')}
-                                >
-                                  <FaEdit />
-                                </button>
-                                <button
-                                  onClick={() => handleDuplicate(template._id)}
-                                  className="p-2 text-green-600 hover:text-green-700 transition-colors"
-                                  title={t('templates.duplicate')}
-                                >
-                                  <FaCopy />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(template._id)}
-                                  className="p-2 text-primary hover:text-primary transition-colors"
-                                  title={t('common.delete')}
-                                >
-                                  <FaTrash />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                columns={templateColumns}
+                data={filteredTemplates}
+                rowKey="_id"
+                isRTL={isRTL}
+                headClassName="bg-gradient-to-r from-gray-50 to-white"
+                bodyClassName="bg-white divide-y divide-gray-100"
+                headerCellClassName="px-6 py-4 text-xs font-bold text-gray-700 uppercase tracking-wider"
+              />
             )}
 
             {/* Cards View */}

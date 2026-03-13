@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../utils/api';
 import Layout from '../../components/Layout/Layout';
 import Card from '../../components/Common/Card';
+import DataTable from '../../components/Common/DataTable';
 import Button from '../../components/Common/Button';
 import Loading from '../../components/Common/Loading';
 import FilterBar from '../../components/Common/FilterBar';
@@ -167,6 +168,130 @@ const UsersList = () => {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const userColumns = [
+    {
+      key: 'name',
+      header: t('users.name'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap cursor-pointer',
+      render: (user) => (
+        <div
+          className="flex items-center gap-3"
+          onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
+        >
+          {user.image ? (
+            <img
+              src={getMediaUrl(user.image)}
+              alt={user.name}
+              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                if (e.target.nextSibling) {
+                  e.target.nextSibling.style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div
+            className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-bold ${user.image ? 'hidden' : 'flex'}`}
+            style={{ display: user.image ? 'none' : 'flex' }}
+          >
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+            {user.phone && (
+              <div className="text-xs text-gray-500">{user.phone}</div>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'email',
+      header: t('users.email'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500',
+      render: (user) => user.email
+    },
+    {
+      key: 'role',
+      header: t('users.role'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (user) => (
+        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
+          {getRoleLabel(user.organizationRole || user.role, t, i18n.language)}
+        </span>
+      )
+    },
+    {
+      key: 'department',
+      header: t('users.department'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap text-sm text-gray-500',
+      render: (user) => getDepartmentLabel(user.department, organization, t, i18n.language)
+    },
+    {
+      key: 'status',
+      header: t('users.status'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap',
+      render: (user) => (
+        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive !== false
+          ? 'bg-green-100 text-green-800'
+          : 'bg-primary text-primary-darko'
+          }`}>
+          {user.isActive !== false ? t('users.active') : t('users.inactive')}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      cellClassName: 'px-6 py-4 whitespace-nowrap text-sm font-medium',
+      render: (user) => (
+        <div className="flex items-center gap-2">
+          {canManageCurrentUsers && (
+            <>
+              <button
+                onClick={() => openEditModal(user)}
+                className="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 transition-colors"
+                title={t('common.edit')}
+              >
+                <FaEdit />
+              </button>
+
+              <button
+                onClick={() => handleToggleActive(user._id, user.isActive !== false)}
+                className={`p-2 rounded transition-colors ${user.isActive !== false
+                  ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50'
+                  : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                  }`}
+                title={user.isActive !== false ? t('users.deactivate') : t('users.activate')}
+              >
+                {user.isActive !== false ? <FaUserTimes /> : <FaUserCheck />}
+              </button>
+
+              <button
+                onClick={() => handleResetPassword(user._id)}
+                className="text-purple-600 hover:text-purple-900 p-2 rounded hover:bg-purple-50 transition-colors"
+                title={t('users.resetPassword')}
+              >
+                <FaKey />
+              </button>
+
+              {user._id !== currentUser?._id && (
+                <button
+                  onClick={() => handleDelete(user._id, user.name)}
+                  className="text-primary hover:text-primary p-2 rounded hover:bg-primary transition-colors"
+                  title={t('common.delete')}
+                >
+                  <FaTrash />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -248,135 +373,13 @@ const UsersList = () => {
 
               {/* Table View */}
               {viewMode === 'table' && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className={`bg-gray-50 ${t('language') === 'ar' ? 'text-right' : 'text-left'}`}>
-                      <tr>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('users.name')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('users.email')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('users.role')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('users.department')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('users.status')}
-                        </th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {t('common.actions')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredUsers.map((user) => (
-                        <tr
-                          key={user._id}
-                          className="hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap  cursor-pointer"
-                            onClick={() => canOpenAnalytics && navigate(`/users/${user._id}/analytics`)}
-                          >
-                            <div className="flex items-center gap-3">
-                              {user.image ? (
-                                <img
-                                  src={getMediaUrl(user.image)}
-                                  alt={user.name}
-                                  className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    if (e.target.nextSibling) {
-                                      e.target.nextSibling.style.display = 'flex';
-                                    }
-                                  }}
-                                />
-                              ) : null}
-                              <div
-                                className={`w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-bold ${user.image ? 'hidden' : 'flex'}`}
-                                style={{ display: user.image ? 'none' : 'flex' }}
-                              >
-                                {user.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                                {user.phone && (
-                                  <div className="text-xs text-gray-500">{user.phone}</div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {user.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
-                              {getRoleLabel(user.organizationRole || user.role, t, i18n.language)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getDepartmentLabel(user.department, organization, t, i18n.language)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive !== false
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-primary text-primary-darko'
-                              }`}>
-                              {user.isActive !== false ? t('users.active') : t('users.inactive')}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex items-center gap-2">
-                              {canManageCurrentUsers && (
-                                <>
-                                  <button
-                                    onClick={() => openEditModal(user)}
-                                    className="text-blue-600 hover:text-blue-900 p-2 rounded hover:bg-blue-50 transition-colors"
-                                    title={t('common.edit')}
-                                  >
-                                    <FaEdit />
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleToggleActive(user._id, user.isActive !== false)}
-                                    className={`p-2 rounded transition-colors ${user.isActive !== false
-                                      ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50'
-                                      : 'text-green-600 hover:text-green-900 hover:bg-green-50'
-                                      }`}
-                                    title={user.isActive !== false ? t('users.deactivate') : t('users.activate')}
-                                  >
-                                    {user.isActive !== false ? <FaUserTimes /> : <FaUserCheck />}
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleResetPassword(user._id)}
-                                    className="text-purple-600 hover:text-purple-900 p-2 rounded hover:bg-purple-50 transition-colors"
-                                    title={t('users.resetPassword')}
-                                  >
-                                    <FaKey />
-                                  </button>
-
-                                  {user._id !== currentUser?._id && (
-                                    <button
-                                      onClick={() => handleDelete(user._id, user.name)}
-                                      className="text-primary hover:text-primary p-2 rounded hover:bg-primary transition-colors"
-                                      title={t('common.delete')}
-                                    >
-                                      <FaTrash />
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  columns={userColumns}
+                  data={filteredUsers}
+                  rowKey="_id"
+                  isRTL={i18n.language === 'ar'}
+                  bodyClassName="bg-white divide-y divide-gray-200"
+                />
               )}
 
               {/* Cards View */}
