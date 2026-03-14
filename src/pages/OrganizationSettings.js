@@ -549,7 +549,7 @@ const OrganizationSettings = () => {
                 {subscriptionUsageEntries.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-gray-200/60">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3">{t('organizationSettings.subscription.usage', { defaultValue: 'Usage Limits' })}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       {subscriptionUsageEntries.map(([key, metric]) => (
                         <div key={key} className="flex flex-col rounded-xl bg-white p-4 border border-gray-100 shadow-sm">
                           <span className="text-xs font-medium text-gray-500 mb-1"><span className="line-clamp-1">{getSubscriptionMetricLabel(key)}</span></span>

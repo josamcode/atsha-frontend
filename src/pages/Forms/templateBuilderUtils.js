@@ -1238,11 +1238,22 @@ export const finalizeSectionForSave = (section, index) => {
 };
 
 export const finalizeTemplateForSave = (template) => {
+  const {
+    _id,
+    id,
+    organizationId,
+    createdBy,
+    createdAt,
+    updatedAt,
+    subscriptionAccess,
+    __v,
+    ...templatePayload
+  } = template || {};
   const sections = reindexSections((template.sections || []).map(finalizeSectionForSave));
   const pdfStyle = normalizePdfStyle(template.pdfStyle);
 
   return {
-    ...template,
+    ...templatePayload,
     title: finalizeLocalizedValue(template.title),
     description: finalizeLocalizedValue(template.description),
     departments: template.templateDepartment === 'all' ? ['all'] : [template.templateDepartment],

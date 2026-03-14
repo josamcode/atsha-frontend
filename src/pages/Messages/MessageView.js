@@ -44,17 +44,29 @@ const MessageView = ({
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-2">
                 <FaUser className="text-gray-400" />
-                <span className="font-medium">
+                {/* <span className="font-medium">
                   {readOnly
                     ? t('messages.from')
                     : (isInbox ? t('messages.from') : t('messages.to'))}:
-                </span>
-                <span>
-                  {readOnly
-                    ? `${message.sender?.name || t('messages.unknown')} -> ${message.recipient?.name || t('messages.unknown')}`
-                    : (isInbox
-                      ? message.sender?.name || t('messages.unknown')
-                      : message.recipient?.name || t('messages.unknown'))}
+                </span> */}
+                <span className="flex items-center gap-2">
+                  {readOnly ? (
+                    <>
+                      <span className="bg-primary/20 px-2 py-0.5 rounded-md">
+                        {message.sender?.name || t('messages.unknown')}
+                      </span>
+
+                      <span className="bg-red-100 px-2 py-0.5 rounded-md">
+                        {message.recipient?.name || t('messages.unknown')}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="bg-gray-100 px-2 py-0.5 rounded-md">
+                      {isInbox
+                        ? message.sender?.name || t('messages.unknown')
+                        : message.recipient?.name || t('messages.unknown')}
+                    </span>
+                  )}
                 </span>
               </div>
               {scopeLabel ? (

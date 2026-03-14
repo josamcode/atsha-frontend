@@ -247,35 +247,35 @@ const Messages = () => {
             {/* Tabs */}
             {!platformAdminView && (
               <div className="flex gap-2 mt-4 border-b border-gray-200">
-              <button
-                onClick={() => {
-                  setFilter('inbox');
-                  setSelectedMessage(null);
-                }}
-                className={`px-4 py-2 text-sm font-medium transition-colors relative ${filter === 'inbox'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                {t('messages.inbox')}
-                {filter === 'inbox' && unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 bg-primary text-white text-xs font-bold rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setFilter('sent');
-                  setSelectedMessage(null);
-                }}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${filter === 'sent'
-                  ? 'text-primary border-b-2 border-primary'
-                  : 'text-gray-600 hover:text-gray-900'
-                  }`}
-              >
-                {t('messages.sent')}
-              </button>
+                <button
+                  onClick={() => {
+                    setFilter('inbox');
+                    setSelectedMessage(null);
+                  }}
+                  className={`px-4 py-2 text-sm font-medium transition-colors relative ${filter === 'inbox'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  {t('messages.inbox')}
+                  {filter === 'inbox' && unreadCount > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-primary text-white text-xs font-bold rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setFilter('sent');
+                    setSelectedMessage(null);
+                  }}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${filter === 'sent'
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  {t('messages.sent')}
+                </button>
               </div>
             )}
 
@@ -379,12 +379,24 @@ const Messages = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {platformAdminView
-                                ? `${message.sender?.name || t('messages.unknown')} -> ${message.recipient?.name || t('messages.unknown')}`
-                                : (filter === 'inbox'
-                                ? message.sender?.name || t('messages.unknown')
-                                : message.recipient?.name || t('messages.unknown'))}
+                            <p className="text-sm font-semibold text-gray-900 truncate flex items-center gap-2">
+                              {platformAdminView ? (
+                                <>
+                                  <span className="bg-primary/20 px-2 py-0.5 rounded-md">
+                                    {message.sender?.name || t('messages.unknown')}
+                                  </span>
+
+                                  <span className="bg-red-100 px-2 py-0.5 rounded-md">
+                                    {message.recipient?.name || t('messages.unknown')}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="bg-gray-100 px-2 py-0.5 rounded-md">
+                                  {filter === 'inbox'
+                                    ? message.sender?.name || t('messages.unknown')
+                                    : message.recipient?.name || t('messages.unknown')}
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm text-gray-600 truncate mt-1">
                               {message.subject}

@@ -79,8 +79,9 @@ const TemplateBuilder = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
   const isRTL = i18n.language === 'ar';
-  const initializedBuilderKeyRef = useRef('');
-  const builderInitializationKey = isEditMode ? `edit:${id}` : `new:${organization?._id || 'none'}`;
+  const activeOrganizationId = organization?.id || organization?._id || null;
+  const organizationBrandingRef = useRef(organization?.branding);
+  const isRTLRef = useRef(isRTL);
 
   const [formData, setFormData] = useState(() => normalizeTemplate(getDefaultTemplate(organization?.branding)));
   const [loading, setLoading] = useState(true);
@@ -96,12 +97,12 @@ const TemplateBuilder = () => {
   });
 
   useEffect(() => {
-    if (initializedBuilderKeyRef.current === builderInitializationKey) {
-      return;
-    }
+    organizationBrandingRef.current = organization?.branding;
+    isRTLRef.current = isRTL;
+  }, [isRTL, organization?.branding]);
 
-    let mounted = true;
-    initializedBuilderKeyRef.current = builderInitializationKey;
+  useEffect(() => {
+    let cancelled = false;
 
     const initializeTemplateBuilder = async () => {
       setLoading(true);
@@ -109,7 +110,7 @@ const TemplateBuilder = () => {
       try {
         if (isEditMode) {
           const response = await api.get(`/form-templates/${id}`);
-          if (!mounted) {
+          if (cancelled) {
             return;
           }
 
@@ -122,13 +123,13 @@ const TemplateBuilder = () => {
         }
 
         const response = await api.get('/form-templates');
-        if (!mounted) {
+        if (cancelled) {
           return;
         }
 
         const latestTemplate = Array.isArray(response.data?.data) ? response.data.data[0] : null;
         const seededTemplate = seedTemplateWithPdfStyle(
-          getDefaultTemplate(organization?.branding),
+          getDefaultTemplate(organizationBrandingRef.current),
           latestTemplate?.pdfStyle
         );
 
@@ -138,18 +139,18 @@ const TemplateBuilder = () => {
       } catch (error) {
         console.error('Error initializing template builder:', error);
 
-        if (mounted) {
+        if (!cancelled) {
           if (isEditMode) {
-            showError(isRTL ? 'تعذر تحميل القالب.' : 'Unable to load the template.');
+            showError(isRTLRef.current ? 'تعذر تحميل القالب.' : 'Unable to load the template.');
           }
 
-          const fallbackTemplate = normalizeTemplate(getDefaultTemplate(organization?.branding));
+          const fallbackTemplate = normalizeTemplate(getDefaultTemplate(organizationBrandingRef.current));
           setFormData(fallbackTemplate);
           setSelectedSectionId(fallbackTemplate.sections[0]?.id || null);
           setActiveTab(DEFAULT_WORKSPACE_TAB);
         }
       } finally {
-        if (mounted) {
+        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -158,9 +159,9 @@ const TemplateBuilder = () => {
     initializeTemplateBuilder();
 
     return () => {
-      mounted = false;
+      cancelled = true;
     };
-  }, [builderInitializationKey, id, isEditMode, isRTL, organization?.branding]);
+  }, [activeOrganizationId, id, isEditMode]);
 
   useEffect(() => {
     if (selectedSectionId && formData.sections.some((section) => section.id === selectedSectionId)) {
@@ -1560,29 +1561,6 @@ const TemplateBuilder = () => {
           <div className="text-center">
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             <p className="text-gray-600">{isRTL ? 'جارٍ تحميل القالب...' : 'Loading template...'}</p>
-          </div>
-
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">
-                {isRTL ? 'الأقسام' : 'Sections'}
-              </div>
-              <div className="mt-2 text-2xl font-bold">{formData.sections.length}</div>
-            </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">
-                {isRTL ? 'الظاهرة في المعاينة' : 'Visible in preview'}
-              </div>
-              <div className="mt-2 text-2xl font-bold">{visibleSectionsCount}</div>
-            </div>
-            {/* <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">
-                {isRTL ? 'إعداد الصفحة' : 'Page setup'}
-              </div>
-              <div className="mt-2 text-lg font-bold">
-                {formData.layout.pageSize} / {formData.layout.orientation}
-              </div>
-            </div> */}
           </div>
         </div>
       </Layout>
