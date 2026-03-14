@@ -1071,6 +1071,140 @@
       }
     }
   },
+  "platformSettings": {
+    "tabs": {
+      "platform": "Platform Profile",
+      "security": "Security",
+      "plans": "Subscription Plans"
+    },
+    "header": {
+      "title": "Platform Settings",
+      "description": "Manage the platform profile, security workflows, and subscription catalog."
+    },
+    "summary": {
+      "organizations": {
+        "label": "Organizations",
+        "helper": "{{count}} active"
+      },
+      "users": {
+        "label": "Users",
+        "helper": "{{count}} active"
+      },
+      "resetRequests": {
+        "label": "Reset Requests",
+        "helper": "Need admin action"
+      },
+      "plans": {
+        "label": "Plans",
+        "helper": "{{count}} total"
+      }
+    },
+    "common": {
+      "platform": "Platform",
+      "organization": "Organization",
+      "organizationLabel": "Organization"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "saveProfile": "Save Platform Settings",
+      "refreshRequests": "Refresh Requests",
+      "reset": "Reset",
+      "addPlan": "Add Plan",
+      "editPlan": "Edit Plan",
+      "savePlanChanges": "Save Plan Changes",
+      "createPlan": "Create Plan"
+    },
+    "profile": {
+      "title": "Platform Profile",
+      "description": "These settings shape the default experience for the whole system.",
+      "fields": {
+        "platformName": "Platform Name",
+        "supportEmail": "Support Email",
+        "websiteUrl": "Website URL",
+        "timezone": "Timezone",
+        "locale": "Locale",
+        "defaultOrganizationPlan": "Default Organization Plan"
+      },
+      "allowRegistration": {
+        "title": "Allow new organization registration",
+        "description": "Turn this off when onboarding should be fully controlled by the platform team."
+      }
+    },
+    "security": {
+      "requests": {
+        "title": "Password Reset Requests",
+        "description": "Review users who asked for help, then reset passwords directly from here.",
+        "empty": "No pending password reset requests right now.",
+        "requested": "Requested",
+        "requestedAt": "Requested"
+      },
+      "search": {
+        "title": "Reset Any User",
+        "description": "Search across the whole system and reset any account without leaving settings.",
+        "placeholder": "Search by name, email, or organization",
+        "empty": "No users matched this search.",
+        "waiting": "Waiting",
+        "ready": "Ready",
+        "requestedHelp": "User already asked for help.",
+        "manualReset": "Manual reset available."
+      }
+    },
+    "plan": {
+      "title": "Subscription Catalog",
+      "description": "Edit built-in plans, tune limits, or add new offers for the platform.",
+      "noDescription": "No description provided.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "featuresTitle": "Features",
+      "limitsTitle": "Limits",
+      "unlimited": "Unlimited",
+      "badges": {
+        "builtIn": "Built-in",
+        "custom": "Custom"
+      }
+    },
+    "planModal": {
+      "editTitle": "Edit Subscription Plan",
+      "addTitle": "Add Subscription Plan",
+      "fields": {
+        "code": "Plan Code",
+        "sortOrder": "Sort Order",
+        "nameEn": "Name (English)",
+        "nameAr": "Name (Arabic)",
+        "monthlyAmount": "Monthly Price",
+        "yearlyAmount": "Yearly Price",
+        "currency": "Currency",
+        "primaryRegion": "Primary Region",
+        "primaryCountry": "Primary Country",
+        "isActive": "Plan is active",
+        "descriptionEn": "Description (English)",
+        "descriptionAr": "Description (Arabic)"
+      },
+      "limitsHint": "Leave a limit blank to keep it unlimited."
+    },
+    "features": {
+      "qrCode": "QR codes",
+      "attendanceManagement": "Attendance",
+      "leaveManagement": "Leave",
+      "messaging": "Messaging"
+    },
+    "limits": {
+      "usersTotal": "Active users",
+      "templatesTotal": "Templates",
+      "formsPerMonth": "Forms / month",
+      "messagesPerMonth": "Messages / month"
+    },
+    "feedback": {
+      "loadError": "Unable to load platform settings.",
+      "loadResetRequestsError": "Unable to load reset requests.",
+      "loadUsersError": "Unable to load users.",
+      "saveProfileSuccess": "Platform settings updated successfully.",
+      "saveProfileError": "Unable to save platform settings.",
+      "updatePlanSuccess": "Subscription plan updated successfully.",
+      "createPlanSuccess": "Subscription plan created successfully.",
+      "savePlanError": "Unable to save subscription plan."
+    }
+  },
   "landing": {
     "nav": {
       "features": "Features",

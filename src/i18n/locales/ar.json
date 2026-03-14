@@ -1066,6 +1066,140 @@
       }
     }
   },
+  "platformSettings": {
+    "tabs": {
+      "platform": "ملف المنصة",
+      "security": "الأمان",
+      "plans": "خطط الاشتراك"
+    },
+    "header": {
+      "title": "إعدادات المنصة",
+      "description": "أدر ملف المنصة، وإجراءات الأمان، ودليل خطط الاشتراك."
+    },
+    "summary": {
+      "organizations": {
+        "label": "المؤسسات",
+        "helper": "{{count}} نشطة"
+      },
+      "users": {
+        "label": "المستخدمون",
+        "helper": "{{count}} نشطون"
+      },
+      "resetRequests": {
+        "label": "طلبات إعادة التعيين",
+        "helper": "تحتاج إلى إجراء من المدير"
+      },
+      "plans": {
+        "label": "الخطط",
+        "helper": "{{count}} إجمالاً"
+      }
+    },
+    "common": {
+      "platform": "المنصة",
+      "organization": "المؤسسة",
+      "organizationLabel": "المؤسسة"
+    },
+    "actions": {
+      "refresh": "تحديث",
+      "saveProfile": "حفظ إعدادات المنصة",
+      "refreshRequests": "تحديث الطلبات",
+      "reset": "إعادة التعيين",
+      "addPlan": "إضافة خطة",
+      "editPlan": "تعديل الخطة",
+      "savePlanChanges": "حفظ تغييرات الخطة",
+      "createPlan": "إنشاء خطة"
+    },
+    "profile": {
+      "title": "ملف المنصة",
+      "description": "تحدد هذه الإعدادات التجربة الافتراضية للنظام بالكامل.",
+      "fields": {
+        "platformName": "اسم المنصة",
+        "supportEmail": "بريد الدعم",
+        "websiteUrl": "رابط الموقع",
+        "timezone": "المنطقة الزمنية",
+        "locale": "اللغة",
+        "defaultOrganizationPlan": "الخطة الافتراضية للمؤسسة"
+      },
+      "allowRegistration": {
+        "title": "السماح بتسجيل مؤسسات جديدة",
+        "description": "أوقف هذا الخيار عندما تريد أن يكون انضمام المؤسسات تحت إشراف فريق المنصة بالكامل."
+      }
+    },
+    "security": {
+      "requests": {
+        "title": "طلبات إعادة تعيين كلمة المرور",
+        "description": "راجع المستخدمين الذين طلبوا المساعدة ثم أعد تعيين كلمات المرور مباشرة من هنا.",
+        "empty": "لا توجد طلبات معلقة لإعادة تعيين كلمة المرور حالياً.",
+        "requested": "تم الطلب",
+        "requestedAt": "تاريخ الطلب"
+      },
+      "search": {
+        "title": "إعادة تعيين أي مستخدم",
+        "description": "ابحث في النظام بالكامل وأعد تعيين أي حساب من دون مغادرة الإعدادات.",
+        "placeholder": "ابحث بالاسم أو البريد الإلكتروني أو المؤسسة",
+        "empty": "لم يتم العثور على مستخدمين مطابقين لهذا البحث.",
+        "waiting": "بانتظار الإجراء",
+        "ready": "جاهز",
+        "requestedHelp": "طلب المستخدم المساعدة بالفعل.",
+        "manualReset": "إعادة التعيين اليدوية متاحة."
+      }
+    },
+    "plan": {
+      "title": "دليل الاشتراكات",
+      "description": "عدّل الخطط المدمجة، واضبط الحدود، أو أضف عروضاً جديدة للمنصة.",
+      "noDescription": "لا يوجد وصف متاح.",
+      "monthly": "شهري",
+      "yearly": "سنوي",
+      "featuresTitle": "الميزات",
+      "limitsTitle": "الحدود",
+      "unlimited": "غير محدود",
+      "badges": {
+        "builtIn": "مدمجة",
+        "custom": "مخصصة"
+      }
+    },
+    "planModal": {
+      "editTitle": "تعديل خطة الاشتراك",
+      "addTitle": "إضافة خطة اشتراك",
+      "fields": {
+        "code": "رمز الخطة",
+        "sortOrder": "ترتيب العرض",
+        "nameEn": "الاسم (بالإنجليزية)",
+        "nameAr": "الاسم (بالعربية)",
+        "monthlyAmount": "السعر الشهري",
+        "yearlyAmount": "السعر السنوي",
+        "currency": "العملة",
+        "primaryRegion": "المنطقة الرئيسية",
+        "primaryCountry": "الدولة الرئيسية",
+        "isActive": "الخطة نشطة",
+        "descriptionEn": "الوصف (بالإنجليزية)",
+        "descriptionAr": "الوصف (بالعربية)"
+      },
+      "limitsHint": "اترك الحد فارغاً ليبقى غير محدود."
+    },
+    "features": {
+      "qrCode": "رموز QR",
+      "attendanceManagement": "الحضور",
+      "leaveManagement": "الإجازات",
+      "messaging": "المراسلات"
+    },
+    "limits": {
+      "usersTotal": "المستخدمون النشطون",
+      "templatesTotal": "القوالب",
+      "formsPerMonth": "النماذج / الشهر",
+      "messagesPerMonth": "الرسائل / الشهر"
+    },
+    "feedback": {
+      "loadError": "تعذر تحميل إعدادات المنصة.",
+      "loadResetRequestsError": "تعذر تحميل طلبات إعادة التعيين.",
+      "loadUsersError": "تعذر تحميل المستخدمين.",
+      "saveProfileSuccess": "تم تحديث إعدادات المنصة بنجاح.",
+      "saveProfileError": "تعذر حفظ إعدادات المنصة.",
+      "updatePlanSuccess": "تم تحديث خطة الاشتراك بنجاح.",
+      "createPlanSuccess": "تم إنشاء خطة الاشتراك بنجاح.",
+      "savePlanError": "تعذر حفظ خطة الاشتراك."
+    }
+  },
   "landing": {
     "nav": {
       "features": "المميزات",

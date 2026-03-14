@@ -27,23 +27,23 @@ import { showError, showSuccess } from '../../utils/toast';
 import { getRoleBadgeColor, getRoleLabel } from '../../utils/organizationUi';
 
 const FEATURE_FIELDS = [
-  { key: 'qrCode', label: 'QR codes' },
-  { key: 'attendanceManagement', label: 'Attendance' },
-  { key: 'leaveManagement', label: 'Leave' },
-  { key: 'messaging', label: 'Messaging' }
+  { key: 'qrCode', labelKey: 'platformSettings.features.qrCode' },
+  { key: 'attendanceManagement', labelKey: 'platformSettings.features.attendanceManagement' },
+  { key: 'leaveManagement', labelKey: 'platformSettings.features.leaveManagement' },
+  { key: 'messaging', labelKey: 'platformSettings.features.messaging' }
 ];
 
 const LIMIT_FIELDS = [
-  { key: 'usersTotal', label: 'Active users' },
-  { key: 'templatesTotal', label: 'Templates' },
-  { key: 'formsPerMonth', label: 'Forms / month' },
-  { key: 'messagesPerMonth', label: 'Messages / month' }
+  { key: 'usersTotal', labelKey: 'platformSettings.limits.usersTotal' },
+  { key: 'templatesTotal', labelKey: 'platformSettings.limits.templatesTotal' },
+  { key: 'formsPerMonth', labelKey: 'platformSettings.limits.formsPerMonth' },
+  { key: 'messagesPerMonth', labelKey: 'platformSettings.limits.messagesPerMonth' }
 ];
 
 const TAB_OPTIONS = [
-  { id: 'platform', label: 'Platform Profile', icon: FaCog },
-  { id: 'security', label: 'Security', icon: FaShieldAlt },
-  { id: 'plans', label: 'Subscription Plans', icon: FaLayerGroup }
+  { id: 'platform', labelKey: 'platformSettings.tabs.platform', icon: FaCog },
+  { id: 'security', labelKey: 'platformSettings.tabs.security', icon: FaShieldAlt },
+  { id: 'plans', labelKey: 'platformSettings.tabs.plans', icon: FaLayerGroup }
 ];
 
 const buildProfileForm = (profile = {}) => ({
@@ -88,10 +88,10 @@ const getUserOrganizationId = (user) => (
   || ''
 );
 
-const getUserOrganizationName = (user) => (
+const getUserOrganizationName = (user, fallbackLabel = 'Platform') => (
   user?.organizationId?.branding?.displayName
   || user?.organizationId?.name
-  || 'Platform'
+  || fallbackLabel
 );
 
 const getPlanName = (plan, language = 'en') => (
@@ -106,11 +106,11 @@ const getPlanDescription = (plan, language = 'en') => (
   || ''
 );
 
-const formatMoney = (amount, currency = 'SAR') => {
+const formatMoney = (amount, currency = 'SAR', locale = 'en-US') => {
   const normalizedAmount = Number(amount) || 0;
 
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: String(currency || 'SAR').toUpperCase(),
       maximumFractionDigits: normalizedAmount % 1 === 0 ? 0 : 2
@@ -120,12 +120,12 @@ const formatMoney = (amount, currency = 'SAR') => {
   }
 };
 
-const formatLimitValue = (value) => {
+const formatLimitValue = (value, t, locale = 'en-US') => {
   if (value === null || value === undefined || value === '') {
-    return 'Unlimited';
+    return t('platformSettings.plan.unlimited');
   }
 
-  return Number(value).toLocaleString();
+  return Number(value).toLocaleString(locale);
 };
 
 const ResetPasswordModal = ({ user, onClose, onSuccess }) => {
@@ -169,12 +169,14 @@ const ResetPasswordModal = ({ user, onClose, onSuccess }) => {
   };
 
   return (
-    <Modal isOpen={Boolean(user)} onClose={onClose} size="md" title="Reset Password">
+    <Modal isOpen={Boolean(user)} onClose={onClose} size="md" title={t('users.resetPassword')}>
       <div className="space-y-4">
         <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
           <p className="text-sm font-semibold text-gray-900">{user?.name || '--'}</p>
           <p className="mt-1 text-sm text-gray-600">{user?.email || '--'}</p>
-          <p className="mt-1 text-xs text-gray-500">{getUserOrganizationName(user)}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            {getUserOrganizationName(user, t('platformSettings.common.platform'))}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -209,6 +211,7 @@ const ResetPasswordModal = ({ user, onClose, onSuccess }) => {
 
 const PlatformSettings = () => {
   const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
   const [activeTab, setActiveTab] = useState('platform');
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -243,11 +246,11 @@ const PlatformSettings = () => {
       setProfileForm(buildProfileForm(nextData.profile));
     } catch (error) {
       console.error('Error loading platform settings:', error);
-      showError(error.response?.data?.message || 'Unable to load platform settings.');
+      showError(error.response?.data?.message || t('platformSettings.feedback.loadError'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const loadResetRequests = useCallback(async () => {
     try {
@@ -264,11 +267,11 @@ const PlatformSettings = () => {
       setResetRequests(Array.isArray(response.data?.data) ? response.data.data : []);
     } catch (error) {
       console.error('Error loading password reset requests:', error);
-      showError(error.response?.data?.message || 'Unable to load reset requests.');
+      showError(error.response?.data?.message || t('platformSettings.feedback.loadResetRequestsError'));
     } finally {
       setResetLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const searchUsers = useCallback(async (searchValue = '') => {
     try {
@@ -287,11 +290,11 @@ const PlatformSettings = () => {
       setUserResults(Array.isArray(response.data?.data) ? response.data.data : []);
     } catch (error) {
       console.error('Error loading users for password resets:', error);
-      showError(error.response?.data?.message || 'Unable to load users.');
+      showError(error.response?.data?.message || t('platformSettings.feedback.loadUsersError'));
     } finally {
       setUserLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadPlatformSettings();
@@ -312,29 +315,51 @@ const PlatformSettings = () => {
     settingsData.plans.filter((plan) => plan.isActive !== false)
   ), [settingsData.plans]);
 
+  const getFeatureLabel = useCallback((feature) => (
+    t(feature.labelKey, {
+      defaultValue: feature.key
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    })
+  ), [t]);
+
+  const getLimitLabel = useCallback((limit) => (
+    t(limit.labelKey, {
+      defaultValue: limit.key
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+    })
+  ), [t]);
+
   const summaryCards = [
     {
-      label: 'Organizations',
+      label: t('platformSettings.summary.organizations.label'),
       value: settingsData.summary.organizationsTotal || 0,
-      helper: `${settingsData.summary.organizationsActive || 0} active`,
+      helper: t('platformSettings.summary.organizations.helper', {
+        count: settingsData.summary.organizationsActive || 0
+      }),
       icon: FaBuilding
     },
     {
-      label: 'Users',
+      label: t('platformSettings.summary.users.label'),
       value: settingsData.summary.usersTotal || 0,
-      helper: `${settingsData.summary.usersActive || 0} active`,
+      helper: t('platformSettings.summary.users.helper', {
+        count: settingsData.summary.usersActive || 0
+      }),
       icon: FaUsers
     },
     {
-      label: 'Reset Requests',
+      label: t('platformSettings.summary.resetRequests.label'),
       value: settingsData.summary.resetRequests || 0,
-      helper: 'Need admin action',
+      helper: t('platformSettings.summary.resetRequests.helper'),
       icon: FaKey
     },
     {
-      label: 'Plans',
+      label: t('platformSettings.summary.plans.label'),
       value: activePlansCount,
-      helper: `${settingsData.plans.length || 0} total`,
+      helper: t('platformSettings.summary.plans.helper', {
+        count: settingsData.plans.length || 0
+      }),
       icon: FaLayerGroup
     }
   ];
@@ -364,10 +389,10 @@ const PlatformSettings = () => {
 
       setSettingsData(nextData);
       setProfileForm(buildProfileForm(nextData.profile));
-      showSuccess('Platform settings updated successfully.');
+      showSuccess(t('platformSettings.feedback.saveProfileSuccess'));
     } catch (error) {
       console.error('Error saving platform settings:', error);
-      showError(error.response?.data?.message || 'Unable to save platform settings.');
+      showError(error.response?.data?.message || t('platformSettings.feedback.saveProfileError'));
     } finally {
       setSavingProfile(false);
     }
@@ -465,17 +490,17 @@ const PlatformSettings = () => {
 
       if (editingPlanCode) {
         await api.put(`/platform/plans/${editingPlanCode}`, payload);
-        showSuccess('Subscription plan updated successfully.');
+        showSuccess(t('platformSettings.feedback.updatePlanSuccess'));
       } else {
         await api.post('/platform/plans', payload);
-        showSuccess('Subscription plan created successfully.');
+        showSuccess(t('platformSettings.feedback.createPlanSuccess'));
       }
 
       closePlanModal();
       await loadPlatformSettings();
     } catch (error) {
       console.error('Error saving plan:', error);
-      showError(error.response?.data?.message || 'Unable to save subscription plan.');
+      showError(error.response?.data?.message || t('platformSettings.feedback.savePlanError'));
     } finally {
       setPlanSaving(false);
     }
@@ -509,15 +534,15 @@ const PlatformSettings = () => {
                 <FaCog className="text-2xl" />
               </div>
               <PageTitle
-                title={profileForm.platformName || 'Platform Settings'}
-                description="Manage the platform profile, security workflows, and subscription catalog."
+                title={profileForm.platformName || t('platformSettings.header.title')}
+                description={t('platformSettings.header.description')}
                 titleClass="text-white"
                 descriptionClass="text-white/80"
               />
             </div>
 
             <Button onClick={loadPlatformSettings} icon={FaSyncAlt}>
-              Refresh
+              {t('platformSettings.actions.refresh')}
             </Button>
           </div>
         </div>
@@ -546,7 +571,7 @@ const PlatformSettings = () => {
         </div>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-gray-200">
+      <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
         <nav className="-mb-px flex gap-3">
           {TAB_OPTIONS.map((tab) => {
             const Icon = tab.icon;
@@ -563,7 +588,7 @@ const PlatformSettings = () => {
                   }`}
               >
                 <Icon className="text-sm" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             );
           })}
@@ -578,23 +603,23 @@ const PlatformSettings = () => {
                 <FaGlobe className="text-xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Platform Profile</h2>
+                <h2 className="text-xl font-bold text-gray-900">{t('platformSettings.profile.title')}</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  These settings shape the default experience for the whole system.
+                  {t('platformSettings.profile.description')}
                 </p>
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <Input
-                label="Platform Name"
+                label={t('platformSettings.profile.fields.platformName')}
                 name="platformName"
                 value={profileForm.platformName}
                 onChange={handleProfileFieldChange}
                 required
               />
               <Input
-                label="Support Email"
+                label={t('platformSettings.profile.fields.supportEmail')}
                 name="supportEmail"
                 type="email"
                 value={profileForm.supportEmail}
@@ -602,35 +627,37 @@ const PlatformSettings = () => {
                 icon={FaEnvelope}
               />
               <Input
-                label="Website URL"
+                label={t('platformSettings.profile.fields.websiteUrl')}
                 name="websiteUrl"
                 value={profileForm.websiteUrl}
                 onChange={handleProfileFieldChange}
                 icon={FaGlobe}
               />
               <Input
-                label="Timezone"
+                label={t('platformSettings.profile.fields.timezone')}
                 name="timezone"
                 value={profileForm.timezone}
                 onChange={handleProfileFieldChange}
               />
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Locale</label>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('platformSettings.profile.fields.locale')}
+                </label>
                 <select
                   name="locale"
                   value={profileForm.locale}
                   onChange={handleProfileFieldChange}
                   className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="en">English</option>
-                  <option value="ar">Arabic</option>
+                  <option value="en">{t('organizationSettings.languageOptions.en')}</option>
+                  <option value="ar">{t('organizationSettings.languageOptions.ar')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Default Organization Plan
+                  {t('platformSettings.profile.fields.defaultOrganizationPlan')}
                 </label>
                 <select
                   name="defaultOrganizationPlan"
@@ -651,10 +678,10 @@ const PlatformSettings = () => {
               <label className="flex cursor-pointer items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">
-                    Allow new organization registration
+                    {t('platformSettings.profile.allowRegistration.title')}
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    Turn this off when onboarding should be fully controlled by the platform team.
+                    {t('platformSettings.profile.allowRegistration.description')}
                   </p>
                 </div>
                 <input
@@ -669,7 +696,7 @@ const PlatformSettings = () => {
 
             <div className="mt-6 flex justify-end">
               <Button type="submit" disabled={savingProfile}>
-                {savingProfile ? 'Saving...' : 'Save Platform Settings'}
+                {savingProfile ? t('common.saving') : t('platformSettings.actions.saveProfile')}
               </Button>
             </div>
           </Card>
@@ -685,15 +712,17 @@ const PlatformSettings = () => {
                   <FaKey className="text-xl" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Password Reset Requests</h2>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {t('platformSettings.security.requests.title')}
+                  </h2>
                   <p className="mt-1 text-sm text-gray-500">
-                    Review users who asked for help, then reset passwords directly from here.
+                    {t('platformSettings.security.requests.description')}
                   </p>
                 </div>
               </div>
 
               <Button variant="outline" onClick={loadResetRequests} icon={FaSyncAlt}>
-                Refresh Requests
+                {t('platformSettings.actions.refreshRequests')}
               </Button>
             </div>
 
@@ -703,7 +732,7 @@ const PlatformSettings = () => {
               </div>
             ) : resetRequests.length === 0 ? (
               <div className="mt-6 rounded-2xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
-                No pending password reset requests right now.
+                {t('platformSettings.security.requests.empty')}
               </div>
             ) : (
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -718,17 +747,21 @@ const PlatformSettings = () => {
                         <p className="truncate text-sm text-gray-500">{user.email}</p>
                       </div>
                       <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                        Requested
+                        {t('platformSettings.security.requests.requested')}
                       </span>
                     </div>
 
                     <div className="mt-4 space-y-2 text-sm text-gray-600">
                       <p className="truncate">
-                        <span className="font-semibold text-gray-900">Organization:</span>{' '}
-                        {getUserOrganizationName(user)}
+                        <span className="font-semibold text-gray-900">
+                          {t('platformSettings.common.organizationLabel')}:
+                        </span>{' '}
+                        {getUserOrganizationName(user, t('platformSettings.common.platform'))}
                       </p>
                       <p>
-                        <span className="font-semibold text-gray-900">Requested:</span>{' '}
+                        <span className="font-semibold text-gray-900">
+                          {t('platformSettings.security.requests.requestedAt')}:
+                        </span>{' '}
                         {formatDateTime(
                           user.passwordResetRequestDate || user.updatedAt,
                           i18n.language
@@ -744,7 +777,7 @@ const PlatformSettings = () => {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-700'
                         }`}>
-                        {user.isActive !== false ? 'Active' : 'Inactive'}
+                        {user.isActive !== false ? t('users.active') : t('users.inactive')}
                       </span>
                     </div>
 
@@ -754,7 +787,7 @@ const PlatformSettings = () => {
                         onClick={() => setSelectedUser(user)}
                         icon={FaKey}
                       >
-                        Reset Password
+                        {t('users.resetPassword')}
                       </Button>
                     </div>
                   </div>
@@ -769,9 +802,11 @@ const PlatformSettings = () => {
                 <FaUsers className="text-xl" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Reset Any User</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {t('platformSettings.security.search.title')}
+                </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  Search across the whole system and reset any account without leaving settings.
+                  {t('platformSettings.security.search.description')}
                 </p>
               </div>
             </div>
@@ -783,17 +818,17 @@ const PlatformSettings = () => {
                   type="text"
                   value={userSearch}
                   onChange={(event) => setUserSearch(event.target.value)}
-                  placeholder="Search by name, email, or organization"
+                  placeholder={t('platformSettings.security.search.placeholder')}
                   className="w-full rounded-2xl border border-gray-300 py-3 pl-11 pr-4 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
 
               <div className="flex gap-3">
                 <Button type="submit" icon={FaSearch}>
-                  Search
+                  {t('common.search')}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => searchUsers(userSearch)} icon={FaSyncAlt}>
-                  Refresh
+                  {t('platformSettings.actions.refresh')}
                 </Button>
               </div>
             </form>
@@ -804,7 +839,7 @@ const PlatformSettings = () => {
               </div>
             ) : userResults.length === 0 ? (
               <div className="mt-6 rounded-2xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
-                No users matched this search.
+                {t('platformSettings.security.search.empty')}
               </div>
             ) : (
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -821,11 +856,11 @@ const PlatformSettings = () => {
 
                       {user.passwordResetRequested ? (
                         <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                          Waiting
+                          {t('platformSettings.security.search.waiting')}
                         </span>
                       ) : (
                         <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                          Ready
+                          {t('platformSettings.security.search.ready')}
                         </span>
                       )}
                     </div>
@@ -833,16 +868,16 @@ const PlatformSettings = () => {
                     <div className="mt-4 grid gap-3">
                       <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Organization
+                          {t('platformSettings.common.organization')}
                         </p>
                         <p className="mt-1 truncate text-sm font-medium text-gray-900">
-                          {getUserOrganizationName(user)}
+                          {getUserOrganizationName(user, t('platformSettings.common.platform'))}
                         </p>
                       </div>
 
                       <div className="rounded-2xl border border-white/80 bg-white/90 px-4 py-3">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                          Role
+                          {t('users.role')}
                         </p>
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${getRoleBadgeColor(user.organizationRole || user.role)}`}>
@@ -852,7 +887,7 @@ const PlatformSettings = () => {
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-700'
                             }`}>
-                            {user.isActive !== false ? 'Active' : 'Inactive'}
+                            {user.isActive !== false ? t('users.active') : t('users.inactive')}
                           </span>
                         </div>
                       </div>
@@ -861,11 +896,11 @@ const PlatformSettings = () => {
                     <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-200 pt-4">
                       <p className="text-xs text-gray-500">
                         {user.passwordResetRequested
-                          ? 'User already asked for help.'
-                          : 'Manual reset available.'}
+                          ? t('platformSettings.security.search.requestedHelp')
+                          : t('platformSettings.security.search.manualReset')}
                       </p>
                       <Button onClick={() => setSelectedUser(user)} icon={FaKey}>
-                        Reset
+                        {t('platformSettings.actions.reset')}
                       </Button>
                     </div>
                   </div>
@@ -885,15 +920,15 @@ const PlatformSettings = () => {
                   <FaLayerGroup className="text-xl" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Subscription Catalog</h2>
+                  <h2 className="text-xl font-bold text-gray-900">{t('platformSettings.plan.title')}</h2>
                   <p className="mt-1 text-sm text-gray-500">
-                    Edit built-in plans, tune limits, or add new offers for the platform.
+                    {t('platformSettings.plan.description')}
                   </p>
                 </div>
               </div>
 
               <Button onClick={openCreatePlanModal} icon={FaPlus}>
-                Add Plan
+                {t('platformSettings.actions.addPlan')}
               </Button>
             </div>
 
@@ -913,7 +948,7 @@ const PlatformSettings = () => {
                           {getPlanName(plan, i18n.language)}
                         </h3>
                         <p className="mt-2 max-w-xl text-sm text-white/75">
-                          {getPlanDescription(plan, i18n.language) || 'No description provided.'}
+                          {getPlanDescription(plan, i18n.language) || t('platformSettings.plan.noDescription')}
                         </p>
                       </div>
 
@@ -922,10 +957,10 @@ const PlatformSettings = () => {
                           ? 'bg-emerald-500/20 text-emerald-100'
                           : 'bg-white/15 text-white/85'
                           }`}>
-                          {plan.isActive !== false ? 'Active' : 'Inactive'}
+                          {plan.isActive !== false ? t('users.active') : t('users.inactive')}
                         </span>
                         <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white/85">
-                          {plan.isDefault ? 'Built-in' : 'Custom'}
+                          {plan.isDefault ? t('platformSettings.plan.badges.builtIn') : t('platformSettings.plan.badges.custom')}
                         </span>
                       </div>
                     </div>
@@ -935,18 +970,18 @@ const PlatformSettings = () => {
                     <div className="grid gap-3 md:grid-cols-2">
                       <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Monthly
+                          {t('platformSettings.plan.monthly')}
                         </p>
                         <p className="mt-2 text-2xl font-bold text-gray-900">
-                          {formatMoney(plan.pricing?.monthly?.amount, plan.market?.currency)}
+                          {formatMoney(plan.pricing?.monthly?.amount, plan.market?.currency, locale)}
                         </p>
                       </div>
                       <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Yearly
+                          {t('platformSettings.plan.yearly')}
                         </p>
                         <p className="mt-2 text-2xl font-bold text-gray-900">
-                          {formatMoney(plan.pricing?.yearly?.amount, plan.market?.currency)}
+                          {formatMoney(plan.pricing?.yearly?.amount, plan.market?.currency, locale)}
                         </p>
                       </div>
                     </div>
@@ -954,7 +989,7 @@ const PlatformSettings = () => {
                     <div className="grid gap-3 md:grid-cols-2">
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Features
+                          {t('platformSettings.plan.featuresTitle')}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
                           {FEATURE_FIELDS.map((feature) => (
@@ -965,7 +1000,7 @@ const PlatformSettings = () => {
                                 : 'bg-gray-100 text-gray-500'
                                 }`}
                             >
-                              {feature.label}
+                              {getFeatureLabel(feature)}
                             </span>
                           ))}
                         </div>
@@ -973,7 +1008,7 @@ const PlatformSettings = () => {
 
                       <div>
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Limits
+                          {t('platformSettings.plan.limitsTitle')}
                         </p>
                         <div className="mt-3 grid gap-2">
                           {LIMIT_FIELDS.map((limit) => (
@@ -981,9 +1016,9 @@ const PlatformSettings = () => {
                               key={limit.key}
                               className="flex items-center justify-between rounded-2xl border border-gray-200 px-3 py-2 text-sm"
                             >
-                              <span className="text-gray-600">{limit.label}</span>
+                              <span className="text-gray-600">{getLimitLabel(limit)}</span>
                               <span className="font-semibold text-gray-900">
-                                {formatLimitValue(plan.limits?.[limit.key])}
+                                {formatLimitValue(plan.limits?.[limit.key], t, locale)}
                               </span>
                             </div>
                           ))}
@@ -997,7 +1032,7 @@ const PlatformSettings = () => {
                         {plan.market?.primaryRegion || 'MENA'} / {plan.market?.primaryCountry || 'SA'}
                       </div>
                       <Button variant="outline" onClick={() => openEditPlanModal(plan)} icon={FaEdit}>
-                        Edit Plan
+                        {t('platformSettings.actions.editPlan')}
                       </Button>
                     </div>
                   </div>
@@ -1018,12 +1053,12 @@ const PlatformSettings = () => {
         isOpen={planModalOpen}
         onClose={closePlanModal}
         size="xl"
-        title={editingPlanCode ? 'Edit Subscription Plan' : 'Add Subscription Plan'}
+        title={editingPlanCode ? t('platformSettings.planModal.editTitle') : t('platformSettings.planModal.addTitle')}
       >
         <form onSubmit={handlePlanSave} className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
             <Input
-              label="Plan Code"
+              label={t('platformSettings.planModal.fields.code')}
               name="code"
               value={planForm.code}
               onChange={handlePlanFieldChange}
@@ -1031,60 +1066,62 @@ const PlatformSettings = () => {
               required
             />
             <Input
-              label="Sort Order"
+              label={t('platformSettings.planModal.fields.sortOrder')}
               name="sortOrder"
               type="number"
               value={planForm.sortOrder}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Name (English)"
+              label={t('platformSettings.planModal.fields.nameEn')}
               name="nameEn"
               value={planForm.nameEn}
               onChange={handlePlanFieldChange}
               required
             />
             <Input
-              label="Name (Arabic)"
+              label={t('platformSettings.planModal.fields.nameAr')}
               name="nameAr"
               value={planForm.nameAr}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Monthly Price"
+              label={t('platformSettings.planModal.fields.monthlyAmount')}
               name="monthlyAmount"
               type="number"
               value={planForm.monthlyAmount}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Yearly Price"
+              label={t('platformSettings.planModal.fields.yearlyAmount')}
               name="yearlyAmount"
               type="number"
               value={planForm.yearlyAmount}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Currency"
+              label={t('platformSettings.planModal.fields.currency')}
               name="currency"
               value={planForm.currency}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Primary Region"
+              label={t('platformSettings.planModal.fields.primaryRegion')}
               name="primaryRegion"
               value={planForm.primaryRegion}
               onChange={handlePlanFieldChange}
             />
             <Input
-              label="Primary Country"
+              label={t('platformSettings.planModal.fields.primaryCountry')}
               name="primaryCountry"
               value={planForm.primaryCountry}
               onChange={handlePlanFieldChange}
             />
             <div className="rounded-2xl border border-gray-200 px-4 py-3">
               <label className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-gray-900">Plan is active</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {t('platformSettings.planModal.fields.isActive')}
+                </span>
                 <input
                   type="checkbox"
                   name="isActive"
@@ -1098,7 +1135,9 @@ const PlatformSettings = () => {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Description (English)</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                {t('platformSettings.planModal.fields.descriptionEn')}
+              </label>
               <textarea
                 name="descriptionEn"
                 value={planForm.descriptionEn}
@@ -1108,7 +1147,9 @@ const PlatformSettings = () => {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Description (Arabic)</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                {t('platformSettings.planModal.fields.descriptionAr')}
+              </label>
               <textarea
                 name="descriptionAr"
                 value={planForm.descriptionAr}
@@ -1121,14 +1162,14 @@ const PlatformSettings = () => {
 
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="rounded-3xl border border-gray-200 p-5">
-              <h3 className="text-lg font-bold text-gray-900">Features</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('platformSettings.plan.featuresTitle')}</h3>
               <div className="mt-4 space-y-3">
                 {FEATURE_FIELDS.map((feature) => (
                   <label
                     key={feature.key}
                     className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3"
                   >
-                    <span className="text-sm font-medium text-gray-700">{feature.label}</span>
+                    <span className="text-sm font-medium text-gray-700">{getFeatureLabel(feature)}</span>
                     <input
                       type="checkbox"
                       name={`features.${feature.key}`}
@@ -1142,15 +1183,15 @@ const PlatformSettings = () => {
             </div>
 
             <div className="rounded-3xl border border-gray-200 p-5">
-              <h3 className="text-lg font-bold text-gray-900">Limits</h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('platformSettings.plan.limitsTitle')}</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Leave a limit blank to keep it unlimited.
+                {t('platformSettings.planModal.limitsHint')}
               </p>
               <div className="mt-4 grid gap-4">
                 {LIMIT_FIELDS.map((limit) => (
                   <Input
                     key={limit.key}
-                    label={limit.label}
+                    label={getLimitLabel(limit)}
                     name={`limits.${limit.key}`}
                     type="number"
                     value={planForm.limits[limit.key]}
@@ -1166,7 +1207,11 @@ const PlatformSettings = () => {
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={planSaving}>
-              {planSaving ? 'Saving...' : (editingPlanCode ? 'Save Plan Changes' : 'Create Plan')}
+              {planSaving
+                ? t('common.saving')
+                : (editingPlanCode
+                  ? t('platformSettings.actions.savePlanChanges')
+                  : t('platformSettings.actions.createPlan'))}
             </Button>
           </div>
         </form>
