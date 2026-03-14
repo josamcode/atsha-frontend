@@ -24,6 +24,16 @@ import {
   formatMoney
 } from '../components/Platform/planUtils';
 
+const generateRandomPlanCode = (existingCodes = new Set()) => {
+  let nextCode = '';
+
+  do {
+    nextCode = `PLAN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  } while (existingCodes.has(nextCode));
+
+  return nextCode;
+};
+
 const PlatformPlanEditor = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -67,14 +77,6 @@ const PlatformPlanEditor = () => {
   useEffect(() => {
     let isMounted = true;
 
-    if (!isEditMode) {
-      setPlanForm(buildPlanForm());
-      setLoading(false);
-      return () => {
-        isMounted = false;
-      };
-    }
-
     const loadPlan = async () => {
       if (!seededPlan) {
         setLoading(true);
@@ -87,6 +89,26 @@ const PlatformPlanEditor = () => {
           }
         });
         const plans = Array.isArray(response.data?.data) ? response.data.data : [];
+
+        if (!isEditMode) {
+          const existingCodes = new Set(
+            plans
+              .map((plan) => String(plan?.code || '').trim().toUpperCase())
+              .filter(Boolean)
+          );
+          const nextCode = generateRandomPlanCode(existingCodes);
+
+          if (isMounted) {
+            setPlanForm((currentValue) => ({
+              ...currentValue,
+              code: currentValue.code || nextCode,
+              sortOrder: Number(currentValue.sortOrder) || plans.length + 1
+            }));
+          }
+
+          return;
+        }
+
         const targetPlan = plans.find((plan) => plan.code === planCode);
 
         if (!targetPlan) {
@@ -100,6 +122,17 @@ const PlatformPlanEditor = () => {
         }
       } catch (error) {
         console.error('Error loading platform plan:', error);
+
+        if (!isEditMode) {
+          if (isMounted) {
+            setPlanForm((currentValue) => ({
+              ...currentValue,
+              code: currentValue.code || generateRandomPlanCode(),
+              sortOrder: Number(currentValue.sortOrder) || 1
+            }));
+          }
+          return;
+        }
 
         if (!seededPlan) {
           showError(error.response?.data?.message || t('platformSettings.feedback.loadError'));
@@ -310,7 +343,7 @@ const PlatformPlanEditor = () => {
                 name="code"
                 value={planForm.code}
                 onChange={handlePlanFieldChange}
-                disabled={isEditMode}
+                disabled
                 required
               />
               <Input
