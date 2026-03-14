@@ -21,6 +21,7 @@ import Input from '../Common/Input';
 import Loading from '../Common/Loading';
 import Modal from '../Common/Modal';
 import PageTitle from '../Common/PageTilte';
+import Tabs from '../Common/Tabs';
 import api from '../../utils/api';
 import { formatDateTime } from '../../utils/dateUtils';
 import { showError, showSuccess } from '../../utils/toast';
@@ -314,6 +315,12 @@ const PlatformSettings = () => {
   const availablePlanOptions = useMemo(() => (
     settingsData.plans.filter((plan) => plan.isActive !== false)
   ), [settingsData.plans]);
+  const translatedTabs = useMemo(() => (
+    TAB_OPTIONS.map((tab) => ({
+      ...tab,
+      label: t(tab.labelKey)
+    }))
+  ), [t]);
 
   const getFeatureLabel = useCallback((feature) => (
     t(feature.labelKey, {
@@ -571,29 +578,12 @@ const PlatformSettings = () => {
         </div>
       </div>
 
-      <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
-        <nav className="-mb-px flex gap-3">
-          {TAB_OPTIONS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-2 py-4 text-sm font-semibold transition-colors ${isActive
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-              >
-                <Icon className="text-sm" />
-                {t(tab.labelKey)}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      <Tabs
+        tabs={translatedTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        buttonClassName="whitespace-nowrap border-b-2 px-2 py-4 text-sm font-semibold transition-colors"
+      />
 
       {activeTab === 'platform' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">

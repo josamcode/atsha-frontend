@@ -14,6 +14,7 @@ import Card from '../components/Common/Card';
 import Button from '../components/Common/Button';
 import Input from '../components/Common/Input';
 import Loading from '../components/Common/Loading';
+import Tabs from '../components/Common/Tabs';
 import api from '../utils/api';
 import { showError, showSuccess } from '../utils/toast';
 import { useAuth } from '../context/AuthContext';
@@ -145,6 +146,13 @@ const OrganizationSettings = () => {
     || settings?.subscription?.subscribedPlanCode
     || '--';
   const subscriptionUsageEntries = Object.entries(settings?.subscription?.usage || {});
+  const organizationTabs = [
+    { id: 'general', label: t('organizationSettings.tabs.general', { defaultValue: 'General' }) },
+    { id: 'policies', label: t('organizationSettings.tabs.policies', { defaultValue: 'Policies' }) },
+    { id: 'departments', label: t('organizationSettings.sections.departments', { defaultValue: 'Departments' }) },
+    { id: 'members', label: t('organizationSettings.sections.invitations', { defaultValue: 'Members & Invitations' }) },
+    { id: 'subscription', label: t('organizationSettings.sections.subscription', { defaultValue: 'Subscription & Features' }) }
+  ];
 
   const loadData = useCallback(async () => {
     try {
@@ -376,32 +384,13 @@ const OrganizationSettings = () => {
           </div>
         </div>
 
-        <div className="flex overflow-x-auto border-b border-gray-200 scrollbar-hide">
-          <nav className="-mb-px flex space-x-6 rtl:space-x-reverse" aria-label="Tabs">
-            {[
-              { id: 'general', label: t('organizationSettings.tabs.general', { defaultValue: 'General' }) },
-              { id: 'policies', label: t('organizationSettings.tabs.policies', { defaultValue: 'Policies' }) },
-              { id: 'departments', label: t('organizationSettings.sections.departments', { defaultValue: 'Departments' }) },
-              { id: 'members', label: t('organizationSettings.sections.invitations', { defaultValue: 'Members & Invitations' }) },
-              { id: 'subscription', label: t('organizationSettings.sections.subscription', { defaultValue: 'Subscription & Features' }) }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`
-                  whitespace-nowrap flex py-4 px-2 border-b-2 font-medium text-sm transition-colors
-                  ${activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }
-                `}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <Tabs
+          tabs={organizationTabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          navClassName="-mb-px flex space-x-6 rtl:space-x-reverse"
+          buttonClassName="whitespace-nowrap border-b-2 px-2 py-4 text-sm font-medium transition-colors"
+        />
 
         {['general', 'policies', 'departments'].includes(activeTab) && (
           <form onSubmit={handleSave} className="space-y-6">
