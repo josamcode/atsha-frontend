@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   FaBuilding,
   FaCheckCircle,
@@ -26,26 +27,25 @@ import api from '../../utils/api';
 import { formatDateTime } from '../../utils/dateUtils';
 import { showError, showSuccess } from '../../utils/toast';
 import { getRoleBadgeColor, getRoleLabel } from '../../utils/organizationUi';
-
-const FEATURE_FIELDS = [
-  { key: 'qrCode', labelKey: 'platformSettings.features.qrCode' },
-  { key: 'attendanceManagement', labelKey: 'platformSettings.features.attendanceManagement' },
-  { key: 'leaveManagement', labelKey: 'platformSettings.features.leaveManagement' },
-  { key: 'messaging', labelKey: 'platformSettings.features.messaging' }
-];
-
-const LIMIT_FIELDS = [
-  { key: 'usersTotal', labelKey: 'platformSettings.limits.usersTotal' },
-  { key: 'templatesTotal', labelKey: 'platformSettings.limits.templatesTotal' },
-  { key: 'formsPerMonth', labelKey: 'platformSettings.limits.formsPerMonth' },
-  { key: 'messagesPerMonth', labelKey: 'platformSettings.limits.messagesPerMonth' }
-];
+import {
+  FEATURE_FIELDS,
+  LIMIT_FIELDS,
+  formatLimitValue,
+  formatMoney,
+  getPlanDescription,
+  getPlanName
+} from './planUtils';
 
 const TAB_OPTIONS = [
   { id: 'platform', labelKey: 'platformSettings.tabs.platform', icon: FaCog },
   { id: 'security', labelKey: 'platformSettings.tabs.security', icon: FaShieldAlt },
   { id: 'plans', labelKey: 'platformSettings.tabs.plans', icon: FaLayerGroup }
 ];
+
+const getActiveTabFromSearch = (search = '') => {
+  const activeTab = new URLSearchParams(search).get('tab');
+  return TAB_OPTIONS.some((tab) => tab.id === activeTab) ? activeTab : 'platform';
+};
 
 const buildProfileForm = (profile = {}) => ({
   platformName: profile.platformName || '',
@@ -55,29 +55,6 @@ const buildProfileForm = (profile = {}) => ({
   timezone: profile.timezone || 'Africa/Cairo',
   defaultOrganizationPlan: profile.defaultOrganizationPlan || 'free',
   allowOrganizationRegistration: profile.allowOrganizationRegistration !== false
-});
-
-const buildPlanForm = (plan = null) => ({
-  code: plan?.code || '',
-  nameEn: plan?.name?.en || '',
-  nameAr: plan?.name?.ar || '',
-  descriptionEn: plan?.description?.en || '',
-  descriptionAr: plan?.description?.ar || '',
-  monthlyAmount: plan?.pricing?.monthly?.amount ?? 0,
-  yearlyAmount: plan?.pricing?.yearly?.amount ?? 0,
-  currency: plan?.market?.currency || plan?.pricing?.monthly?.currency || 'SAR',
-  primaryRegion: plan?.market?.primaryRegion || 'MENA',
-  primaryCountry: plan?.market?.primaryCountry || 'SA',
-  isActive: plan?.isActive !== false,
-  sortOrder: plan?.sortOrder ?? 0,
-  features: FEATURE_FIELDS.reduce((result, entry) => ({
-    ...result,
-    [entry.key]: Boolean(plan?.features?.[entry.key])
-  }), {}),
-  limits: LIMIT_FIELDS.reduce((result, entry) => ({
-    ...result,
-    [entry.key]: plan?.limits?.[entry.key] ?? ''
-  }), {})
 });
 
 const getUserId = (user) => user?._id || user?.id || '';
@@ -95,39 +72,6 @@ const getUserOrganizationName = (user, fallbackLabel = 'Platform') => (
   || fallbackLabel
 );
 
-const getPlanName = (plan, language = 'en') => (
-  plan?.name?.[language]
-  || plan?.name?.en
-  || String(plan?.code || '').toUpperCase()
-);
-
-const getPlanDescription = (plan, language = 'en') => (
-  plan?.description?.[language]
-  || plan?.description?.en
-  || ''
-);
-
-const formatMoney = (amount, currency = 'SAR', locale = 'en-US') => {
-  const normalizedAmount = Number(amount) || 0;
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: String(currency || 'SAR').toUpperCase(),
-      maximumFractionDigits: normalizedAmount % 1 === 0 ? 0 : 2
-    }).format(normalizedAmount);
-  } catch (error) {
-    return `${normalizedAmount} ${currency || 'SAR'}`;
-  }
-};
-
-const formatLimitValue = (value, t, locale = 'en-US') => {
-  if (value === null || value === undefined || value === '') {
-    return t('platformSettings.plan.unlimited');
-  }
-
-  return Number(value).toLocaleString(locale);
-};
 
 const ResetPasswordModal = ({ user, onClose, onSuccess }) => {
   const { t } = useTranslation();
@@ -212,11 +156,12 @@ const ResetPasswordModal = ({ user, onClose, onSuccess }) => {
 
 const PlatformSettings = () => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
   const locale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
-  const [activeTab, setActiveTab] = useState('platform');
+  const [activeTab, setActiveTab] = useState(() => getActiveTabFromSearch(location.search));
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [planSaving, setPlanSaving] = useState(false);
   const [settingsData, setSettingsData] = useState({
     profile: buildProfileForm(),
     plans: [],
@@ -229,9 +174,6 @@ const PlatformSettings = () => {
   const [userResults, setUserResults] = useState([]);
   const [userLoading, setUserLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [planModalOpen, setPlanModalOpen] = useState(false);
-  const [editingPlanCode, setEditingPlanCode] = useState('');
-  const [planForm, setPlanForm] = useState(buildPlanForm());
 
   const loadPlatformSettings = useCallback(async () => {
     try {
@@ -300,6 +242,10 @@ const PlatformSettings = () => {
   useEffect(() => {
     loadPlatformSettings();
   }, [loadPlatformSettings]);
+
+  useEffect(() => {
+    setActiveTab(getActiveTabFromSearch(location.search));
+  }, [location.search]);
 
   useEffect(() => {
     if (activeTab === 'security') {
@@ -405,112 +351,39 @@ const PlatformSettings = () => {
     }
   };
 
-  const openCreatePlanModal = () => {
-    setEditingPlanCode('');
-    setPlanForm(buildPlanForm());
-    setPlanModalOpen(true);
-  };
+  const handleTabChange = (nextTab) => {
+    const params = new URLSearchParams(location.search);
 
-  const openEditPlanModal = (plan) => {
-    setEditingPlanCode(plan?.code || '');
-    setPlanForm(buildPlanForm(plan));
-    setPlanModalOpen(true);
-  };
-
-  const closePlanModal = () => {
-    setPlanModalOpen(false);
-    setEditingPlanCode('');
-    setPlanForm(buildPlanForm());
-  };
-
-  const handlePlanFieldChange = (event) => {
-    const { name, value, type, checked } = event.target;
-
-    if (name.startsWith('features.')) {
-      const featureKey = name.split('.')[1];
-      setPlanForm((currentValue) => ({
-        ...currentValue,
-        features: {
-          ...currentValue.features,
-          [featureKey]: type === 'checkbox' ? checked : value
-        }
-      }));
-      return;
+    if (nextTab === 'platform') {
+      params.delete('tab');
+    } else {
+      params.set('tab', nextTab);
     }
 
-    if (name.startsWith('limits.')) {
-      const limitKey = name.split('.')[1];
-      setPlanForm((currentValue) => ({
-        ...currentValue,
-        limits: {
-          ...currentValue.limits,
-          [limitKey]: value
-        }
-      }));
-      return;
-    }
-
-    setPlanForm((currentValue) => ({
-      ...currentValue,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setActiveTab(nextTab);
+    navigate({
+      pathname: location.pathname,
+      search: params.toString() ? `?${params.toString()}` : ''
+    }, { replace: true });
   };
 
-  const handlePlanSave = async (event) => {
-    event.preventDefault();
-    setPlanSaving(true);
+  const plansTabPath = `${location.pathname}?tab=plans`;
 
-    try {
-      const payload = {
-        code: planForm.code.trim(),
-        name: {
-          en: planForm.nameEn.trim(),
-          ar: planForm.nameAr.trim()
-        },
-        description: {
-          en: planForm.descriptionEn.trim(),
-          ar: planForm.descriptionAr.trim()
-        },
-        market: {
-          primaryRegion: planForm.primaryRegion.trim(),
-          primaryCountry: planForm.primaryCountry.trim(),
-          currency: planForm.currency.trim().toUpperCase()
-        },
-        pricing: {
-          monthly: {
-            amount: Number(planForm.monthlyAmount) || 0,
-            currency: planForm.currency.trim().toUpperCase()
-          },
-          yearly: {
-            amount: Number(planForm.yearlyAmount) || 0,
-            currency: planForm.currency.trim().toUpperCase()
-          }
-        },
-        features: planForm.features,
-        limits: LIMIT_FIELDS.reduce((result, entry) => ({
-          ...result,
-          [entry.key]: planForm.limits[entry.key]
-        }), {}),
-        isActive: planForm.isActive,
-        sortOrder: Number(planForm.sortOrder) || 0
-      };
-
-      if (editingPlanCode) {
-        await api.put(`/platform/plans/${editingPlanCode}`, payload);
-        showSuccess(t('platformSettings.feedback.updatePlanSuccess'));
-      } else {
-        await api.post('/platform/plans', payload);
-        showSuccess(t('platformSettings.feedback.createPlanSuccess'));
+  const openCreatePlanPage = () => {
+    navigate('/platform/plans/new', {
+      state: {
+        returnTo: plansTabPath
       }
+    });
+  };
 
-      closePlanModal();
-      await loadPlatformSettings();
-    } catch (error) {
-      console.error('Error saving plan:', error);
-      showError(error.response?.data?.message || t('platformSettings.feedback.savePlanError'));
-    } finally {
-      setPlanSaving(false);
-    }
+  const openEditPlanPage = (plan) => {
+    navigate(`/platform/plans/${encodeURIComponent(plan?.code || '')}/edit`, {
+      state: {
+        plan,
+        returnTo: plansTabPath
+      }
+    });
   };
 
   const handleUserSearchSubmit = (event) => {
@@ -581,7 +454,7 @@ const PlatformSettings = () => {
       <Tabs
         tabs={translatedTabs}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         buttonClassName="whitespace-nowrap border-b-2 px-2 py-4 text-sm font-semibold transition-colors"
       />
 
@@ -917,117 +790,176 @@ const PlatformSettings = () => {
                 </div>
               </div>
 
-              <Button onClick={openCreatePlanModal} icon={FaPlus}>
+              <Button onClick={openCreatePlanPage} icon={FaPlus}>
                 {t('platformSettings.actions.addPlan')}
               </Button>
             </div>
 
-            <div className="mt-6 grid gap-4 xl:grid-cols-2">
-              {settingsData.plans.map((plan) => (
-                <div
-                  key={plan.code}
-                  className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm"
-                >
-                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-5 text-white">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
-                          {plan.code}
-                        </p>
-                        <h3 className="mt-2 text-2xl font-bold">
-                          {getPlanName(plan, i18n.language)}
-                        </h3>
-                        <p className="mt-2 max-w-xl text-sm text-white/75">
-                          {getPlanDescription(plan, i18n.language) || t('platformSettings.plan.noDescription')}
-                        </p>
-                      </div>
+            <div className="mt-6 grid gap-6 xl:grid-cols-2">
+              {settingsData.plans.map((plan) => {
+                const enabledFeaturesCount = FEATURE_FIELDS.filter(
+                  (feature) => Boolean(plan.features?.[feature.key])
+                ).length;
+                const planLocation = `${plan.market?.primaryRegion || 'MENA'} / ${plan.market?.primaryCountry || 'SA'}`;
 
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${plan.isActive !== false
-                          ? 'bg-emerald-500/20 text-emerald-100'
-                          : 'bg-white/15 text-white/85'
-                          }`}>
-                          {plan.isActive !== false ? t('users.active') : t('users.inactive')}
-                        </span>
-                        <span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white/85">
-                          {plan.isDefault ? t('platformSettings.plan.badges.builtIn') : t('platformSettings.plan.badges.custom')}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5 p-5">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {t('platformSettings.plan.monthly')}
-                        </p>
-                        <p className="mt-2 text-2xl font-bold text-gray-900">
-                          {formatMoney(plan.pricing?.monthly?.amount, plan.market?.currency, locale)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {t('platformSettings.plan.yearly')}
-                        </p>
-                        <p className="mt-2 text-2xl font-bold text-gray-900">
-                          {formatMoney(plan.pricing?.yearly?.amount, plan.market?.currency, locale)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {t('platformSettings.plan.featuresTitle')}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {FEATURE_FIELDS.map((feature) => (
-                            <span
-                              key={feature.key}
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${plan.features?.[feature.key]
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-gray-100 text-gray-500'
-                                }`}
-                            >
-                              {getFeatureLabel(feature)}
+                return (
+                  <div
+                    key={plan.code}
+                    className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_-42px_rgba(15,23,42,0.55)]"
+                  >
+                    <div className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white">
+                      <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+                      <div className="relative space-y-6">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/75">
+                              {plan.code}
                             </span>
-                          ))}
-                        </div>
-                      </div>
+                            <h3 className="mt-4 text-2xl font-semibold tracking-tight text-white">
+                              {getPlanName(plan, i18n.language)}
+                            </h3>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200/85">
+                              {getPlanDescription(plan, i18n.language) || t('platformSettings.plan.noDescription')}
+                            </p>
+                          </div>
 
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          {t('platformSettings.plan.limitsTitle')}
-                        </p>
-                        <div className="mt-3 grid gap-2">
-                          {LIMIT_FIELDS.map((limit) => (
-                            <div
-                              key={limit.key}
-                              className="flex items-center justify-between rounded-2xl border border-gray-200 px-3 py-2 text-sm"
-                            >
-                              <span className="text-gray-600">{getLimitLabel(limit)}</span>
-                              <span className="font-semibold text-gray-900">
-                                {formatLimitValue(plan.limits?.[limit.key], t, locale)}
-                              </span>
-                            </div>
-                          ))}
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${plan.isActive !== false
+                              ? 'bg-emerald-400/15 text-emerald-100 ring-emerald-300/30'
+                              : 'bg-white/10 text-white/80 ring-white/15'
+                              }`}>
+                              {plan.isActive !== false ? t('users.active') : t('users.inactive')}
+                            </span>
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${plan.isDefault
+                              ? 'bg-amber-400/15 text-amber-100 ring-amber-300/30'
+                              : 'bg-sky-400/15 text-sky-100 ring-sky-300/30'
+                              }`}>
+                              {plan.isDefault ? t('platformSettings.plan.badges.builtIn') : t('platformSettings.plan.badges.custom')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-3xl border border-white/10 bg-white/10 px-5 py-4 backdrop-blur-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                              {t('platformSettings.plan.monthly')}
+                            </p>
+                            <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                              {formatMoney(plan.pricing?.monthly?.amount, plan.market?.currency, locale)}
+                            </p>
+                          </div>
+                          <div className="rounded-3xl border border-white/10 bg-slate-950/25 px-5 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">
+                              {t('platformSettings.plan.yearly')}
+                            </p>
+                            <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                              {formatMoney(plan.pricing?.yearly?.amount, plan.market?.currency, locale)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 border-t border-gray-200 pt-4">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <FaCheckCircle className="text-emerald-600" />
-                        {plan.market?.primaryRegion || 'MENA'} / {plan.market?.primaryCountry || 'SA'}
+                    <div className="flex flex-1 flex-col gap-5 p-6">
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                {t('platformSettings.plan.featuresTitle')}
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-900">
+                                {enabledFeaturesCount}/{FEATURE_FIELDS.length}
+                              </p>
+                            </div>
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+                              <FaCheckCircle className="text-lg" />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-2.5">
+                            {FEATURE_FIELDS.map((feature) => {
+                              const isEnabled = Boolean(plan.features?.[feature.key]);
+
+                              return (
+                                <div
+                                  key={feature.key}
+                                  className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition-colors ${isEnabled
+                                    ? 'bg-white text-slate-700 shadow-sm ring-1 ring-emerald-100'
+                                    : 'bg-slate-100 text-slate-400'
+                                    }`}
+                                >
+                                  <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${isEnabled
+                                    ? 'bg-emerald-100 text-emerald-600'
+                                    : 'bg-white text-slate-300'
+                                    }`}>
+                                    <FaCheckCircle className="text-xs" />
+                                  </span>
+                                  <span className={`font-medium ${isEnabled ? 'text-slate-700' : 'text-slate-400'}`}>
+                                    {getFeatureLabel(feature)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-slate-200 p-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                {t('platformSettings.plan.limitsTitle')}
+                              </p>
+                              <p className="mt-2 text-sm font-medium text-slate-500">
+                                {planLocation}
+                              </p>
+                            </div>
+                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                              <FaGlobe className="text-lg" />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            {LIMIT_FIELDS.map((limit) => (
+                              <div
+                                key={limit.key}
+                                className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                              >
+                                <span className="text-sm text-slate-500">{getLimitLabel(limit)}</span>
+                                <span className="text-sm font-semibold text-slate-900">
+                                  {formatLimitValue(plan.limits?.[limit.key], t, locale)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <Button variant="outline" onClick={() => openEditPlanModal(plan)} icon={FaEdit}>
-                        {t('platformSettings.actions.editPlan')}
-                      </Button>
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                            <FaGlobe className="text-slate-500" />
+                            {planLocation}
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+                            <FaUsers className="text-emerald-600" />
+                            {enabledFeaturesCount}/{FEATURE_FIELDS.length}
+                          </span>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => openEditPlanPage(plan)}
+                          icon={FaEdit}
+                          className="min-w-[150px] rounded-2xl border-slate-300 text-slate-700 hover:border-primary"
+                        >
+                          {t('platformSettings.actions.editPlan')}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         </div>
@@ -1039,173 +971,6 @@ const PlatformSettings = () => {
         onSuccess={handleResetSuccess}
       />
 
-      <Modal
-        isOpen={planModalOpen}
-        onClose={closePlanModal}
-        size="xl"
-        title={editingPlanCode ? t('platformSettings.planModal.editTitle') : t('platformSettings.planModal.addTitle')}
-      >
-        <form onSubmit={handlePlanSave} className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label={t('platformSettings.planModal.fields.code')}
-              name="code"
-              value={planForm.code}
-              onChange={handlePlanFieldChange}
-              disabled={Boolean(editingPlanCode)}
-              required
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.sortOrder')}
-              name="sortOrder"
-              type="number"
-              value={planForm.sortOrder}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.nameEn')}
-              name="nameEn"
-              value={planForm.nameEn}
-              onChange={handlePlanFieldChange}
-              required
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.nameAr')}
-              name="nameAr"
-              value={planForm.nameAr}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.monthlyAmount')}
-              name="monthlyAmount"
-              type="number"
-              value={planForm.monthlyAmount}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.yearlyAmount')}
-              name="yearlyAmount"
-              type="number"
-              value={planForm.yearlyAmount}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.currency')}
-              name="currency"
-              value={planForm.currency}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.primaryRegion')}
-              name="primaryRegion"
-              value={planForm.primaryRegion}
-              onChange={handlePlanFieldChange}
-            />
-            <Input
-              label={t('platformSettings.planModal.fields.primaryCountry')}
-              name="primaryCountry"
-              value={planForm.primaryCountry}
-              onChange={handlePlanFieldChange}
-            />
-            <div className="rounded-2xl border border-gray-200 px-4 py-3">
-              <label className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-gray-900">
-                  {t('platformSettings.planModal.fields.isActive')}
-                </span>
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={planForm.isActive}
-                  onChange={handlePlanFieldChange}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t('platformSettings.planModal.fields.descriptionEn')}
-              </label>
-              <textarea
-                name="descriptionEn"
-                value={planForm.descriptionEn}
-                onChange={handlePlanFieldChange}
-                rows={4}
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
-                {t('platformSettings.planModal.fields.descriptionAr')}
-              </label>
-              <textarea
-                name="descriptionAr"
-                value={planForm.descriptionAr}
-                onChange={handlePlanFieldChange}
-                rows={4}
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-5 lg:grid-cols-2">
-            <div className="rounded-3xl border border-gray-200 p-5">
-              <h3 className="text-lg font-bold text-gray-900">{t('platformSettings.plan.featuresTitle')}</h3>
-              <div className="mt-4 space-y-3">
-                {FEATURE_FIELDS.map((feature) => (
-                  <label
-                    key={feature.key}
-                    className="flex items-center justify-between rounded-2xl border border-gray-200 px-4 py-3"
-                  >
-                    <span className="text-sm font-medium text-gray-700">{getFeatureLabel(feature)}</span>
-                    <input
-                      type="checkbox"
-                      name={`features.${feature.key}`}
-                      checked={Boolean(planForm.features[feature.key])}
-                      onChange={handlePlanFieldChange}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-gray-200 p-5">
-              <h3 className="text-lg font-bold text-gray-900">{t('platformSettings.plan.limitsTitle')}</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {t('platformSettings.planModal.limitsHint')}
-              </p>
-              <div className="mt-4 grid gap-4">
-                {LIMIT_FIELDS.map((limit) => (
-                  <Input
-                    key={limit.key}
-                    label={getLimitLabel(limit)}
-                    name={`limits.${limit.key}`}
-                    type="number"
-                    value={planForm.limits[limit.key]}
-                    onChange={handlePlanFieldChange}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
-            <Button type="button" variant="outline" onClick={closePlanModal}>
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={planSaving}>
-              {planSaving
-                ? t('common.saving')
-                : (editingPlanCode
-                  ? t('platformSettings.actions.savePlanChanges')
-                  : t('platformSettings.actions.createPlan'))}
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

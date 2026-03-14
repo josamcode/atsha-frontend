@@ -36,6 +36,7 @@ const EmployeeReportPDF = lazy(() => import('./pages/Users/Employeereportpdf'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Messages = lazy(() => import('./pages/Messages/Messages'));
 const OrganizationSettings = lazy(() => import('./pages/OrganizationSettings'));
+const PlatformPlanEditor = lazy(() => import('./pages/PlatformPlanEditor'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const DefaultRedirect = () => {
@@ -275,6 +276,22 @@ function AppContent() {
             element={(
               <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin']}>
                 <OrganizationSettings />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/platform/plans/new"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin']}>
+                <PlatformPlanEditor />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/platform/plans/:planCode/edit"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin']}>
+                <PlatformPlanEditor />
               </ProtectedRoute>
             )}
           />
