@@ -11,7 +11,7 @@ const CompantStamp = ({ color = 'blue' }) => {
         </div>
 
         <div className="flex flex-col items-center justify-center text-center gap-1 py-2 px-3">
-          <p className="text-xs font-bold text-blue-600">{t('users.atshaForFoodDelivery')}</p>
+          <p className="text-xs font-bold text-blue-600">{t('users.AraRMForFoodDelivery')}</p>
           <p className="text-[10px] text-blue-500">{t('users.humanResourcesDepartment')}</p>
         </div>
       </div>

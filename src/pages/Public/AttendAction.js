@@ -158,7 +158,7 @@ const AttendAction = () => {
         <div className="bg-gradient-to-r from-gray-200 to-gray-300 p-8 text-gray-800 text-center">
           <img
             src="/logo.png"
-            alt="Atsha"
+            alt="AraRM"
             className="h-20 w-auto mx-auto mb-4"
           />
           <p className="text-gray-800">{t('attendance.recordYourAttendance')}</p>

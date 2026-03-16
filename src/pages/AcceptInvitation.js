@@ -117,7 +117,7 @@ const AcceptInvitation = () => {
         <div className="auth-orb auth-orb-3" />
 
         <div className="auth-brand-content">
-          <img src="/logo.png" alt="Atsha" className="auth-brand-logo" />
+          <img src="/logo.png" alt="AraRM" className="auth-brand-logo" />
           <h1 className="auth-brand-title">{orgDisplayName}</h1>
           <p className="auth-brand-subtitle">
             Complete your account setup to join this organization.

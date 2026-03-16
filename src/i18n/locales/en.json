@@ -76,7 +76,7 @@
     "name": "Name",
     "yourName": "Your Name",
     "phone": "Phone",
-    "loginTitle": "Welcome to atsha",
+    "loginTitle": "Welcome to AraRM",
     "loginSubtitle": "Sign in to your account",
     "loginWithEmailPassword": "Sign in with your email and password",
     "loginButton": "Sign In",
@@ -555,9 +555,9 @@
     "lateMinutes": "Late (Minutes)",
     "totalWorkDays": "Total Work Days",
     "weekendDays": "Weekend Days",
-    "atshaForFoodDelivery": "Business Registration",
+    "AraRMForFoodDelivery": "Business Registration",
     "humanResourcesDepartment": "5900147550",
-    "atsha": "atsha",
+    "AraRM": "AraRM",
     "companyPhone": "0539313030",
     "viewReport": "View Report",
     "sendReport": "Send Report",
@@ -1230,18 +1230,18 @@
       "franchises": "Franchises",
       "multiBranch": "Multi-Branch Companies"
     },
-    "positioning": "Atsha is not another HR tool or a standalone attendance app. It's a <em>complete multi-organization operations platform</em> — where attendance, forms, leave management, internal communication, and compliance reporting all run in one place, with strict tenant isolation between every organization.",
+    "positioning": "AraRM is not another HR tool or a standalone attendance app. It's a <em>complete multi-organization operations platform</em> — where attendance, forms, leave management, internal communication, and compliance reporting all run in one place, with strict tenant isolation between every organization.",
     "replaces": {
       "label": "Before vs. After",
       "title": "Stop stitching tools together.",
-      "subtitle": "Most operations teams cobble together five or more separate tools. Atsha replaces them all.",
+      "subtitle": "Most operations teams cobble together five or more separate tools. AraRM replaces them all.",
       "beforeTitle": "What you're using today",
       "before1": "WhatsApp groups for announcements",
       "before2": "Paper checklists & inspection forms",
       "before3": "Punch-card or manual attendance",
       "before4": "Spreadsheets for leave tracking",
       "before5": "Separate tools per branch",
-      "afterTitle": "One Atsha workspace",
+      "afterTitle": "One AraRM workspace",
       "after1": "QR Attendance Tracking",
       "after2": "Dynamic Forms & Checklists",
       "after3": "Leave Management & Approvals",
@@ -1269,7 +1269,7 @@
     "workflow": {
       "label": "How It Works",
       "title": "From setup to daily operations in four steps.",
-      "subtitle": "Get your entire organization running on Atsha in minutes, not months.",
+      "subtitle": "Get your entire organization running on AraRM in minutes, not months.",
       "s1Title": "Create your organization",
       "s1Desc": "Register your company, set a unique slug, and configure your brand identity — display name, colors, support email, and custom domain.",
       "s1Field1": "Organization Name",
@@ -1297,7 +1297,7 @@
       "s4Action4": "View Reports"
     },
     "problems": {
-      "label": "Why Atsha",
+      "label": "Why AraRM",
       "title": "Real problems. Specific solutions.",
       "p1Title": "Paper checklists disappear.",
       "p1Desc": "Daily inspection forms, closing checklists, and incident reports get lost, damaged, or ignored. No audit trail, no accountability.",
@@ -1318,12 +1318,12 @@
     },
     "useCases": {
       "label": "Use Cases",
-      "title": "See Atsha in action.",
+      "title": "See AraRM in action.",
       "subtitle": "Real scenarios from real operations teams.",
       "uc1Title": "Restaurant chain manager",
       "uc1Desc": "6:00 AM — The manager generates a morning QR code. 40 staff scan in as they arrive. By 11 PM, the closing checklist is submitted and approved — no paper touched, no follow-up needed.",
       "uc2Title": "Hospitality group with 5 brands",
-      "uc2Desc": "One Atsha instance runs all five brands. Each brand has its own domain, logo, employees, departments, and forms. Data never crosses brand boundaries. IT maintains one system.",
+      "uc2Desc": "One AraRM instance runs all five brands. Each brand has its own domain, logo, employees, departments, and forms. Data never crosses brand boundaries. IT maintains one system.",
       "uc3Title": "Employee requesting time off",
       "uc3Desc": "An employee opens the app, selects \"Sick Leave\", and submits a request. Their supervisor receives a notification, reviews it, and taps \"Approve\". Done in 30 seconds.",
       "uc4Title": "Compliance officer preparing for audit",
@@ -1347,16 +1347,16 @@
     "faq": {
       "label": "FAQ",
       "title": "Common questions.",
-      "q1": "Can multiple organizations run on the same Atsha instance?",
-      "a1": "Yes. Atsha is built as a multi-tenant platform from the ground up. Each organization operates with fully isolated data, separate branding, independent departments, and dedicated domain settings — all on a single shared infrastructure.",
+      "q1": "Can multiple organizations run on the same AraRM instance?",
+      "a1": "Yes. AraRM is built as a multi-tenant platform from the ground up. Each organization operates with fully isolated data, separate branding, independent departments, and dedicated domain settings — all on a single shared infrastructure.",
       "q2": "Is data fully isolated between organizations?",
       "a2": "Every record in the system — users, forms, attendance logs, leave requests, messages — carries an organization boundary. There is no cross-organization data access at any level, enforced at both the API and database layers.",
       "q3": "How does QR attendance prevent time fraud?",
-      "a3": "Atsha generates time-limited, single-use QR codes that expire within seconds. Codes are managed by designated QR managers and can only be scanned on-site. No buddy-punching, no screenshots, no workarounds.",
+      "a3": "AraRM generates time-limited, single-use QR codes that expire within seconds. Codes are managed by designated QR managers and can only be scanned on-site. No buddy-punching, no screenshots, no workarounds.",
       "q4": "Can we customize branding per organization?",
       "a4": "Absolutely. Each organization controls its own display name, logos, color scheme, email sender identity, PDF report branding, and custom domain. Your employees see your brand, not ours.",
-      "q5": "Does Atsha support Arabic and RTL layouts?",
-      "a5": "Yes. Atsha is fully internationalized with built-in Arabic and English support. The entire interface, including forms, reports, and emails, adapts to right-to-left layouts automatically.",
+      "q5": "Does AraRM support Arabic and RTL layouts?",
+      "a5": "Yes. AraRM is fully internationalized with built-in Arabic and English support. The entire interface, including forms, reports, and emails, adapts to right-to-left layouts automatically.",
       "q6": "How do I get started?",
       "a6": "Register your organization in under two minutes. Configure your departments, invite your team, and start running attendance, forms, and leave management immediately. No credit card required."
     },
@@ -1375,7 +1375,7 @@
       "legal": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "copyright": "© {{year}} Atsha. All rights reserved.",
+      "copyright": "© {{year}} AraRM. All rights reserved.",
       "builtFor": "Built for operations teams everywhere."
     },
     "ui": {
@@ -1397,7 +1397,7 @@
       "pending": "Pending",
       "submitted": "Submitted",
       "problem": "Problem",
-      "solution": "Atsha Solution"
+      "solution": "AraRM Solution"
     }
   }
 }

@@ -315,7 +315,7 @@ const FormDocument = ({
               const primaryColor = branding.primaryColor || pdfStyle.colors?.primary || '#01c853';
               const headerBgColor = headerConfig.backgroundColor || '#ffffff';
               const headerTextColor = headerConfig.textColor || '#000000';
-              const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || 'atsha';
+              const companyName = branding.companyName?.[i18n.language] || branding.companyName?.en || 'AraRM';
               const logoSize = clampNumber(headerConfig.logoSize, 64, 0, 160);
               const companyAddress = branding.companyAddress?.[i18n.language] || branding.companyAddress?.en || (isRTL ? 'مصر' : 'Egypt');
 
@@ -391,7 +391,7 @@ const FormDocument = ({
                               </h1>
                             )}
                             <p className="text-base mt-1" style={{ color: headerTextColor }}>
-                              {isRTL ? t('users.atshaForFoodDelivery') : t('users.atshaForFoodDelivery')}
+                              {isRTL ? t('users.AraRMForFoodDelivery') : t('users.AraRMForFoodDelivery')}
                             </p>
                             {showCompanyAddress && companyAddress && (
                               <p className="text-sm mt-1" style={{ color: headerTextColor }}>

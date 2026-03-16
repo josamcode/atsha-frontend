@@ -54,14 +54,14 @@ const Navbar = () => {
           <Link to="/dashboard" className="flex items-center gap-3 group min-w-0">
             <img
               src="/logo.png"
-              alt={organization?.name || 'Atsha'}
+              alt={organization?.name || 'AraRM'}
               className="h-12 w-32 group-hover:scale-105 transition-transform"
             />
             <div className="hidden lg:block min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
                 {platformAdminView
                   ? (isRTL ? 'لوحة المنصة' : 'Platform Console')
-                  : (organization?.name || 'Atsha')}
+                  : (organization?.name || 'AraRM')}
               </p>
               <p className="text-xs text-gray-500 truncate">
                 {platformAdminView ? 'platform' : (organization?.slug || 'organization')}

@@ -1,6 +1,6 @@
-# atsha Frontend Client
+# AraRM Frontend Client
 
-React frontend for the atsha Restaurant Management System.
+React frontend for the AraRM Restaurant Management System.
 
 ## Features
 
@@ -106,7 +106,7 @@ client/
 
 The application uses Tailwind CSS for styling with a custom configuration:
 
-- Primary color: `#d4b900` (atsha brand color)
+- Primary color: `#d4b900` (AraRM brand color)
 - Responsive breakpoints: sm, md, lg, xl
 - RTL support for Arabic language
 

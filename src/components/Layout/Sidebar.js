@@ -199,7 +199,7 @@ const Sidebar = () => {
 
             <div className={`mt-6 pt-4 border-t border-gray-200 ${isRTL ? 'text-right' : 'text-left'}`}>
               <p className="text-xs text-gray-500">
-                {new Date().getFullYear()} atsha
+                {new Date().getFullYear()} AraRM
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 {platformAdminView ? 'platform' : (organization?.slug || 'organization')}

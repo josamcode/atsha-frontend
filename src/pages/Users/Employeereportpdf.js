@@ -1131,7 +1131,7 @@ const EmployeeReportPDF = () => {
 
                       {/* Company Name and Icons */}
                       <div className="text-center">
-                        <div className="font-bold text-xl mb-1">{t('users.atsha')}</div>
+                        <div className="font-bold text-xl mb-1">{t('users.AraRM')}</div>
                         <div className="flex items-center justify-center gap-2 text-sm">
                           <FaEnvelope className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />
                           <FaMobileAlt className="text-white w-6 h-6 text-sm border-2 border-white rounded-full p-1" />

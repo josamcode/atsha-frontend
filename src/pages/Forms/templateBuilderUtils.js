@@ -223,7 +223,7 @@ const DEFAULT_PRIMARY_COLOR = '#01c853';
 const DEFAULT_SECONDARY_COLOR = '#059669';
 const FOOTER_TEMPLATE_VALUES = FOOTER_TEMPLATE_OPTIONS.map((option) => option.value);
 
-const getDefaultBrandingName = (branding = {}) => branding?.displayName || branding?.shortName || 'Atsha';
+const getDefaultBrandingName = (branding = {}) => branding?.displayName || branding?.shortName || 'AraRM';
 const parseHexColor = (value) => {
   if (typeof value !== 'string') {
     return null;

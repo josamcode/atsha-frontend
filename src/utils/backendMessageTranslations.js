@@ -134,7 +134,7 @@ const ARABIC_BACKEND_MESSAGES = {
   'Your account has been deactivated': 'تم تعطيل حسابك',
   'Your session has expired': 'انتهت صلاحية جلستك',
   'Your session has expired. Please log in again.': 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
-  'atsha Server is running': 'خادم أتشا يعمل'
+  'AraRM Server is running': 'خادم أتشا يعمل'
 };
 
 const normalizeLanguage = (language = '') => (
