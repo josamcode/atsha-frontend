@@ -37,6 +37,8 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Messages = lazy(() => import('./pages/Messages/Messages'));
 const OrganizationSettings = lazy(() => import('./pages/OrganizationSettings'));
 const PlatformPlanEditor = lazy(() => import('./pages/PlatformPlanEditor'));
+const PlatformOrganizationDetails = lazy(() => import('./pages/PlatformOrganizationDetails'));
+const PlatformOrganizationEditor = lazy(() => import('./pages/PlatformOrganizationEditor'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const DefaultRedirect = () => {
@@ -292,6 +294,22 @@ function AppContent() {
             element={(
               <ProtectedRoute allowedRoles={['platform_admin']}>
                 <PlatformPlanEditor />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/platform/organizations/:organizationId"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin']}>
+                <PlatformOrganizationDetails />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/platform/organizations/:organizationId/edit"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin']}>
+                <PlatformOrganizationEditor />
               </ProtectedRoute>
             )}
           />

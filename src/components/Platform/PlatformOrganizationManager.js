@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   FaBuilding,
   FaEdit,
@@ -106,6 +107,7 @@ const getPlanClasses = (plan) => {
 };
 
 const PlatformOrganizationManager = ({ mode = 'browse' }) => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const isManagementMode = mode === 'manage';
@@ -170,7 +172,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     : (isRTL ? 'المؤسسات' : 'Organizations');
   const descriptionText = isManagementMode
     ? (isRTL ? 'إدارة المؤسسات والخطط والإعدادات العامة من مكان واحد.' : 'Manage organizations, plans, and platform-wide setup from one place.')
-    : (isRTL ? 'استعرض جميع المؤسسات واعرض أعضاء كل مؤسسة.' : 'Browse every organization in the system and inspect its members.');
+    : (isRTL ? 'استعرض جميع المؤسسات واطلع على تفاصيل كل مؤسسة.' : 'Browse every organization in the system and review its details.');
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -269,6 +271,7 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     setAppliedSearch('');
   };
 
+  // eslint-disable-next-line no-unused-vars
   const openMembersModal = async (organization) => {
     const organizationId = getOrganizationId(organization);
     if (!organizationId) {
@@ -301,6 +304,20 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
     setMembersModalOpen(false);
     setMembers([]);
     setSelectedOrganization(null);
+  };
+
+  const openOrganizationPage = (organization) => {
+    const organizationId = getOrganizationId(organization);
+    if (!organizationId) {
+      return;
+    }
+
+    navigate(`/platform/organizations/${organizationId}`, {
+      state: {
+        organization,
+        returnTo: '/users'
+      }
+    });
   };
 
   const openCreateModal = () => {
@@ -601,8 +618,8 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
                     </div>
 
                     <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-gray-200 px-5 py-4">
-                      <Button variant="outline" onClick={() => openMembersModal(organization)} icon={FaUsers} className='w-full'>
-                        {isRTL ? 'عرض الأعضاء' : 'View Members'}
+                      <Button variant="outline" onClick={() => openOrganizationPage(organization)} icon={FaUsers} className='w-full'>
+                        {isRTL ? 'عرض المؤسسة' : 'Show Organization'}
                       </Button>
 
                       {isManagementMode && (
@@ -711,8 +728,8 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
                   </div>
 
                   <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
-                    <Button variant="outline" onClick={() => openMembersModal(organization)} icon={FaUsers}>
-                      {isRTL ? 'عرض الأعضاء' : 'View Members'}
+                    <Button variant="outline" onClick={() => openOrganizationPage(organization)} icon={FaUsers}>
+                      {isRTL ? 'عرض المؤسسة' : 'Show Organization'}
                     </Button>
 
                     {isManagementMode && (
