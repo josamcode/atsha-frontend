@@ -525,11 +525,11 @@ textarea {
 }
 
 .auth-brand-logo {
-  height: 48px;
+  height: 24px;
   width: auto;
-  max-width: 200px;
+  /* max-width: 200px; */
   margin-bottom: 2rem;
-  filter: brightness(0) invert(1);
+  /* filter: brightness(0) invert(1); */
 }
 
 .auth-brand-title {

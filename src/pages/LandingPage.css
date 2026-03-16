@@ -180,7 +180,7 @@ html[dir="rtl"] .lp * {
 }
 
 .lp-nav-logo {
-  height: 32px;
+  height: 20px;
   width: auto;
 }
 
@@ -236,6 +236,15 @@ html[dir="rtl"] .lp * {
 .lp-hamburger svg {
   width: 24px;
   height: 24px;
+}
+
+@media (max-width: 500px) {
+  .lp-nav-login {
+    display: none;
+  }
+  .lp-nav-logo{
+    height: 14px;
+  }
 }
 
 /* Mobile menu */

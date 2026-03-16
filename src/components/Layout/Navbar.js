@@ -55,7 +55,7 @@ const Navbar = () => {
             <img
               src="/logo.png"
               alt={organization?.name || 'AraRM'}
-              className="h-12 w-32 group-hover:scale-105 transition-transform"
+              className="h-4 w-auto group-hover:scale-105 transition-transform"
             />
             <div className="hidden lg:block min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
