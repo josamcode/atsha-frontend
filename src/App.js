@@ -37,6 +37,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Messages = lazy(() => import('./pages/Messages/Messages'));
 const OrganizationSettings = lazy(() => import('./pages/OrganizationSettings'));
 const OrganizationPaymentResult = lazy(() => import('./pages/OrganizationPaymentResult'));
+const PlatformPaymentsAnalytics = lazy(() => import('./pages/PlatformPaymentsAnalytics'));
 const PlatformPlanEditor = lazy(() => import('./pages/PlatformPlanEditor'));
 const PlatformOrganizationDetails = lazy(() => import('./pages/PlatformOrganizationDetails'));
 const PlatformOrganizationEditor = lazy(() => import('./pages/PlatformOrganizationEditor'));
@@ -287,6 +288,14 @@ function AppContent() {
             element={(
               <ProtectedRoute allowedRoles={['organization_admin', 'platform_admin']}>
                 <OrganizationPaymentResult />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/platform/payments"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin']}>
+                <PlatformPaymentsAnalytics />
               </ProtectedRoute>
             )}
           />

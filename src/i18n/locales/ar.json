@@ -1111,6 +1111,83 @@
       }
     }
   },
+  "paymentsAnalytics": {
+    "title": "تحليلات المدفوعات",
+    "description": "تابع حجم المدفوعات والإيرادات وأداء الخطط وأحدث نشاطات ماي فاتورة عبر جميع المؤسسات.",
+    "generatedAt": "آخر تحديث",
+    "rangeLabel": "الفترة",
+    "windows": {
+      "7": "7 أيام",
+      "14": "14 يومًا",
+      "30": "30 يومًا"
+    },
+    "actions": {
+      "refresh": "تحديث"
+    },
+    "feedback": {
+      "loadError": "تعذر تحميل تحليلات المدفوعات الآن."
+    },
+    "cards": {
+      "totalPayments": "إجمالي المدفوعات",
+      "totalPaymentsHelper": "جميع محاولات الدفع المسجلة",
+      "paidPayments": "المدفوعات الناجحة",
+      "paidPaymentsHelper": "تمت بنجاح",
+      "failedPayments": "الفاشلة أو الملغاة",
+      "failedPaymentsHelper": "المدفوعات التي لم تكتمل",
+      "successRate": "معدل النجاح",
+      "successRateHelper": "المدفوعات الناجحة مقارنة بجميع المحاولات",
+      "totalRevenue": "إجمالي الإيرادات",
+      "totalRevenueHelper": "الإيرادات من المدفوعات الناجحة",
+      "averagePaidAmount": "متوسط قيمة الدفع",
+      "paidTransactions": "عمليات الدفع الناجحة"
+    },
+    "sections": {
+      "volumeTitle": "حجم المدفوعات",
+      "volumeDescription": "مقارنة محاولات الدفع اليومية بالمدفوعات الناجحة خلال الفترة المحددة.",
+      "revenueTitle": "اتجاه الإيرادات",
+      "revenueDescription": "الإيرادات الناتجة عن الفواتير المدفوعة خلال الفترة المحددة.",
+      "statusTitle": "توزيع الحالات",
+      "statusDescription": "كيف تتوزع محاولات الدفع حسب النتيجة.",
+      "topPlansTitle": "أفضل الخطط",
+      "topPlansDescription": "الخطط والمؤسسات مرتبة حسب الإيراد المحصل.",
+      "topOrganizationsTitle": "أفضل المؤسسات",
+      "billingCycleTitle": "توزيع دورات الفوترة",
+      "paymentsTableTitle": "أحدث المدفوعات",
+      "paymentsTableDescription": "ابحث وراجع أحدث نشاطات الدفع على مستوى المنصة."
+    },
+    "series": {
+      "payments": "المدفوعات",
+      "paidPayments": "الناجحة"
+    },
+    "labels": {
+      "paymentsCount": "{{count}} مدفوعات"
+    },
+    "filters": {
+      "searchPlaceholder": "ابحث بالفاتورة أو المؤسسة أو الخطة أو المستخدم",
+      "allStatuses": "كل الحالات",
+      "allProviders": "كل المزودين",
+      "pageSize": "{{count}} لكل صفحة"
+    },
+    "table": {
+      "invoice": "الفاتورة",
+      "organization": "المؤسسة",
+      "initiatedBy": "بواسطة",
+      "plan": "الخطة",
+      "amount": "المبلغ",
+      "status": "الحالة",
+      "createdAt": "تاريخ الإنشاء",
+      "paidAt": "تاريخ الدفع"
+    },
+    "emptyChart": "لا توجد بيانات مدفوعات متاحة بعد.",
+    "emptyTable": "لا توجد تحليلات مدفوعات متاحة بعد.",
+    "emptyPayments": "لا توجد مدفوعات مطابقة للفلاتر الحالية.",
+    "pagination": {
+      "results": "{{count}} نتائج",
+      "previous": "السابق",
+      "pageOf": "الصفحة {{page}} من {{pages}}",
+      "next": "التالي"
+    }
+  },
   "platformSettings": {
     "tabs": {
       "platform": "ملف المنصة",

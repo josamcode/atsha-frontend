@@ -67,6 +67,7 @@
     "leaves": "Leaves",
     "users": "Users",
     "messages": "Messages",
+    "paymentsAnalytics": "Payments",
     "settings": "Settings",
     "myProfile": "My Profile"
   },
@@ -1114,6 +1115,83 @@
         "downgraded": "Downgraded",
         "trialing": "Trialing"
       }
+    }
+  },
+  "paymentsAnalytics": {
+    "title": "Payments Analytics",
+    "description": "Track payment volume, revenue, plan performance, and the latest MyFatoorah activity across all organizations.",
+    "generatedAt": "Last generated",
+    "rangeLabel": "Window",
+    "windows": {
+      "7": "7 days",
+      "14": "14 days",
+      "30": "30 days"
+    },
+    "actions": {
+      "refresh": "Refresh"
+    },
+    "feedback": {
+      "loadError": "Unable to load payment analytics right now."
+    },
+    "cards": {
+      "totalPayments": "Total Payments",
+      "totalPaymentsHelper": "All recorded payment attempts",
+      "paidPayments": "Paid Payments",
+      "paidPaymentsHelper": "Completed successfully",
+      "failedPayments": "Failed or Cancelled",
+      "failedPaymentsHelper": "Payments that did not complete",
+      "successRate": "Success Rate",
+      "successRateHelper": "Paid payments versus all attempts",
+      "totalRevenue": "Total Revenue",
+      "totalRevenueHelper": "Collected from successful payments",
+      "averagePaidAmount": "Average Paid Amount",
+      "paidTransactions": "Paid Transactions"
+    },
+    "sections": {
+      "volumeTitle": "Payment Volume",
+      "volumeDescription": "Daily payment attempts versus successful payments in the selected window.",
+      "revenueTitle": "Revenue Trend",
+      "revenueDescription": "Revenue captured from paid invoices in the selected window.",
+      "statusTitle": "Status Breakdown",
+      "statusDescription": "How payment attempts are distributed by result.",
+      "topPlansTitle": "Top Plans",
+      "topPlansDescription": "Plans and organizations ranked by paid revenue.",
+      "topOrganizationsTitle": "Top Organizations",
+      "billingCycleTitle": "Billing Cycle Mix",
+      "paymentsTableTitle": "Recent Payments",
+      "paymentsTableDescription": "Search and review the latest platform-wide payment activity."
+    },
+    "series": {
+      "payments": "Payments",
+      "paidPayments": "Paid"
+    },
+    "labels": {
+      "paymentsCount": "{{count}} payments"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by invoice, organization, plan, or user",
+      "allStatuses": "All statuses",
+      "allProviders": "All providers",
+      "pageSize": "{{count}} per page"
+    },
+    "table": {
+      "invoice": "Invoice",
+      "organization": "Organization",
+      "initiatedBy": "Initiated By",
+      "plan": "Plan",
+      "amount": "Amount",
+      "status": "Status",
+      "createdAt": "Created",
+      "paidAt": "Paid"
+    },
+    "emptyChart": "No payment data is available yet.",
+    "emptyTable": "No payment analytics are available yet.",
+    "emptyPayments": "No payments matched the current filters.",
+    "pagination": {
+      "results": "{{count}} results",
+      "previous": "Previous",
+      "pageOf": "Page {{page}} of {{pages}}",
+      "next": "Next"
     }
   },
   "platformSettings": {

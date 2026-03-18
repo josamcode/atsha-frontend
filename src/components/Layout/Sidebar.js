@@ -9,6 +9,7 @@ import {
   FaChevronRight,
   FaClipboardList,
   FaCog,
+  FaCreditCard,
   FaEnvelope,
   FaFileAlt,
   FaQrcode,
@@ -71,6 +72,12 @@ const Sidebar = () => {
       label: t('nav.users'),
       icon: FaUsers,
       roles: ['platform_admin', 'organization_admin', 'supervisor']
+    },
+    {
+      path: '/platform/payments',
+      label: t('nav.paymentsAnalytics', { defaultValue: i18n.language === 'ar' ? 'المدفوعات' : 'Payments' }),
+      icon: FaCreditCard,
+      roles: ['platform_admin']
     },
     {
       path: '/organization',
