@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  FaCheckCircle,
   FaBuilding,
+  FaCreditCard,
   FaEnvelope,
   FaGlobe,
   FaPlus,
@@ -16,6 +19,7 @@ import Input from '../components/Common/Input';
 import Loading from '../components/Common/Loading';
 import Tabs from '../components/Common/Tabs';
 import api from '../utils/api';
+import billingService from '../services/billingService';
 import { showError, showSuccess } from '../utils/toast';
 import { useAuth } from '../context/AuthContext';
 import { useOrganization } from '../context/OrganizationContext';
@@ -74,6 +78,7 @@ const buildSettingsState = (source) => ({
   },
   featureFlags: source?.featureFlags || {},
   subscription: source?.subscription || null,
+  subscriptionConfig: source?.subscriptionConfig || {},
   summary: source?.summary || {},
   departments: Array.isArray(source?.departments) && source.departments.length > 0
     ? source.departments.map((department, index) => ({
@@ -86,7 +91,15 @@ const buildSettingsState = (source) => ({
     : [buildDepartmentDraft()]
 });
 
+const ORGANIZATION_TABS = ['general', 'policies', 'departments', 'members', 'subscription'];
+
+const resolveOrganizationTab = (search = '') => {
+  const requestedTab = new URLSearchParams(search || '').get('tab');
+  return ORGANIZATION_TABS.includes(requestedTab) ? requestedTab : null;
+};
+
 const OrganizationSettings = () => {
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const { user, organization } = useAuth();
   const { setOrganizationContext, refreshOrganization } = useOrganization();
@@ -95,9 +108,13 @@ const OrganizationSettings = () => {
   const activeLocale = isRTL ? 'ar-EG' : 'en-US';
   const [settings, setSettings] = useState(null);
   const [invitations, setInvitations] = useState([]);
+  const [billingPlans, setBillingPlans] = useState([]);
+  const [billingHistory, setBillingHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [checkoutPlanKey, setCheckoutPlanKey] = useState('');
+  const [selectedBillingCycle, setSelectedBillingCycle] = useState('monthly');
   const [latestActivationUrl, setLatestActivationUrl] = useState('');
   const [inviteForm, setInviteForm] = useState({
     email: '',
@@ -106,7 +123,9 @@ const OrganizationSettings = () => {
     languagePreference: 'en',
     expiresInDays: 7
   });
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(() => (
+    resolveOrganizationTab(typeof window !== 'undefined' ? window.location.search : '') || 'general'
+  ));
 
   const roleOptions = getAssignableRoleOptions(user, t, i18n.language);
   const departmentOptions = getDepartmentOptions(settings || organization, t, i18n.language);
@@ -127,11 +146,19 @@ const OrganizationSettings = () => {
       .replace(/_/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase())
   });
+  const getPaymentStatusLabel = (status) => t(`organizationSettings.subscription.paymentStatuses.${status}`, {
+    defaultValue: String(status || '--')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+  });
   const getSubscriptionMetricLabel = (key) => t(`organizationSettings.subscription.metrics.${key}`, {
     defaultValue: String(key || '')
       .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
       .replace(/_/g, ' ')
       .replace(/\b\w/g, (char) => char.toUpperCase())
+  });
+  const getBillingCycleLabel = (billingCycle) => t(`organizationSettings.subscription.billingCycles.${billingCycle}`, {
+    defaultValue: billingCycle === 'annual' ? 'Annual' : 'Monthly'
   });
   const getSubscriptionUsageText = (metric) => {
     const used = metric?.used ?? 0;
@@ -140,12 +167,40 @@ const OrganizationSettings = () => {
       ? `${used} / Unlimited`
       : `${used} / ${limit}`;
   };
+  const formatMoney = (amount, currency = 'SAR') => {
+    try {
+      return new Intl.NumberFormat(activeLocale, {
+        style: 'currency',
+        currency
+      }).format(Number(amount) || 0);
+    } catch (error) {
+      return `${Number(amount) || 0} ${currency}`;
+    }
+  };
   const subscriptionPlanName = settings?.subscription?.plan?.name?.[i18n.language]
     || settings?.subscription?.plan?.name?.en
     || settings?.subscription?.effectivePlanCode
     || settings?.subscription?.subscribedPlanCode
     || '--';
   const subscriptionUsageEntries = Object.entries(settings?.subscription?.usage || {});
+  const currentSubscriptionPlanCode = settings?.subscription?.subscribedPlanCode
+    || settings?.subscription?.effectivePlanCode
+    || null;
+  const activeSubscriptionBillingCycle = settings?.subscriptionConfig?.billingCycle || 'monthly';
+  const getPlanPrice = useCallback((plan, billingCycle) => {
+    if (billingCycle === 'annual') {
+      return {
+        amount: Number(plan?.pricing?.yearly?.amount) || 0,
+        currency: plan?.pricing?.yearly?.currency || plan?.market?.currency || 'SAR'
+      };
+    }
+
+    return {
+      amount: Number(plan?.pricing?.monthly?.amount) || 0,
+      currency: plan?.pricing?.monthly?.currency || plan?.market?.currency || 'SAR'
+    };
+  }, []);
+  const paidPlans = billingPlans.filter((plan) => getPlanPrice(plan, selectedBillingCycle).amount > 0);
   const organizationTabs = [
     { id: 'general', label: t('organizationSettings.tabs.general', { defaultValue: 'General' }) },
     { id: 'policies', label: t('organizationSettings.tabs.policies', { defaultValue: 'Policies' }) },
@@ -157,14 +212,30 @@ const OrganizationSettings = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [settingsResponse, invitationsResponse] = await Promise.all([
+      const [settingsResult, invitationsResult, billingPlansResult, billingHistoryResult] = await Promise.allSettled([
         api.get('/organizations/current/settings'),
-        api.get('/invitations')
+        api.get('/invitations'),
+        billingService.getPlans(),
+        billingService.getHistory(1, 6)
       ]);
 
-      const nextSettings = buildSettingsState(settingsResponse.data.data);
+      if (settingsResult.status !== 'fulfilled' || invitationsResult.status !== 'fulfilled') {
+        throw settingsResult.reason || invitationsResult.reason || new Error('Failed to load organization settings');
+      }
+
+      const nextSettings = buildSettingsState(settingsResult.value.data.data);
       setSettings(nextSettings);
-      setInvitations(invitationsResponse.data.data || []);
+      setInvitations(invitationsResult.value.data.data || []);
+      setBillingPlans(
+        billingPlansResult.status === 'fulfilled'
+          ? billingPlansResult.value.data?.data?.plans || []
+          : []
+      );
+      setBillingHistory(
+        billingHistoryResult.status === 'fulfilled'
+          ? billingHistoryResult.value.data?.data || []
+          : []
+      );
       setInviteForm((currentValue) => ({
         ...currentValue,
         department: currentValue.department || nextSettings.departments.find((department) => department.isActive)?.code || ''
@@ -181,6 +252,13 @@ const OrganizationSettings = () => {
       loadData();
     }
   }, [loadData, platformAdminView]);
+
+  useEffect(() => {
+    const requestedTab = resolveOrganizationTab(location.search);
+    if (requestedTab && requestedTab !== activeTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [activeTab, location.search]);
 
   const updateField = (field, value) => {
     setSettings((currentValue) => ({ ...currentValue, [field]: value }));
@@ -336,6 +414,47 @@ const OrganizationSettings = () => {
     } catch (error) {
       showError(error.response?.data?.message || t('organizationSettings.feedback.cancelError'));
     }
+  };
+
+  const handleCheckout = async (planCode) => {
+    const checkoutKey = `${planCode}:${selectedBillingCycle}`;
+    setCheckoutPlanKey(checkoutKey);
+
+    try {
+      const response = await billingService.checkout(planCode, selectedBillingCycle);
+      const paymentUrl = response.data?.data?.paymentUrl;
+
+      if (!paymentUrl) {
+        throw new Error('Payment URL was not returned by the server');
+      }
+
+      window.location.assign(paymentUrl);
+    } catch (error) {
+      showError(
+        error.response?.data?.message
+        || error.message
+        || t('organizationSettings.subscription.checkoutError', {
+          defaultValue: 'Unable to start the MyFatoorah checkout.'
+        })
+      );
+      setCheckoutPlanKey('');
+    }
+  };
+
+  const getPaymentStatusClasses = (status) => {
+    if (status === 'paid') {
+      return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
+    }
+
+    if (status === 'pending' || status === 'processing') {
+      return 'bg-amber-100 text-amber-700 border border-amber-200';
+    }
+
+    if (status === 'cancelled') {
+      return 'bg-slate-100 text-slate-700 border border-slate-200';
+    }
+
+    return 'bg-rose-100 text-rose-700 border border-rose-200';
   };
 
   if (platformAdminView) {
@@ -512,16 +631,30 @@ const OrganizationSettings = () => {
               </div>
 
               <div className="rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/5 to-transparent p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-wider font-medium text-gray-500 mb-1">
                       {t('organizationSettings.subscription.currentPlan', { defaultValue: 'Current Plan' })}
                     </p>
                     <p className="text-2xl font-bold text-gray-900">{subscriptionPlanName}</p>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {t('organizationSettings.subscription.billingCycle', {
+                        defaultValue: 'Billing cycle'
+                      })}: {getBillingCycleLabel(activeSubscriptionBillingCycle)}
+                    </p>
                   </div>
-                  <span className="inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-primary border border-primary/20 shadow-sm">
-                    {getSubscriptionStatusLabel(settings.subscription?.status)}
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-primary border border-primary/20 shadow-sm">
+                      {getSubscriptionStatusLabel(settings.subscription?.status)}
+                    </span>
+                    {settings.subscription?.endsAt && (
+                      <span className="inline-flex rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-slate-700 border border-slate-200 shadow-sm">
+                        {t('organizationSettings.subscription.validUntil', {
+                          defaultValue: 'Valid until'
+                        })}: {new Date(settings.subscription.endsAt).toLocaleDateString(activeLocale)}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {settings.subscription?.isDowngraded && (
@@ -549,6 +682,247 @@ const OrganizationSettings = () => {
                   </div>
                 )}
               </div>
+            </Card>
+
+            <Card>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FaCreditCard className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {t('organizationSettings.subscription.upgradeTitle', {
+                        defaultValue: 'Upgrade or Renew'
+                      })}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {t('organizationSettings.subscription.upgradeDescription', {
+                        defaultValue: 'Choose a paid plan and continue through the MyFatoorah checkout flow.'
+                      })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+                  {['monthly', 'annual'].map((billingCycle) => (
+                    <button
+                      key={billingCycle}
+                      type="button"
+                      onClick={() => setSelectedBillingCycle(billingCycle)}
+                      className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                        selectedBillingCycle === billingCycle
+                          ? 'bg-white text-primary shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      {getBillingCycleLabel(billingCycle)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {paidPlans.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+                  <p className="text-sm font-medium text-gray-600">
+                    {t('organizationSettings.subscription.noPaidPlans', {
+                      defaultValue: 'No paid plans are currently available for checkout.'
+                    })}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {paidPlans.map((plan) => {
+                    const planPrice = getPlanPrice(plan, selectedBillingCycle);
+                    const enabledFeatures = Object.entries(plan.features || {})
+                      .filter(([, enabled]) => Boolean(enabled))
+                      .map(([featureKey]) => getFeatureFlagLabel(featureKey));
+                    const limitHighlights = Object.entries(plan.limits || {})
+                      .filter(([, value]) => value !== null && value !== undefined)
+                      .slice(0, 4);
+                    const isCurrentPlan = (
+                      plan.code === currentSubscriptionPlanCode
+                      && !settings.subscription?.isDowngraded
+                    );
+                    const cardKey = `${plan.code}:${selectedBillingCycle}`;
+
+                    return (
+                      <div
+                        key={plan.code}
+                        className={`rounded-2xl border p-6 shadow-sm transition-all ${
+                          isCurrentPlan
+                            ? 'border-primary/30 bg-primary/5'
+                            : 'border-gray-200 bg-white hover:border-primary/30 hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                              {plan.code}
+                            </p>
+                            <h3 className="mt-2 text-2xl font-bold text-gray-900">
+                              {plan.name?.[i18n.language] || plan.name?.en || plan.code}
+                            </h3>
+                            <p className="mt-2 text-sm text-gray-500">
+                              {plan.description?.[i18n.language] || plan.description?.en || ''}
+                            </p>
+                          </div>
+                          {isCurrentPlan && (
+                            <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
+                              <FaCheckCircle />
+                              {t('organizationSettings.subscription.currentBadge', {
+                                defaultValue: 'Current'
+                              })}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-6 flex items-end justify-between gap-4">
+                          <div>
+                            <p className="text-3xl font-black tracking-tight text-gray-900">
+                              {formatMoney(planPrice.amount, planPrice.currency)}
+                            </p>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {getBillingCycleLabel(selectedBillingCycle)}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={() => handleCheckout(plan.code)}
+                            disabled={checkoutPlanKey === cardKey}
+                          >
+                            {checkoutPlanKey === cardKey
+                              ? t('organizationSettings.subscription.redirecting', {
+                                defaultValue: 'Redirecting...'
+                              })
+                              : isCurrentPlan
+                                ? t('organizationSettings.subscription.renewAction', {
+                                  defaultValue: 'Renew with MyFatoorah'
+                                })
+                                : t('organizationSettings.subscription.checkoutAction', {
+                                  defaultValue: 'Pay with MyFatoorah'
+                                })}
+                          </Button>
+                        </div>
+
+                        {enabledFeatures.length > 0 && (
+                          <div className="mt-6 border-t border-gray-200 pt-5">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                              {t('organizationSettings.subscription.includedFeatures', {
+                                defaultValue: 'Included Features'
+                              })}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {enabledFeatures.map((featureLabel) => (
+                                <span key={featureLabel} className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                                  {featureLabel}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {limitHighlights.length > 0 && (
+                          <div className="mt-5 grid grid-cols-2 gap-3">
+                            {limitHighlights.map(([limitKey, value]) => (
+                              <div key={limitKey} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                                <p className="text-xs font-medium text-gray-500">
+                                  {getSubscriptionMetricLabel(limitKey)}
+                                </p>
+                                <p className="mt-1 text-base font-semibold text-gray-900">
+                                  {value}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FaCreditCard className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {t('organizationSettings.subscription.paymentHistoryTitle', {
+                        defaultValue: 'Recent Payments'
+                      })}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {t('organizationSettings.subscription.paymentHistoryDescription', {
+                        defaultValue: 'Latest MyFatoorah payment attempts for this organization.'
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" onClick={loadData}>
+                  {t('organizationSettings.actions.refresh')}
+                </Button>
+              </div>
+
+              {billingHistory.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+                  <p className="text-sm font-medium text-gray-600">
+                    {t('organizationSettings.subscription.noPayments', {
+                      defaultValue: 'No payment attempts have been recorded yet.'
+                    })}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {billingHistory.map((payment) => (
+                    <div key={payment.id || payment._id || payment.invoiceId} className="rounded-2xl border border-gray-200 bg-white px-4 py-4">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-base font-semibold text-gray-900">
+                              {payment.planSnapshot?.name?.[i18n.language]
+                                || payment.planSnapshot?.name?.en
+                                || payment.planCode}
+                            </p>
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getPaymentStatusClasses(payment.status)}`}>
+                              {getPaymentStatusLabel(payment.status)}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                            <span>
+                              {t('organizationSettings.subscription.invoiceId', {
+                                defaultValue: 'Invoice'
+                              })}: {payment.invoiceId}
+                            </span>
+                            <span>
+                              {t('organizationSettings.subscription.billingCycle', {
+                                defaultValue: 'Billing cycle'
+                              })}: {getBillingCycleLabel(payment.billingCycle)}
+                            </span>
+                            <span>
+                              {t('organizationSettings.subscription.paymentDate', {
+                                defaultValue: 'Created'
+                              })}: {payment.createdAt ? new Date(payment.createdAt).toLocaleString(activeLocale) : '--'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-left rtl:text-right">
+                          <p className="text-lg font-bold text-gray-900">
+                            {formatMoney(payment.amount, payment.currency)}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {payment.initiatedBy?.name || payment.initiatedBy?.email || settings.branding.displayName || settings.name}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
 
             <Card>
