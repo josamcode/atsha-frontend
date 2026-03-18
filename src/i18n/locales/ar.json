@@ -1050,11 +1050,51 @@
       "currentPlan": "الخطة الحالية",
       "usage": "حدود الاستخدام",
       "downgradedNotice": "يتم حالياً تطبيق خطة تخفيض الميزات لهذه المؤسسة لأن الاشتراك المدفوع لم يعد نشطاً.",
+      "billingCycle": "دورة الفوترة",
+      "validUntil": "ساري حتى",
+      "upgradeTitle": "ترقية أو تجديد",
+      "upgradeDescription": "اختر خطة مدفوعة وأكمل عملية الدفع عبر ماي فاتورة.",
+      "noPaidPlans": "لا توجد خطط مدفوعة متاحة حاليًا للدفع.",
+      "redirecting": "جارٍ التحويل...",
+      "renewAction": "جدّد عبر ماي فاتورة",
+      "checkoutAction": "ادفع عبر ماي فاتورة",
+      "includedFeatures": "الميزات المتضمنة",
+      "paymentHistoryTitle": "آخر المدفوعات",
+      "paymentHistoryDescription": "أحدث محاولات الدفع عبر ماي فاتورة لهذه المؤسسة.",
+      "noPayments": "لا توجد محاولات دفع مسجلة بعد.",
+      "invoiceId": "الفاتورة",
+      "paymentDate": "تاريخ الإنشاء",
+      "checkoutError": "تعذر بدء عملية الدفع عبر ماي فاتورة.",
+      "currentBadge": "الحالية",
+      "billingCycles": {
+        "monthly": "شهري",
+        "annual": "سنوي"
+      },
       "metrics": {
         "formsPerMonth": "النماذج شهرياً",
         "messagesPerMonth": "الرسائل شهرياً",
         "templatesTotal": "إجمالي القوالب",
         "usersTotal": "إجمالي المستخدمين"
+      },
+      "paymentStatuses": {
+        "pending": "قيد الانتظار",
+        "processing": "قيد المعالجة",
+        "paid": "مدفوع",
+        "failed": "فشل",
+        "cancelled": "ملغاة"
+      },
+      "paymentResult": {
+        "processingTitle": "جارٍ التحقق من الدفع",
+        "successTitle": "تم الدفع بنجاح",
+        "cancelledTitle": "تم إلغاء عملية الدفع",
+        "failedTitle": "لم تكتمل عملية الدفع",
+        "processingMessage": "يرجى الانتظار قليلًا حتى نؤكد عملية الدفع مع ماي فاتورة.",
+        "successMessage": "تم تحديث اشتراك المؤسسة وأصبحت الخطة الجديدة مفعلة الآن.",
+        "cancelledMessage": "تم إلغاء جلسة الدفع قبل الإكمال. يمكنك بدء عملية دفع جديدة في أي وقت.",
+        "failedMessage": "تعذر تأكيد عملية الدفع. يمكنك إعادة المحاولة من صفحة الاشتراك.",
+        "invoice": "الفاتورة",
+        "backToSubscription": "العودة إلى الاشتراك",
+        "backToDashboard": "العودة إلى لوحة التحكم"
       },
       "statuses": {
         "active": "نشطة",
@@ -1062,6 +1102,12 @@
         "past_due": "متأخرة",
         "canceled": "ملغاة",
         "unpaid": "غير مدفوعة"
+      ,
+        "cancelled": "ملغاة",
+        "expired": "منتهية",
+        "suspended": "موقوفة",
+        "downgraded": "مخفّضة",
+        "trialing": "تجريبية"
       }
     }
   },

@@ -1054,20 +1054,65 @@
     },
     "subscription": {
       "currentPlan": "Current Plan",
+      "billingCycle": "Billing Cycle",
+      "validUntil": "Valid Until",
       "usage": "Usage Limits",
       "downgradedNotice": "This organization is currently enforced on its downgrade plan because the paid subscription is no longer active.",
+      "upgradeTitle": "Upgrade or Renew",
+      "upgradeDescription": "Choose a paid plan and continue through the MyFatoorah checkout flow.",
+      "noPaidPlans": "No paid plans are currently available for checkout.",
+      "redirecting": "Redirecting...",
+      "renewAction": "Renew with MyFatoorah",
+      "checkoutAction": "Pay with MyFatoorah",
+      "includedFeatures": "Included Features",
+      "paymentHistoryTitle": "Recent Payments",
+      "paymentHistoryDescription": "Latest MyFatoorah payment attempts for this organization.",
+      "noPayments": "No payment attempts have been recorded yet.",
+      "invoiceId": "Invoice",
+      "paymentDate": "Created",
+      "checkoutError": "Unable to start the MyFatoorah checkout.",
+      "currentBadge": "Current",
+      "billingCycles": {
+        "monthly": "Monthly",
+        "annual": "Annual"
+      },
       "metrics": {
         "formsPerMonth": "Forms Per Month",
         "messagesPerMonth": "Messages Per Month",
         "templatesTotal": "Templates Total",
         "usersTotal": "Users Total"
       },
+      "paymentStatuses": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "paid": "Paid",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "paymentResult": {
+        "processingTitle": "Payment verification is in progress",
+        "successTitle": "Payment completed successfully",
+        "cancelledTitle": "Payment was cancelled",
+        "failedTitle": "Payment was not completed",
+        "processingMessage": "Please wait a moment while we confirm the payment with MyFatoorah.",
+        "successMessage": "The organization subscription has been updated and the new plan is now active.",
+        "cancelledMessage": "The payment session was cancelled before completion. You can start a new checkout whenever you are ready.",
+        "failedMessage": "The payment could not be confirmed. You can retry the checkout from the subscription page.",
+        "invoice": "Invoice",
+        "backToSubscription": "Back to Subscription",
+        "backToDashboard": "Back to Dashboard"
+      },
       "statuses": {
         "active": "Active",
         "inactive": "Inactive",
         "past_due": "Past Due",
         "canceled": "Canceled",
-        "unpaid": "Unpaid"
+        "unpaid": "Unpaid",
+        "cancelled": "Cancelled",
+        "expired": "Expired",
+        "suspended": "Suspended",
+        "downgraded": "Downgraded",
+        "trialing": "Trialing"
       }
     }
   },
