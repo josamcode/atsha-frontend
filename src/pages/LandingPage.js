@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  FEATURE_FIELDS,
+  LIMIT_FIELDS,
+  formatLimitValue,
+  formatMoney,
+  getPlanDescription,
+  getPlanName
+} from '../components/Platform/planUtils';
 import './LandingPage.css';
 
 /* ─── SVG Icon Components ─── */
@@ -40,6 +48,152 @@ const IconMenu = () => (
 const IconClose = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12" /></svg>
 );
+const IconCheck = () => (
+  <svg width="16" height="16" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="2">
+    <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
+  </svg>
+);
+
+const LANDING_PLANS = [
+  {
+    code: 'free',
+    name: {
+      en: 'Free',
+      ar: 'مجاني'
+    },
+    description: {
+      en: 'Entry plan for pilots and very small teams.',
+      ar: 'خطة أولية للتجربة والفرق الصغيرة جدا.'
+    },
+    market: {
+      primaryRegion: 'MENA',
+      primaryCountry: 'SA',
+      currency: 'SAR'
+    },
+    pricing: {
+      monthly: {
+        amount: 0,
+        currency: 'SAR'
+      },
+      yearly: {
+        amount: 0,
+        currency: 'SAR'
+      }
+    },
+    features: {
+      qrCode: false,
+      attendanceManagement: false,
+      leaveManagement: false,
+      messaging: false
+    },
+    limits: {
+      formsPerMonth: 100,
+      templatesTotal: 3,
+      usersTotal: 5,
+      messagesPerMonth: 0
+    },
+    isActive: true,
+    sortOrder: 0,
+    isDefault: true,
+    source: 'default',
+    checkout: {
+      monthly: false,
+      annual: false
+    }
+  },
+  {
+    code: 'plus',
+    name: {
+      en: 'Plus',
+      ar: 'بلس'
+    },
+    description: {
+      en: 'For growing teams that need operational workflows and messaging.',
+      ar: 'للفرق المتنامية التي تحتاج إلى سير عمل تشغيلي ونظام مراسلة.'
+    },
+    market: {
+      primaryRegion: 'MENA',
+      primaryCountry: 'SA',
+      currency: 'SAR'
+    },
+    pricing: {
+      monthly: {
+        amount: 149,
+        currency: 'SAR'
+      },
+      yearly: {
+        amount: 1490,
+        currency: 'SAR'
+      }
+    },
+    features: {
+      qrCode: true,
+      attendanceManagement: true,
+      leaveManagement: false,
+      messaging: true
+    },
+    limits: {
+      formsPerMonth: 1000,
+      templatesTotal: 15,
+      usersTotal: 25,
+      messagesPerMonth: 1000
+    },
+    isActive: true,
+    sortOrder: 1,
+    isDefault: true,
+    source: 'default',
+    checkout: {
+      monthly: true,
+      annual: true
+    }
+  },
+  {
+    code: 'pro',
+    name: {
+      en: 'Pro',
+      ar: 'برو'
+    },
+    description: {
+      en: 'Full operating suite for larger organizations and regional rollout.',
+      ar: 'باقة تشغيل متكاملة للمنظمات الأكبر وللتوسع الإقليمي.'
+    },
+    market: {
+      primaryRegion: 'MENA',
+      primaryCountry: 'SA',
+      currency: 'SAR'
+    },
+    pricing: {
+      monthly: {
+        amount: 349,
+        currency: 'SAR'
+      },
+      yearly: {
+        amount: 3490,
+        currency: 'SAR'
+      }
+    },
+    features: {
+      qrCode: true,
+      attendanceManagement: true,
+      leaveManagement: true,
+      messaging: true
+    },
+    limits: {
+      formsPerMonth: 10000,
+      templatesTotal: 150,
+      usersTotal: 3,
+      messagesPerMonth: 20000
+    },
+    isActive: true,
+    sortOrder: 2,
+    isDefault: true,
+    source: 'customized_default',
+    checkout: {
+      monthly: true,
+      annual: true
+    }
+  }
+];
 
 /* ─── Scroll Reveal Hook ─── */
 function useScrollReveal() {
@@ -73,11 +227,14 @@ function useScrollReveal() {
    LANDING PAGE COMPONENT
    ═══════════════════════════════════════════ */
 const LandingPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
+  const [billingCycle, setBillingCycle] = useState('monthly');
   const pageRef = useScrollReveal();
+  const isArabic = i18n.language === 'ar';
+  const locale = isArabic ? 'ar-SA' : 'en-US';
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 20);
@@ -92,6 +249,130 @@ const LandingPage = () => {
     setMobileMenuOpen(false);
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const pricingText = isArabic ? {
+    nav: 'الخطط',
+    label: 'الأسعار',
+    title: 'اختر الخطة المناسبة لحجم فريقك.',
+    subtitle: 'ابدأ مجاناً للتجربة، انتقل إلى بلس لتشغيل العمليات اليومية، وفعّل برو عندما تحتاج إلى باقة تشغيل كاملة.',
+    monthly: 'شهري',
+    yearly: 'سنوي',
+    yearlyBadge: 'وفر حتى 17%',
+    bannerEyebrow: 'تسعير واضح',
+    bannerTitle: 'خطط جاهزة لفرق التشغيل في الشرق الأوسط',
+    bannerText: 'جميع الأسعار بالريال السعودي، وكل الخطط تدعم العربية وواجهة RTL وعزل المنظمات من اليوم الأول.',
+    marketLabel: 'السوق الأساسي',
+    mostPopular: 'الأكثر اختياراً',
+    fullSuite: 'الباقة الكاملة',
+    startHere: 'ابدأ من هنا',
+    included: 'الميزات المضمنة',
+    noCardRequired: 'بدون بطاقة ائتمان',
+    checkoutReady: 'الدفع الإلكتروني متاح بعد التسجيل',
+    contactUs: 'يمكننا تهيئة الخطة معك',
+    choosePlan: 'اختر الخطة',
+    startFree: 'ابدأ مجاناً',
+    save: 'وفر',
+    perMonth: 'شهرياً',
+    perYear: 'سنوياً',
+    equivalentTo: 'يعادل',
+    monthlyEquivalentSuffix: 'شهرياً',
+    billedMonthly: 'يمكنك التحويل إلى السنوي لتوفير أكثر',
+    freeForever: 'مجانية دائماً'
+  } : {
+    nav: 'Plans',
+    label: 'Pricing',
+    title: 'Choose the rollout that fits your team.',
+    subtitle: 'Start free for pilots, move to Plus for daily operations, and unlock Pro when you need the full operating suite.',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    yearlyBadge: 'Save up to 17%',
+    bannerEyebrow: 'Simple pricing',
+    bannerTitle: 'Purpose-built plans for operations teams in MENA',
+    bannerText: 'All prices are listed in SAR, and every plan includes Arabic, RTL, and multi-organization foundations from day one.',
+    marketLabel: 'Primary market',
+    mostPopular: 'Most popular',
+    fullSuite: 'Full suite',
+    startHere: 'Start here',
+    included: 'Included modules',
+    noCardRequired: 'No card required',
+    checkoutReady: 'Checkout available after signup',
+    contactUs: 'Onboarding support available',
+    choosePlan: 'Choose plan',
+    startFree: 'Start free',
+    save: 'Save',
+    perMonth: 'per month',
+    perYear: 'per year',
+    equivalentTo: 'Equivalent to',
+    monthlyEquivalentSuffix: 'each month',
+    billedMonthly: 'Switch to yearly billing to save more',
+    freeForever: 'Free forever'
+  };
+
+  const navItems = [
+    { id: 'features', label: t('landing.nav.features') },
+    { id: 'plans', label: pricingText.nav },
+    { id: 'how-it-works', label: t('landing.nav.howItWorks') },
+    { id: 'use-cases', label: t('landing.nav.useCases') },
+    { id: 'faq', label: t('landing.nav.faq') }
+  ];
+
+  const plansData = LANDING_PLANS
+    .filter((plan) => plan.isActive !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const selectedCheckoutKey = billingCycle === 'monthly' ? 'monthly' : 'annual';
+
+  const getPlanPrice = (plan, cycle) => (
+    formatMoney(
+      plan.pricing?.[cycle]?.amount,
+      plan.market?.currency || plan.pricing?.[cycle]?.currency || 'SAR',
+      locale
+    )
+  );
+
+  const getPlanPriceNote = (plan) => {
+    const monthlyAmount = Number(plan.pricing?.monthly?.amount) || 0;
+
+    if (monthlyAmount <= 0) {
+      return pricingText.freeForever;
+    }
+
+    if (billingCycle === 'monthly') {
+      return pricingText.billedMonthly;
+    }
+
+    const yearlyAmount = Number(plan.pricing?.yearly?.amount) || 0;
+    const currency = plan.market?.currency || plan.pricing?.yearly?.currency || 'SAR';
+
+    if (yearlyAmount <= 0) {
+      return pricingText.freeForever;
+    }
+
+    return `${pricingText.equivalentTo} ${formatMoney(yearlyAmount / 12, currency, locale)} ${pricingText.monthlyEquivalentSuffix}`;
+  };
+
+  const getPlanSavingsPercent = (plan) => {
+    const monthlyAmount = Number(plan.pricing?.monthly?.amount) || 0;
+    const yearlyAmount = Number(plan.pricing?.yearly?.amount) || 0;
+    const monthlyAnnualized = monthlyAmount * 12;
+
+    if (monthlyAnnualized <= 0 || yearlyAmount <= 0 || yearlyAmount >= monthlyAnnualized) {
+      return 0;
+    }
+
+    return Math.round(((monthlyAnnualized - yearlyAmount) / monthlyAnnualized) * 100);
+  };
+
+  const getPlanBadge = (plan) => {
+    if (plan.code === 'plus') return pricingText.mostPopular;
+    if (plan.code === 'pro') return pricingText.fullSuite;
+    return pricingText.startHere;
+  };
+
+  const getPlanCheckoutHint = (plan) => {
+    if (plan.code === 'free') return pricingText.noCardRequired;
+    return plan.checkout?.[selectedCheckoutKey] ? pricingText.checkoutReady : pricingText.contactUs;
   };
 
   const featuresData = [
@@ -114,10 +395,13 @@ const LandingPage = () => {
           <img src="/logo.png" alt="AraRM" className="lp-nav-logo" />
 
           <ul className="lp-nav-links">
-            <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>{t('landing.nav.features')}</a></li>
-            <li><a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}>{t('landing.nav.howItWorks')}</a></li>
-            <li><a href="#use-cases" onClick={(e) => { e.preventDefault(); scrollToSection('use-cases'); }}>{t('landing.nav.useCases')}</a></li>
-            <li><a href="#faq" onClick={(e) => { e.preventDefault(); scrollToSection('faq'); }}>{t('landing.nav.faq')}</a></li>
+            {navItems.map((item) => (
+              <li key={item.id}>
+                <a href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+                  {item.label}
+                </a>
+              </li>
+            ))}
           </ul>
 
           <div className="lp-nav-right">
@@ -132,10 +416,11 @@ const LandingPage = () => {
 
       {/* Mobile Menu */}
       <div className={`lp-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-        <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>{t('landing.nav.features')}</a>
-        <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}>{t('landing.nav.howItWorks')}</a>
-        <a href="#use-cases" onClick={(e) => { e.preventDefault(); scrollToSection('use-cases'); }}>{t('landing.nav.useCases')}</a>
-        <a href="#faq" onClick={(e) => { e.preventDefault(); scrollToSection('faq'); }}>{t('landing.nav.faq')}</a>
+        {navItems.map((item) => (
+          <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+            {item.label}
+          </a>
+        ))}
         <Link to="/login" onClick={() => setMobileMenuOpen(false)}>{t('landing.nav.login')}</Link>
         <Link to="/register" onClick={() => setMobileMenuOpen(false)}>{t('landing.nav.startFree')} →</Link>
       </div>
@@ -546,6 +831,129 @@ const LandingPage = () => {
       </section>
 
       {/* ──────────────── FAQ ──────────────── */}
+      <section className="lp-section lp-pricing" id="plans">
+        <div className="lp-container">
+          <div className="lp-section-center lp-reveal">
+            <span className="lp-section-label">{pricingText.label}</span>
+            <h2 className="lp-section-title">{pricingText.title}</h2>
+            <p className="lp-section-subtitle">{pricingText.subtitle}</p>
+
+            <div className="lp-pricing-toggle" role="group" aria-label={pricingText.label}>
+              <button
+                type="button"
+                aria-pressed={billingCycle === 'monthly'}
+                className={billingCycle === 'monthly' ? 'active' : ''}
+                onClick={() => setBillingCycle('monthly')}
+              >
+                {pricingText.monthly}
+              </button>
+              <button
+                type="button"
+                aria-pressed={billingCycle === 'yearly'}
+                className={billingCycle === 'yearly' ? 'active' : ''}
+                onClick={() => setBillingCycle('yearly')}
+              >
+                {pricingText.yearly}
+                <span className="lp-pricing-toggle-badge">{pricingText.yearlyBadge}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="lp-pricing-banner lp-reveal lp-reveal-delay-1">
+            <div>
+              <span className="lp-pricing-banner-eyebrow">{pricingText.bannerEyebrow}</span>
+              <h3>{pricingText.bannerTitle}</h3>
+              <p>{pricingText.bannerText}</p>
+            </div>
+            <span className="lp-pricing-banner-market">
+              {pricingText.marketLabel}: SAR
+            </span>
+          </div>
+
+          <div className="lp-pricing-grid">
+            {plansData.map((plan, index) => {
+              const savingsPercent = getPlanSavingsPercent(plan);
+              const isFeatured = plan.code === 'plus';
+              const isPremium = plan.code === 'pro';
+
+              return (
+                <article
+                  key={plan.code}
+                  className={`lp-plan-card ${isFeatured ? 'featured' : ''} ${isPremium ? 'premium' : ''} lp-reveal lp-reveal-delay-${Math.min(index + 1, 3)}`}
+                >
+                  <div className="lp-plan-top">
+                    <div>
+                      <div className="lp-plan-badges">
+                        <span className="lp-plan-code">{plan.code.toUpperCase()}</span>
+                        <span className="lp-plan-badge">{getPlanBadge(plan)}</span>
+                      </div>
+                      <h3>{getPlanName(plan, i18n.language)}</h3>
+                      <p>{getPlanDescription(plan, i18n.language)}</p>
+                    </div>
+
+                    <span className="lp-plan-market">
+                      {plan.market?.primaryRegion} / {plan.market?.primaryCountry}
+                    </span>
+                  </div>
+
+                  <div className="lp-plan-price-block">
+                    <div className="lp-plan-price-row">
+                      <span className="lp-plan-price">{getPlanPrice(plan, billingCycle)}</span>
+                      <span className="lp-plan-price-cycle">
+                        {billingCycle === 'monthly' ? pricingText.perMonth : pricingText.perYear}
+                      </span>
+                    </div>
+                    <p className="lp-plan-price-note">{getPlanPriceNote(plan)}</p>
+                    {billingCycle === 'yearly' && savingsPercent > 0 ? (
+                      <span className="lp-plan-savings">{pricingText.save} {savingsPercent}%</span>
+                    ) : null}
+                  </div>
+
+                  <div className="lp-plan-cta">
+                    <Link
+                      to="/register"
+                      className={`lp-btn ${plan.code === 'free' ? 'lp-btn-secondary' : 'lp-btn-primary'} lp-plan-btn`}
+                    >
+                      {plan.code === 'free' ? pricingText.startFree : pricingText.choosePlan}
+                    </Link>
+                    <span className="lp-plan-checkout">{getPlanCheckoutHint(plan)}</span>
+                  </div>
+
+                  <div className="lp-plan-limits">
+                    {LIMIT_FIELDS.map((limit) => (
+                      <div key={limit.key} className="lp-plan-limit">
+                        <span className="lp-plan-limit-value">
+                          {formatLimitValue(plan.limits?.[limit.key], t, locale)}
+                        </span>
+                        <span className="lp-plan-limit-label">{t(limit.labelKey)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="lp-plan-features">
+                    <h4>{pricingText.included}</h4>
+                    <ul className="lp-plan-feature-list">
+                      {FEATURE_FIELDS.map((feature) => {
+                        const enabled = Boolean(plan.features?.[feature.key]);
+
+                        return (
+                          <li key={feature.key} className={enabled ? 'enabled' : 'disabled'}>
+                            <span className="lp-plan-feature-icon">
+                              {enabled ? <IconCheck /> : null}
+                            </span>
+                            <span>{t(feature.labelKey)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <section className="lp-section lp-faq" id="faq">
         <div className="lp-container">
           <div className="lp-section-center lp-reveal">
@@ -595,10 +1003,13 @@ const LandingPage = () => {
             <div className="lp-footer-col">
               <h4>{t('landing.footer.product')}</h4>
               <ul>
-                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>{t('landing.nav.features')}</a></li>
-                <li><a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}>{t('landing.nav.howItWorks')}</a></li>
-                <li><a href="#use-cases" onClick={(e) => { e.preventDefault(); scrollToSection('use-cases'); }}>{t('landing.nav.useCases')}</a></li>
-                <li><a href="#faq" onClick={(e) => { e.preventDefault(); scrollToSection('faq'); }}>{t('landing.nav.faq')}</a></li>
+                {navItems.map((item) => (
+                  <li key={item.id}>
+                    <a href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="lp-footer-col">
