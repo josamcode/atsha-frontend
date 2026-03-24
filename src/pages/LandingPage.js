@@ -9,6 +9,7 @@ import {
   getPlanDescription,
   getPlanName
 } from '../components/Platform/planUtils';
+import billingService from '../services/billingService';
 import './LandingPage.css';
 
 /* ─── SVG Icon Components ─── */
@@ -54,147 +55,6 @@ const IconCheck = () => (
   </svg>
 );
 
-const LANDING_PLANS = [
-  {
-    code: 'free',
-    name: {
-      en: 'Free',
-      ar: 'مجاني'
-    },
-    description: {
-      en: 'Entry plan for pilots and very small teams.',
-      ar: 'خطة أولية للتجربة والفرق الصغيرة جدا.'
-    },
-    market: {
-      primaryRegion: 'MENA',
-      primaryCountry: 'SA',
-      currency: 'SAR'
-    },
-    pricing: {
-      monthly: {
-        amount: 0,
-        currency: 'SAR'
-      },
-      yearly: {
-        amount: 0,
-        currency: 'SAR'
-      }
-    },
-    features: {
-      qrCode: false,
-      attendanceManagement: false,
-      leaveManagement: false,
-      messaging: false
-    },
-    limits: {
-      formsPerMonth: 100,
-      templatesTotal: 3,
-      usersTotal: 5,
-      messagesPerMonth: 0
-    },
-    isActive: true,
-    sortOrder: 0,
-    isDefault: true,
-    source: 'default',
-    checkout: {
-      monthly: false,
-      annual: false
-    }
-  },
-  {
-    code: 'plus',
-    name: {
-      en: 'Plus',
-      ar: 'بلس'
-    },
-    description: {
-      en: 'For growing teams that need operational workflows and messaging.',
-      ar: 'للفرق المتنامية التي تحتاج إلى سير عمل تشغيلي ونظام مراسلة.'
-    },
-    market: {
-      primaryRegion: 'MENA',
-      primaryCountry: 'SA',
-      currency: 'SAR'
-    },
-    pricing: {
-      monthly: {
-        amount: 149,
-        currency: 'SAR'
-      },
-      yearly: {
-        amount: 1490,
-        currency: 'SAR'
-      }
-    },
-    features: {
-      qrCode: true,
-      attendanceManagement: true,
-      leaveManagement: false,
-      messaging: true
-    },
-    limits: {
-      formsPerMonth: 1000,
-      templatesTotal: 15,
-      usersTotal: 25,
-      messagesPerMonth: 1000
-    },
-    isActive: true,
-    sortOrder: 1,
-    isDefault: true,
-    source: 'default',
-    checkout: {
-      monthly: true,
-      annual: true
-    }
-  },
-  {
-    code: 'pro',
-    name: {
-      en: 'Pro',
-      ar: 'برو'
-    },
-    description: {
-      en: 'Full operating suite for larger organizations and regional rollout.',
-      ar: 'باقة تشغيل متكاملة للمنظمات الأكبر وللتوسع الإقليمي.'
-    },
-    market: {
-      primaryRegion: 'MENA',
-      primaryCountry: 'SA',
-      currency: 'SAR'
-    },
-    pricing: {
-      monthly: {
-        amount: 349,
-        currency: 'SAR'
-      },
-      yearly: {
-        amount: 3490,
-        currency: 'SAR'
-      }
-    },
-    features: {
-      qrCode: true,
-      attendanceManagement: true,
-      leaveManagement: true,
-      messaging: true
-    },
-    limits: {
-      formsPerMonth: 10000,
-      templatesTotal: 150,
-      usersTotal: 3,
-      messagesPerMonth: 20000
-    },
-    isActive: true,
-    sortOrder: 2,
-    isDefault: true,
-    source: 'customized_default',
-    checkout: {
-      monthly: true,
-      annual: true
-    }
-  }
-];
-
 /* ─── Scroll Reveal Hook ─── */
 function useScrollReveal() {
   const ref = useRef(null);
@@ -232,6 +92,9 @@ const LandingPage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const [billingCycle, setBillingCycle] = useState('monthly');
+  const [plansData, setPlansData] = useState([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState(false);
   const pageRef = useScrollReveal();
   const isArabic = i18n.language === 'ar';
   const locale = isArabic ? 'ar-SA' : 'en-US';
@@ -244,6 +107,48 @@ const LandingPage = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadPlans = async () => {
+      setPlansLoading(true);
+      setPlansError(false);
+
+      try {
+        const response = await billingService.getPlans();
+        const plans = Array.isArray(response.data?.data?.plans) ? response.data.data.plans : [];
+
+        if (!isActive) {
+          return;
+        }
+
+        setPlansData(
+          plans
+            .filter((plan) => plan?.isActive !== false)
+            .sort((a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0))
+        );
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        console.error('Error loading landing page plans:', error);
+        setPlansData([]);
+        setPlansError(true);
+      } finally {
+        if (isActive) {
+          setPlansLoading(false);
+        }
+      }
+    };
+
+    loadPlans();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const scrollToSection = (id) => {
     setMobileMenuOpen(false);
@@ -278,7 +183,10 @@ const LandingPage = () => {
     equivalentTo: 'يعادل',
     monthlyEquivalentSuffix: 'شهرياً',
     billedMonthly: 'يمكنك التحويل إلى السنوي لتوفير أكثر',
-    freeForever: 'مجانية دائماً'
+    freeForever: 'مجانية دائماً',
+    loading: 'جاري تحميل الخطط...',
+    empty: 'لا توجد خطط نشطة متاحة حالياً.',
+    unavailable: 'تعذر تحميل الخطط حالياً. حاول مرة أخرى بعد قليل.'
   } : {
     nav: 'Plans',
     label: 'Pricing',
@@ -306,7 +214,10 @@ const LandingPage = () => {
     equivalentTo: 'Equivalent to',
     monthlyEquivalentSuffix: 'each month',
     billedMonthly: 'Switch to yearly billing to save more',
-    freeForever: 'Free forever'
+    freeForever: 'Free forever',
+    loading: 'Loading plans...',
+    empty: 'No active plans are available right now.',
+    unavailable: 'Plans are temporarily unavailable. Please try again shortly.'
   };
 
   const navItems = [
@@ -316,10 +227,6 @@ const LandingPage = () => {
     { id: 'use-cases', label: t('landing.nav.useCases') },
     { id: 'faq', label: t('landing.nav.faq') }
   ];
-
-  const plansData = LANDING_PLANS
-    .filter((plan) => plan.isActive !== false)
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
   const selectedCheckoutKey = billingCycle === 'monthly' ? 'monthly' : 'annual';
 
@@ -871,85 +778,103 @@ const LandingPage = () => {
           </div>
 
           <div className="lp-pricing-grid">
-            {plansData.map((plan, index) => {
-              const savingsPercent = getPlanSavingsPercent(plan);
-              const isFeatured = plan.code === 'plus';
-              const isPremium = plan.code === 'pro';
-
-              return (
-                <article
-                  key={plan.code}
-                  className={`lp-plan-card ${isFeatured ? 'featured' : ''} ${isPremium ? 'premium' : ''} lp-reveal lp-reveal-delay-${Math.min(index + 1, 3)}`}
-                >
-                  <div className="lp-plan-top">
-                    <div>
-                      <div className="lp-plan-badges">
-                        <span className="lp-plan-code">{plan.code.toUpperCase()}</span>
-                        <span className="lp-plan-badge">{getPlanBadge(plan)}</span>
-                      </div>
-                      <h3>{getPlanName(plan, i18n.language)}</h3>
-                      <p>{getPlanDescription(plan, i18n.language)}</p>
-                    </div>
-
-                    <span className="lp-plan-market">
-                      {plan.market?.primaryRegion} / {plan.market?.primaryCountry}
-                    </span>
-                  </div>
-
-                  <div className="lp-plan-price-block">
-                    <div className="lp-plan-price-row">
-                      <span className="lp-plan-price">{getPlanPrice(plan, billingCycle)}</span>
-                      <span className="lp-plan-price-cycle">
-                        {billingCycle === 'monthly' ? pricingText.perMonth : pricingText.perYear}
-                      </span>
-                    </div>
-                    <p className="lp-plan-price-note">{getPlanPriceNote(plan)}</p>
-                    {billingCycle === 'yearly' && savingsPercent > 0 ? (
-                      <span className="lp-plan-savings">{pricingText.save} {savingsPercent}%</span>
-                    ) : null}
-                  </div>
-
-                  <div className="lp-plan-cta">
-                    <Link
-                      to="/register"
-                      className={`lp-btn ${plan.code === 'free' ? 'lp-btn-secondary' : 'lp-btn-primary'} lp-plan-btn`}
-                    >
-                      {plan.code === 'free' ? pricingText.startFree : pricingText.choosePlan}
-                    </Link>
-                    <span className="lp-plan-checkout">{getPlanCheckoutHint(plan)}</span>
-                  </div>
-
-                  <div className="lp-plan-limits">
-                    {LIMIT_FIELDS.map((limit) => (
-                      <div key={limit.key} className="lp-plan-limit">
-                        <span className="lp-plan-limit-value">
-                          {formatLimitValue(plan.limits?.[limit.key], t, locale)}
-                        </span>
-                        <span className="lp-plan-limit-label">{t(limit.labelKey)}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="lp-plan-features">
-                    <h4>{pricingText.included}</h4>
-                    <ul className="lp-plan-feature-list">
-                      {FEATURE_FIELDS.map((feature) => {
-                        const enabled = Boolean(plan.features?.[feature.key]);
-
-                        return (
-                          <li key={feature.key} className={enabled ? 'enabled' : 'disabled'}>
-                            <span className="lp-plan-feature-icon">
-                              {enabled ? <IconCheck /> : null}
-                            </span>
-                            <span>{t(feature.labelKey)}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
+            {plansLoading ? (
+              [1, 2, 3].map((card) => (
+                <article key={card} className="lp-plan-card lp-plan-card-loading">
+                  <div className="lp-plan-skeleton lp-plan-skeleton-sm" />
+                  <div className="lp-plan-skeleton lp-plan-skeleton-md" />
+                  <div className="lp-plan-skeleton lp-plan-skeleton-lg" />
+                  <div className="lp-plan-skeleton lp-plan-skeleton-btn" />
+                  <div className="lp-plan-skeleton-grid">
+                    {[1, 2, 3, 4].map((item) => <div key={item} className="lp-plan-skeleton lp-plan-skeleton-box" />)}
                   </div>
                 </article>
-              );
-            })}
+              ))
+            ) : plansData.length > 0 ? (
+              plansData.map((plan, index) => {
+                const savingsPercent = getPlanSavingsPercent(plan);
+                const isFeatured = plan.code === 'plus';
+                const isPremium = plan.code === 'pro';
+
+                return (
+                  <article
+                    key={plan.code}
+                    className={`lp-plan-card ${isFeatured ? 'featured' : ''} ${isPremium ? 'premium' : ''}`}
+                  >
+                    <div className="lp-plan-top">
+                      <div>
+                        <div className="lp-plan-badges">
+                          <span className="lp-plan-code">{plan.code.toUpperCase()}</span>
+                          <span className="lp-plan-badge">{getPlanBadge(plan)}</span>
+                        </div>
+                        <h3>{getPlanName(plan, i18n.language)}</h3>
+                        <p>{getPlanDescription(plan, i18n.language)}</p>
+                      </div>
+
+                      <span className="lp-plan-market">
+                        {plan.market?.primaryRegion} / {plan.market?.primaryCountry}
+                      </span>
+                    </div>
+
+                    <div className="lp-plan-price-block">
+                      <div className="lp-plan-price-row">
+                        <span className="lp-plan-price">{getPlanPrice(plan, billingCycle)}</span>
+                        <span className="lp-plan-price-cycle">
+                          {billingCycle === 'monthly' ? pricingText.perMonth : pricingText.perYear}
+                        </span>
+                      </div>
+                      <p className="lp-plan-price-note">{getPlanPriceNote(plan)}</p>
+                      {billingCycle === 'yearly' && savingsPercent > 0 ? (
+                        <span className="lp-plan-savings">{pricingText.save} {savingsPercent}%</span>
+                      ) : null}
+                    </div>
+
+                    <div className="lp-plan-cta">
+                      <Link
+                        to="/register"
+                        className={`lp-btn ${plan.code === 'free' ? 'lp-btn-secondary' : 'lp-btn-primary'} lp-plan-btn`}
+                      >
+                        {plan.code === 'free' ? pricingText.startFree : pricingText.choosePlan}
+                      </Link>
+                      <span className="lp-plan-checkout">{getPlanCheckoutHint(plan)}</span>
+                    </div>
+
+                    <div className="lp-plan-limits">
+                      {LIMIT_FIELDS.map((limit) => (
+                        <div key={limit.key} className="lp-plan-limit">
+                          <span className="lp-plan-limit-value">
+                            {formatLimitValue(plan.limits?.[limit.key], t, locale)}
+                          </span>
+                          <span className="lp-plan-limit-label">{t(limit.labelKey)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="lp-plan-features">
+                      <h4>{pricingText.included}</h4>
+                      <ul className="lp-plan-feature-list">
+                        {FEATURE_FIELDS.map((feature) => {
+                          const enabled = Boolean(plan.features?.[feature.key]);
+
+                          return (
+                            <li key={feature.key} className={enabled ? 'enabled' : 'disabled'}>
+                              <span className="lp-plan-feature-icon">
+                                {enabled ? <IconCheck /> : null}
+                              </span>
+                              <span>{t(feature.labelKey)}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="lp-pricing-empty">
+                {plansError ? pricingText.unavailable : pricingText.empty}
+              </div>
+            )}
           </div>
         </div>
       </section>
