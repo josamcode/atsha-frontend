@@ -351,6 +351,7 @@ function AppContent() {
 
           <Route path="/" element={<SmartHome />} />
           <Route path="/landing" element={<LandingPage />} />
+          <Route path="/plans" element={<LandingPage initialSection="plans" />} />
           <Route path="*" element={<DefaultRedirect />} />
         </Routes>
       </Suspense>

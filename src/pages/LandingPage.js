@@ -86,7 +86,7 @@ function useScrollReveal() {
 /* ═══════════════════════════════════════════
    LANDING PAGE COMPONENT
    ═══════════════════════════════════════════ */
-const LandingPage = () => {
+const LandingPage = ({ initialSection = null }) => {
   const { t, i18n } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -107,6 +107,21 @@ const LandingPage = () => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
+
+  useEffect(() => {
+    if (!initialSection) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(initialSection);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [initialSection]);
 
   useEffect(() => {
     let isActive = true;
