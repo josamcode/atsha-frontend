@@ -1460,6 +1460,166 @@ export const STARTER_TEMPLATES = [
         })
       });
     }
+  },
+  {
+    id: 'manufactured_dessert_products',
+    name: { en: 'Manufactured Dessert Products', ar: 'نموذج منتجات الحلا المصنعة' },
+    description: {
+      en: 'Single bilingual table for tracking daily manufactured dessert products',
+      ar: 'جدول ثنائي اللغة لمتابعة منتجات الحلا المصنعة يومياً'
+    },
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        {
+          ...createSectionFromPreset('table'),
+          label: createStarterLabel('Dessert Products Table', 'جدول منتجات الحلا'),
+          fields: [],
+          advancedLayout: buildTableLayout([
+            createStarterColumn('Date', 'التاريخ', {
+              fieldType: 'date',
+              alignment: 'center'
+            }),
+            createStarterColumn('Day', 'اليوم', {
+              alignment: 'center'
+            }),
+            createStarterColumn('Unit', 'الوحدة', {
+              alignment: 'center'
+            }),
+            createStarterColumn('Items', 'الأصناف'),
+            createStarterColumn('Sold', 'المباع', {
+              fieldType: 'number',
+              alignment: 'center'
+            }),
+            createStarterColumn('Remaining', 'المتبقي', {
+              fieldType: 'number',
+              alignment: 'center'
+            }),
+            createStarterColumn('Expiration Date', 'تاريخ الانتهاء', {
+              fieldType: 'date',
+              alignment: 'center'
+            })
+          ], {
+            table: {
+              numberOfRows: 12,
+              stripedRows: true
+            },
+            styling: {
+              showTitle: false
+            }
+          })
+        }
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Manufactured Dessert Products', 'نموذج منتجات الحلا المصنعة'),
+        description: createStarterLabel(
+          'Daily product movement sheet with sold, remaining, and expiration tracking',
+          'نموذج يومي لحركة المنتجات مع متابعة المباع والمتبقي وتاريخ الانتهاء'
+        ),
+        sections,
+        layout: {
+          orientation: 'landscape',
+          margins: {
+            top: 28,
+            right: 24,
+            bottom: 28,
+            left: 24
+          }
+        },
+        pdfStyle: {
+          header: {
+            showSubtitle: false
+          },
+          footer: {
+            template: 'minimal'
+          },
+          metadata: {
+            enabled: false
+          },
+          signature: {
+            enabled: false
+          }
+        }
+      });
+    }
+  },
+  {
+    id: 'waste_sheet',
+    name: { en: 'Waste Sheet', ar: 'نموذج الهالك' },
+    description: {
+      en: 'Bilingual waste tracking table with prepared-by and approved-by sign-off',
+      ar: 'جدول ثنائي اللغة لمتابعة الهالك مع اعتماد تم الإعداد بواسطة وتمت الموافقة بواسطة'
+    },
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        {
+          ...createSectionFromPreset('table'),
+          label: createStarterLabel('Waste Table', 'نموذج الهالك'),
+          fields: [],
+          advancedLayout: buildTableLayout([
+            createStarterColumn('Date', 'التاريخ', {
+              fieldType: 'date',
+              alignment: 'center'
+            }),
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Unit', 'الوحدة', {
+              alignment: 'center'
+            }),
+            createStarterColumn('Quantity', 'الكمية', {
+              fieldType: 'number',
+              alignment: 'center'
+            }),
+            createStarterColumn('Reason', 'السبب', {
+              fieldType: 'textarea'
+            })
+          ], {
+            table: {
+              numberOfRows: 12,
+              stripedRows: true
+            },
+            styling: {
+              showTitle: false
+            }
+          })
+        }
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Waste Sheet', 'نموذج الهالك'),
+        description: createStarterLabel(
+          'Waste register with item, quantity, and reason tracking',
+          'سجل هدر لمتابعة الصنف والكمية وسبب الهالك'
+        ),
+        sections,
+        layout: {
+          orientation: 'portrait',
+          margins: {
+            top: 28,
+            right: 24,
+            bottom: 28,
+            left: 24
+          }
+        },
+        pdfStyle: {
+          header: {
+            showSubtitle: false
+          },
+          footer: {
+            template: 'minimal'
+          },
+          metadata: {
+            enabled: false
+          },
+          signature: {
+            enabled: true,
+            showPreparedBy: true,
+            showApprovedBy: true
+          }
+        }
+      });
+    }
   }
 ];
 
