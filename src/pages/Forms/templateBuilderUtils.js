@@ -71,7 +71,7 @@ export const SECTION_LAYOUT_OPTIONS = [
     description: 'Create printable rows and columns',
     descriptionAr: 'أنشئ صفوفًا وأعمدة للطباعة',
     icon: FaTable
-  }
+  },
 ];
 
 export const SECTION_PRESETS = [
@@ -1008,6 +1008,74 @@ const buildStarterTemplate = (base, {
   pdfStyle
 });
 
+const createStarterSection = ({
+  preset = 'simple',
+  labelEn,
+  labelAr,
+  fields = [],
+  sectionType,
+  advancedLayout
+}) => {
+  const section = createSectionFromPreset(preset);
+
+  return {
+    ...section,
+    label: createStarterLabel(labelEn, labelAr),
+    fields,
+    sectionType: sectionType || section.sectionType || 'normal',
+    ...(advancedLayout ? { advancedLayout } : {})
+  };
+};
+
+const createStarterTableSection = ({
+  labelEn,
+  labelAr,
+  columns,
+  rowCount = 10,
+  showTitle = false,
+  sectionType = 'normal',
+  advancedLayoutOverrides = {}
+}) => ({
+  ...createSectionFromPreset('table'),
+  label: createStarterLabel(labelEn, labelAr),
+  fields: [],
+  sectionType,
+  advancedLayout: buildTableLayout(columns, {
+    ...advancedLayoutOverrides,
+    table: {
+      numberOfRows: rowCount,
+      stripedRows: true,
+      ...(advancedLayoutOverrides.table || {})
+    },
+    styling: {
+      showTitle,
+      ...(advancedLayoutOverrides.styling || {})
+    }
+  })
+});
+
+const createStarterPdfStyle = ({
+  showMetadata = true,
+  showSignature = false,
+  footerTemplate = 'minimal',
+  showSubtitle = false
+} = {}) => ({
+  header: {
+    showSubtitle
+  },
+  footer: {
+    template: footerTemplate
+  },
+  metadata: {
+    enabled: showMetadata
+  },
+  signature: {
+    enabled: showSignature,
+    showPreparedBy: showSignature,
+    showApprovedBy: showSignature
+  }
+});
+
 export const STARTER_TEMPLATES = [
   {
     id: 'blank',
@@ -1618,6 +1686,1028 @@ export const STARTER_TEMPLATES = [
             showApprovedBy: true
           }
         }
+      });
+    }
+  },
+  {
+    id: 'fire_safety_inspection_form',
+    name: createStarterLabel('Fire Safety Inspection Form', 'نموذج فحص السلامة من الحريق'),
+    description: createStarterLabel(
+      'Three-part fire safety inspection form with checklist, notes, and responsibility',
+      'نموذج فحص سلامة من الحريق مكوّن من ثلاثة أقسام يشمل قائمة فحص وملاحظات ومسؤولية'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Inspection Items',
+          labelAr: 'بنود الفحص',
+          fields: [
+            createStarterField('Fire extinguishers accessible', 'طفايات الحريق متاحة', { type: 'boolean', width: 'half' }),
+            createStarterField('Emergency exits clear', 'مخارج الطوارئ خالية', { type: 'boolean', width: 'half' }),
+            createStarterField('Alarm panel operational', 'لوحة الإنذار تعمل', { type: 'boolean', width: 'half' }),
+            createStarterField('Safety signage visible', 'لوحات السلامة واضحة', { type: 'boolean', width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Notes & Responsibility',
+          labelAr: 'الملاحظات والمسؤولية',
+          fields: [
+            createStarterField('Notes', 'الملاحظات', { type: 'textarea', width: 'full' }),
+            createStarterField('Inspected By', 'تم الفحص بواسطة', { width: 'half' }),
+            createStarterField('Responsible Person', 'الشخص المسؤول', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Fire Safety Inspection Form', 'نموذج فحص السلامة من الحريق'),
+        description: createStarterLabel(
+          'Checklist-driven fire safety review with notes and responsibility tracking',
+          'مراجعة سلامة من الحريق تعتمد على قائمة فحص مع ملاحظات وتتبع المسؤولية'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'employee_attendance_performance_report_full',
+    name: createStarterLabel('Employee Attendance & Performance Report (Full)', 'تقرير حضور وأداء الموظف (كامل)'),
+    description: createStarterLabel(
+      'Detailed employee attendance and performance report with statement, response, and approval',
+      'تقرير تفصيلي لحضور وأداء الموظف يتضمن بياناً وتوضيحاً واعتماداً'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'Employee Information',
+          labelAr: 'معلومات الموظف',
+          fields: [
+            createStarterField('Name', 'الاسم', { width: 'half' }),
+            createStarterField('Job Title', 'المسمى الوظيفي', { width: 'half' }),
+            createStarterField('Employee ID', 'الرقم الوظيفي', { width: 'half' }),
+            createStarterField('Contact Info', 'بيانات التواصل', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          preset: 'static',
+          labelEn: 'Introduction / Statement',
+          labelAr: 'المقدمة / البيان',
+          fields: [
+            createStarterField('Statement', 'البيان', {
+              type: 'static_text',
+              width: 'full',
+              defaultValue: createStarterLabel(
+                'This report documents attendance or performance concerns and gives the employee space to provide a response.',
+                'يوثق هذا التقرير ملاحظات الحضور أو الأداء ويمنح الموظف مساحة لتقديم الرد أو التوضيح.'
+              ),
+              pdfDisplay: {
+                showLabel: false,
+                showValue: true,
+                fontSize: 13,
+                bold: false,
+                alignment: 'left'
+              }
+            })
+          ]
+        }),
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'Incident Details',
+          labelAr: 'تفاصيل الحالة',
+          fields: [
+            createStarterField('Late Arrival Time', 'وقت التأخير', { type: 'time', width: 'half' }),
+            createStarterField('Absence / Early Leave', 'غياب / انصراف مبكر', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Late Arrival', 'تأخير'),
+                createStarterLabel('Absence', 'غياب'),
+                createStarterLabel('Early Leave', 'انصراف مبكر')
+              ]
+            }),
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Violation Type',
+          labelAr: 'نوع المخالفة',
+          fields: [
+            createStarterField('Violation Type', 'نوع المخالفة', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Delay', 'تأخير'),
+                createStarterLabel('Negligence', 'إهمال'),
+                createStarterLabel('Policy Violation', 'مخالفة سياسة'),
+                createStarterLabel('Other', 'أخرى')
+              ]
+            }),
+            createStarterField('Other Details', 'تفاصيل أخرى', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Employee Response',
+          labelAr: 'رد الموظف',
+          fields: [
+            createStarterField('Explanation', 'التوضيح', { type: 'textarea', width: 'full' }),
+            createStarterField('Attachments', 'المرفقات', { type: 'file', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          preset: 'signatures',
+          labelEn: 'Approval',
+          labelAr: 'الاعتماد',
+          fields: [
+            createStarterField('Employee Signature', 'توقيع الموظف', { width: 'half' }),
+            createStarterField('Manager Signature', 'توقيع المدير', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Employee Attendance & Performance Report (Full)', 'تقرير حضور وأداء الموظف (كامل)'),
+        description: createStarterLabel(
+          'Six-section employee report covering attendance, incident details, response, and sign-off',
+          'تقرير موظف من ستة أقسام يغطي الحضور وتفاصيل الحالة والرد والاعتماد'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'daily_inventory_count_copy',
+    name: createStarterLabel('Daily Inventory Count (Copy)', 'الجرد اليومي (نسخة)'),
+    description: createStarterLabel(
+      'Simple daily inventory count sheet with item, unit, quantity, and notes',
+      'نموذج جرد يومي بسيط يتضمن الصنف والوحدة والكمية والملاحظات'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterTableSection({
+          labelEn: 'Daily Inventory Table',
+          labelAr: 'جدول الجرد اليومي',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Unit', 'الوحدة', { alignment: 'center' }),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Notes', 'ملاحظات', { fieldType: 'textarea' })
+          ],
+          rowCount: 12
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Inventory Count (Copy)', 'الجرد اليومي (نسخة)'),
+        description: createStarterLabel(
+          'Printable daily inventory count copy with bilingual columns',
+          'نسخة قابلة للطباعة من الجرد اليومي مع أعمدة ثنائية اللغة'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'daily_operations_checklist',
+    name: createStarterLabel('Daily Operations Checklist', 'قائمة العمليات اليومية'),
+    description: createStarterLabel(
+      'Two-section checklist for daily operating tasks with notes',
+      'قائمة تحقق من قسمين لمهام التشغيل اليومية مع الملاحظات'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Tasks',
+          labelAr: 'المهام',
+          fields: [
+            createStarterField('Opening tasks completed', 'تم إنجاز مهام الافتتاح', { type: 'boolean', width: 'half' }),
+            createStarterField('Equipment checked', 'تم فحص المعدات', { type: 'boolean', width: 'half' }),
+            createStarterField('Stock verified', 'تم التحقق من المخزون', { type: 'boolean', width: 'half' }),
+            createStarterField('Cleaning completed', 'تم إتمام التنظيف', { type: 'boolean', width: 'half' }),
+            createStarterField('Notes', 'ملاحظات', { type: 'textarea', width: 'full' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Operations Checklist', 'قائمة العمليات اليومية'),
+        description: createStarterLabel(
+          'Daily operations checklist with task completion and notes',
+          'قائمة عمليات يومية تتضمن إنجاز المهام والملاحظات'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'employee_report_short_version',
+    name: createStarterLabel('Employee Report (Short Version)', 'تقرير الموظف (نسخة مختصرة)'),
+    description: createStarterLabel(
+      'Compact employee report covering employee details, violation, and approval',
+      'تقرير مختصر للموظف يغطي البيانات والمخالفة والاعتماد'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'Employee Info',
+          labelAr: 'بيانات الموظف',
+          fields: [
+            createStarterField('Name', 'الاسم', { width: 'half' }),
+            createStarterField('Job Title', 'المسمى الوظيفي', { width: 'half' }),
+            createStarterField('Employee ID', 'الرقم الوظيفي', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Violation',
+          labelAr: 'المخالفة',
+          fields: [
+            createStarterField('Violation', 'المخالفة', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Delay', 'تأخير'),
+                createStarterLabel('Negligence', 'إهمال'),
+                createStarterLabel('Policy Violation', 'مخالفة سياسة'),
+                createStarterLabel('Other', 'أخرى')
+              ]
+            }),
+            createStarterField('Details', 'التفاصيل', { type: 'textarea', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          preset: 'signatures',
+          labelEn: 'Approval',
+          labelAr: 'الاعتماد',
+          fields: [
+            createStarterField('Signature', 'التوقيع', { width: 'half' }),
+            createStarterField('Manager Approval', 'اعتماد المدير', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Employee Report (Short Version)', 'تقرير الموظف (نسخة مختصرة)'),
+        description: createStarterLabel(
+          'Short employee reporting template with quick violation sign-off',
+          'نموذج مختصر لتقارير الموظفين مع اعتماد سريع للمخالفة'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'inventory_vs_sales_reconciliation_report',
+    name: createStarterLabel('Inventory vs Sales Reconciliation Report', 'تقرير مطابقة المخزون مع المبيعات'),
+    description: createStarterLabel(
+      'Analytical report to compare counted stock with sold quantity',
+      'تقرير تحليلي لمقارنة المخزون الفعلي بالكميات المباعة'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Prepared By', 'أعد بواسطة', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Reconciliation Table',
+          labelAr: 'جدول المطابقة',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Actual Quantity', 'الكمية الفعلية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Sold Quantity', 'الكمية المباعة', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Difference', 'الفرق', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Reason', 'السبب', { fieldType: 'textarea' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Inventory vs Sales Reconciliation Report', 'تقرير مطابقة المخزون مع المبيعات'),
+        description: createStarterLabel(
+          'Bilingual reconciliation table for stock counts versus sales',
+          'جدول ثنائي اللغة لمطابقة الجرد مع المبيعات'
+        ),
+        sections,
+        layout: {
+          orientation: 'landscape'
+        },
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'product_recipe_cost_sheet_copy',
+    name: createStarterLabel('Product Recipe & Cost Sheet (Copy)', 'نموذج الوصفة وتكلفة المنتج (نسخة)'),
+    description: createStarterLabel(
+      'Recipe and costing copy with ingredient, quantity, and unit cost details',
+      'نسخة لوصفة المنتج وتكلفته تتضمن المكونات والكمية وتكلفة الوحدة'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterTableSection({
+          labelEn: 'Recipe & Cost Table',
+          labelAr: 'جدول الوصفة والتكلفة',
+          columns: [
+            createStarterColumn('Ingredient', 'المكون'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Unit Cost', 'تكلفة الوحدة', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Total Cost', 'إجمالي التكلفة', { fieldType: 'number', alignment: 'center' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Product Recipe & Cost Sheet (Copy)', 'نموذج الوصفة وتكلفة المنتج (نسخة)'),
+        description: createStarterLabel(
+          'Single-table recipe and cost copy for ingredients and totals',
+          'نسخة من جدول الوصفة والتكلفة للمكونات والإجماليات'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'end_of_shift_inventory_balance_report',
+    name: createStarterLabel('End-of-Shift Inventory Balance Report', 'تقرير رصيد المخزون نهاية الوردية'),
+    description: createStarterLabel(
+      'Shift-end stock balance report with threshold status table',
+      'تقرير رصيد المخزون في نهاية الوردية مع جدول حالة الحد الأدنى'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Shift', 'الوردية', { width: 'half' }),
+            createStarterField('Prepared By', 'أعد بواسطة', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Inventory Balance Table',
+          labelAr: 'جدول رصيد المخزون',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Current Balance', 'الرصيد الحالي', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Minimum Threshold', 'الحد الأدنى', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Status', 'الحالة', { alignment: 'center' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('End-of-Shift Inventory Balance Report', 'تقرير رصيد المخزون نهاية الوردية'),
+        description: createStarterLabel(
+          'End-of-shift balance sheet for stock position and threshold status',
+          'نموذج نهاية الوردية لمتابعة أرصدة المخزون وحالة الحد الأدنى'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  }
+  , {
+    id: 'daily_production_report',
+    name: createStarterLabel('Daily Production Report', 'تقرير الإنتاج اليومي'),
+    description: createStarterLabel(
+      'Daily production tracking with output, waste, and operational notes',
+      'متابعة يومية للإنتاج تتضمن الكمية المنتجة والهدر والملاحظات التشغيلية'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Shift', 'الوردية', { width: 'half' }),
+            createStarterField('Supervisor', 'المشرف', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Production Table',
+          labelAr: 'جدول الإنتاج',
+          columns: [
+            createStarterColumn('Product Name', 'اسم المنتج'),
+            createStarterColumn('Produced Quantity', 'الكمية المنتجة', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Waste', 'الهدر', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Notes', 'ملاحظات', { fieldType: 'textarea' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Production Report', 'تقرير الإنتاج اليومي'),
+        description: createStarterLabel(
+          'Production report with daily output, waste, and notes',
+          'تقرير إنتاج يومي يتضمن المخرجات والهدر والملاحظات'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'goods_receiving_form',
+    name: createStarterLabel('Goods Receiving Form', 'نموذج استلام البضاعة'),
+    description: createStarterLabel(
+      'Goods receiving form with supplier header and item quantity table',
+      'نموذج استلام بضاعة يتضمن بيانات المورد وجدول الكميات'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Supplier', 'المورد', { width: 'half' }),
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Items',
+          labelAr: 'الأصناف',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Goods Receiving Form', 'نموذج استلام البضاعة'),
+        description: createStarterLabel(
+          'Receiving sheet for supplier deliveries and item quantities',
+          'نموذج استلام لتوريدات الموردين وكميات الأصناف'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'goods_issue_form',
+    name: createStarterLabel('Goods Issue Form', 'نموذج صرف البضاعة'),
+    description: createStarterLabel(
+      'Goods issue form with receiver details and item quantity table',
+      'نموذج صرف بضاعة يتضمن بيانات المستلم وجدول الكميات'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Department / Receiver', 'القسم / المستلم', { width: 'half' }),
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Items',
+          labelAr: 'الأصناف',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Goods Issue Form', 'نموذج صرف البضاعة'),
+        description: createStarterLabel(
+          'Issue form for departments or receivers with item quantities',
+          'نموذج صرف للأقسام أو المستلمين مع كميات الأصناف'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'daily_inventory_count_inactive',
+    name: createStarterLabel('Daily Inventory Count (Inactive)', 'الجرد اليومي'),
+    description: createStarterLabel(
+      'Inactive version of the daily inventory count starter',
+      'نسخة غير نشطة من قالب الجرد اليومي'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterTableSection({
+          labelEn: 'Daily Inventory Table',
+          labelAr: 'جدول الجرد اليومي',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Notes', 'ملاحظات', { fieldType: 'textarea' })
+          ],
+          rowCount: 12
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Inventory Count (Inactive)', 'الجرد اليومي'),
+        description: createStarterLabel(
+          'Inactive daily inventory sheet for item quantity tracking',
+          'نموذج جرد يومي غير نشط لمتابعة الأصناف والكميات'
+        ),
+        sections,
+        isActive: false,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  }
+  , {
+    id: 'oil_change_log',
+    name: createStarterLabel('Oil Change Log', 'سجل تغيير الزيت'),
+    description: createStarterLabel(
+      'Two-section oil change log with status, notes, and responsibility',
+      'سجل تغيير زيت من قسمين يتضمن الحالة والملاحظات والمسؤولية'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Responsible Person', 'الشخص المسؤول', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Log Details',
+          labelAr: 'تفاصيل السجل',
+          fields: [
+            createStarterField('Change Status', 'حالة التغيير', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Changed', 'تم التغيير'),
+                createStarterLabel('Pending', 'قيد الانتظار'),
+                createStarterLabel('Not Required', 'غير مطلوب')
+              ]
+            }),
+            createStarterField('Notes', 'ملاحظات', { type: 'textarea', width: 'full' })
+          ]
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Oil Change Log', 'سجل تغيير الزيت'),
+        description: createStarterLabel(
+          'Oil maintenance log with date, status, notes, and responsible person',
+          'سجل صيانة الزيت مع التاريخ والحالة والملاحظات والشخص المسؤول'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'incident_violation_report',
+    name: createStarterLabel('Incident / Violation Report', 'تقرير حادث / مخالفة'),
+    description: createStarterLabel(
+      'Four-section incident or violation report with action and signature',
+      'تقرير من أربعة أقسام للحوادث أو المخالفات يتضمن الإجراء والتوقيع'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          labelEn: 'Person Information',
+          labelAr: 'بيانات الشخص',
+          fields: [
+            createStarterField('Person Name', 'اسم الشخص', { width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Violation Details',
+          labelAr: 'تفاصيل المخالفة',
+          fields: [
+            createStarterField('Violation Type', 'نوع المخالفة', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Incident', 'حادث'),
+                createStarterLabel('Delay', 'تأخير'),
+                createStarterLabel('Negligence', 'إهمال'),
+                createStarterLabel('Other', 'أخرى')
+              ]
+            }),
+            createStarterField('Description', 'الوصف', { type: 'textarea', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Action Taken',
+          labelAr: 'الإجراء المتخذ',
+          fields: [
+            createStarterField('Action Taken', 'الإجراء المتخذ', { type: 'textarea', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Signature',
+          labelAr: 'التوقيع',
+          fields: [
+            createStarterField('Signature', 'التوقيع', { width: 'full' })
+          ]
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Incident / Violation Report', 'تقرير حادث / مخالفة'),
+        description: createStarterLabel(
+          'Focused incident or violation report with action taken and signature',
+          'تقرير مركز للحوادث أو المخالفات مع الإجراء المتخذ والتوقيع'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'daily_operations_report',
+    name: createStarterLabel('Daily Operations Report', 'تقرير العمليات اليومية'),
+    description: createStarterLabel(
+      'Five-section daily operations report with tasks, issues, status, and notes',
+      'تقرير عمليات يومي من خمسة أقسام يشمل المهام والمشكلات والحالة والملاحظات'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Tasks',
+          labelAr: 'المهام',
+          fields: [
+            createStarterField('Opening ready', 'الافتتاح جاهز', { type: 'boolean', width: 'half' }),
+            createStarterField('Stock checked', 'تم فحص المخزون', { type: 'boolean', width: 'half' }),
+            createStarterField('Equipment ready', 'المعدات جاهزة', { type: 'boolean', width: 'half' }),
+            createStarterField('Cleaning verified', 'تم التحقق من النظافة', { type: 'boolean', width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Issues',
+          labelAr: 'المشكلات',
+          fields: [
+            createStarterField('Issues', 'المشكلات', { type: 'textarea', width: 'full' })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Status',
+          labelAr: 'الحالة',
+          fields: [
+            createStarterField('Status', 'الحالة', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('On Track', 'على المسار'),
+                createStarterLabel('Needs Attention', 'يحتاج متابعة'),
+                createStarterLabel('Delayed', 'متأخر')
+              ]
+            })
+          ]
+        }),
+        createStarterSection({
+          labelEn: 'Notes',
+          labelAr: 'الملاحظات',
+          fields: [
+            createStarterField('Notes', 'الملاحظات', { type: 'textarea', width: 'full' })
+          ]
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Operations Report', 'تقرير العمليات اليومية'),
+        description: createStarterLabel(
+          'Operational report with daily checklist, issues, status, and notes',
+          'تقرير تشغيلي يتضمن قائمة يومية ومشكلات وحالة وملاحظات'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'waste_damage_report',
+    name: createStarterLabel('Waste & Damage Report', 'تقرير الهدر والتلف'),
+    description: createStarterLabel(
+      'Waste and damage report with report date and detailed item table',
+      'تقرير للهدر والتلف يتضمن تاريخ التقرير وجدولاً تفصيلياً للأصناف'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Reported By', 'أبلغ بواسطة', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterTableSection({
+          labelEn: 'Waste & Damage Table',
+          labelAr: 'جدول الهدر والتلف',
+          columns: [
+            createStarterColumn('Item Name', 'اسم الصنف'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Reason', 'السبب', { fieldType: 'textarea' }),
+            createStarterColumn('Notes', 'ملاحظات', { fieldType: 'textarea' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Waste & Damage Report', 'تقرير الهدر والتلف'),
+        description: createStarterLabel(
+          'Report form for waste and damaged items with reasons and notes',
+          'نموذج لتقارير الهدر والتلف مع الأسباب والملاحظات'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'product_recipe_cost_sheet',
+    name: createStarterLabel('Product Recipe & Cost Sheet', 'نموذج الوصفة وتكلفة المنتج'),
+    description: createStarterLabel(
+      'Recipe cost sheet with ingredient, quantity, and cost columns',
+      'نموذج تكلفة المنتج يتضمن المكونات والكمية والتكلفة'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterTableSection({
+          labelEn: 'Recipe Cost Table',
+          labelAr: 'جدول تكلفة الوصفة',
+          columns: [
+            createStarterColumn('Ingredient', 'المكون'),
+            createStarterColumn('Quantity', 'الكمية', { fieldType: 'number', alignment: 'center' }),
+            createStarterColumn('Cost', 'التكلفة', { fieldType: 'number', alignment: 'center' })
+          ],
+          rowCount: 10
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Product Recipe & Cost Sheet', 'نموذج الوصفة وتكلفة المنتج'),
+        description: createStarterLabel(
+          'Compact recipe costing table for ingredients and cost values',
+          'جدول مختصر لتكلفة الوصفة والمكونات والقيم المالية'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
+      });
+    }
+  },
+  {
+    id: 'oil_change_log_duplicate',
+    name: createStarterLabel('Oil Change Log (Duplicate)', 'سجل تغيير الزيت (نسخة)'),
+    description: createStarterLabel(
+      'Duplicate oil change log starter with status, notes, and responsibility',
+      'نسخة مكررة من سجل تغيير الزيت مع الحالة والملاحظات والمسؤولية'
+    ),
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        createStarterSection({
+          preset: 'columns',
+          labelEn: 'General Info',
+          labelAr: 'المعلومات العامة',
+          fields: [
+            createStarterField('Date', 'التاريخ', { type: 'date', width: 'half' }),
+            createStarterField('Responsible Person', 'الشخص المسؤول', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        }),
+        createStarterSection({
+          labelEn: 'Log Details',
+          labelAr: 'تفاصيل السجل',
+          fields: [
+            createStarterField('Change Status', 'حالة التغيير', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Changed', 'تم التغيير'),
+                createStarterLabel('Pending', 'قيد الانتظار'),
+                createStarterLabel('Not Required', 'غير مطلوب')
+              ]
+            }),
+            createStarterField('Notes', 'ملاحظات', { type: 'textarea', width: 'full' })
+          ]
+        })
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Oil Change Log (Duplicate)', 'سجل تغيير الزيت (نسخة)'),
+        description: createStarterLabel(
+          'Duplicate oil change log for repeated maintenance workflows',
+          'نسخة مكررة من سجل تغيير الزيت لاستخدامات الصيانة المتكررة'
+        ),
+        sections,
+        pdfStyle: createStarterPdfStyle({
+          showMetadata: false
+        })
       });
     }
   }
