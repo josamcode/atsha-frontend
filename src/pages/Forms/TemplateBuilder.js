@@ -30,6 +30,7 @@ import {
   createField,
   createSocialLink,
   createSectionFromPreset,
+  getDefaultPdfStyle,
   finalizeTemplateForSave,
   generateId,
   getDefaultTemplate,
@@ -91,9 +92,93 @@ const TemplateBuilder = () => {
   const [errors, setErrors] = useState({});
   const [brandingUploads, setBrandingUploads] = useState({ logo: false, watermark: false });
 
-  const seedTemplateWithPdfStyle = (template, sourcePdfStyle) => normalizeTemplate({
+  const mergePdfStyleConfig = (basePdfStyle, starterPdfStyle) => normalizePdfStyle({
+    ...(basePdfStyle || {}),
+    ...(starterPdfStyle || {}),
+    branding: {
+      ...(basePdfStyle?.branding || {}),
+      ...(starterPdfStyle?.branding || {})
+    },
+    header: {
+      ...(basePdfStyle?.header || {}),
+      ...(starterPdfStyle?.header || {}),
+      border: {
+        ...(basePdfStyle?.header?.border || {}),
+        ...(starterPdfStyle?.header?.border || {})
+      }
+    },
+    footer: {
+      ...(basePdfStyle?.footer || {}),
+      ...(starterPdfStyle?.footer || {})
+    },
+    metadata: {
+      ...(basePdfStyle?.metadata || {}),
+      ...(starterPdfStyle?.metadata || {})
+    },
+    signature: {
+      ...(basePdfStyle?.signature || {}),
+      ...(starterPdfStyle?.signature || {})
+    },
+    fontSize: {
+      ...(basePdfStyle?.fontSize || {}),
+      ...(starterPdfStyle?.fontSize || {})
+    },
+    colors: {
+      ...(basePdfStyle?.colors || {}),
+      ...(starterPdfStyle?.colors || {})
+    },
+    spacing: {
+      ...(basePdfStyle?.spacing || {}),
+      ...(starterPdfStyle?.spacing || {})
+    }
+  });
+
+  const alignPdfStyleToSystemColors = (pdfStyle) => {
+    const normalized = normalizePdfStyle(pdfStyle);
+    const systemPdfStyle = getDefaultPdfStyle();
+
+    return normalizePdfStyle({
+      ...normalized,
+      branding: {
+        ...normalized.branding,
+        primaryColor: systemPdfStyle.branding.primaryColor,
+        secondaryColor: systemPdfStyle.branding.secondaryColor
+      },
+      header: {
+        ...normalized.header,
+        backgroundColor: systemPdfStyle.header.backgroundColor,
+        textColor: systemPdfStyle.header.textColor,
+        titleColor: systemPdfStyle.header.titleColor,
+        decorativeLineColor: systemPdfStyle.header.decorativeLineColor,
+        border: {
+          ...normalized.header?.border,
+          color: systemPdfStyle.header.border.color
+        }
+      },
+      footer: {
+        ...normalized.footer,
+        backgroundColor: systemPdfStyle.footer.backgroundColor,
+        textColor: systemPdfStyle.footer.textColor
+      },
+      colors: {
+        ...normalized.colors,
+        primary: systemPdfStyle.colors.primary,
+        secondary: systemPdfStyle.colors.secondary,
+        text: systemPdfStyle.colors.text,
+        border: systemPdfStyle.colors.border,
+        background: systemPdfStyle.colors.background
+      }
+    });
+  };
+
+  const seedTemplateWithSourcePdfStyle = (template, sourcePdfStyle) => normalizeTemplate({
     ...template,
-    pdfStyle: normalizePdfStyle(sourcePdfStyle || template?.pdfStyle)
+    pdfStyle: alignPdfStyleToSystemColors(sourcePdfStyle || template?.pdfStyle)
+  });
+
+  const seedStarterTemplateWithPdfStyle = (template, sourcePdfStyle) => normalizeTemplate({
+    ...template,
+    pdfStyle: alignPdfStyleToSystemColors(mergePdfStyleConfig(sourcePdfStyle, template?.pdfStyle))
   });
 
   useEffect(() => {
@@ -114,7 +199,10 @@ const TemplateBuilder = () => {
             return;
           }
 
-          const normalized = normalizeTemplate(response.data.data);
+          const normalized = normalizeTemplate({
+            ...response.data.data,
+            pdfStyle: alignPdfStyleToSystemColors(response.data.data?.pdfStyle)
+          });
           const firstSectionId = normalized.sections[0]?.id || null;
           setFormData(normalized);
           setSelectedSectionId(firstSectionId);
@@ -128,7 +216,7 @@ const TemplateBuilder = () => {
         }
 
         const latestTemplate = Array.isArray(response.data?.data) ? response.data.data[0] : null;
-        const seededTemplate = seedTemplateWithPdfStyle(
+        const seededTemplate = seedTemplateWithSourcePdfStyle(
           getDefaultTemplate(organizationBrandingRef.current),
           latestTemplate?.pdfStyle
         );
@@ -144,7 +232,9 @@ const TemplateBuilder = () => {
             showError(isRTLRef.current ? 'تعذر تحميل القالب.' : 'Unable to load the template.');
           }
 
-          const fallbackTemplate = normalizeTemplate(getDefaultTemplate(organizationBrandingRef.current));
+          const fallbackTemplate = seedTemplateWithSourcePdfStyle(
+            getDefaultTemplate(organizationBrandingRef.current)
+          );
           setFormData(fallbackTemplate);
           setSelectedSectionId(fallbackTemplate.sections[0]?.id || null);
           setActiveTab(DEFAULT_WORKSPACE_TAB);
@@ -216,10 +306,7 @@ const TemplateBuilder = () => {
       headerTextColor,
       footerBackgroundColor,
       footerTextColor
-    } = getSystemPdfPalette({
-      primaryColor: organization?.branding?.primaryColor,
-      secondaryColor: organization?.branding?.secondaryColor
-    });
+    } = getSystemPdfPalette();
 
     return {
       label: isRTL ? 'ألوان النظام' : 'System Colors',
@@ -247,7 +334,7 @@ const TemplateBuilder = () => {
         textColor: footerTextColor
       }
     };
-  }, [isRTL, organization?.branding?.primaryColor, organization?.branding?.secondaryColor]);
+  }, [isRTL]);
 
   const getSectionErrorMessages = (sectionId) => ([
     errors[`section_${sectionId}`],
@@ -349,7 +436,7 @@ const TemplateBuilder = () => {
       return;
     }
 
-    const template = seedTemplateWithPdfStyle(starter.template(organization?.branding), formData.pdfStyle);
+    const template = seedStarterTemplateWithPdfStyle(starter.template(organization?.branding), formData.pdfStyle);
     const firstSectionId = template.sections[0]?.id || null;
     setFormData(template);
     setSelectedSectionId(firstSectionId);

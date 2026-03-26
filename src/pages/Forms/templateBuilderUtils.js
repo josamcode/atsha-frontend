@@ -855,86 +855,610 @@ export const createSectionFromPreset = (preset) => {
   }
 };
 
+const createStarterLabel = (en, ar) => ({ en, ar });
+
+const createStarterField = (en, ar, overrides = {}) => createField({
+  label: createStarterLabel(en, ar),
+  ...overrides
+});
+
+const createStarterColumn = (en, ar, overrides = {}) => createColumn({
+  label: createStarterLabel(en, ar),
+  ...overrides
+});
+
+const buildColumnsLayout = (overrides = {}) => {
+  const defaults = getDefaultAdvancedLayout();
+
+  return {
+    ...defaults,
+    ...overrides,
+    layoutType: 'columns',
+    columns: {
+      ...defaults.columns,
+      enabled: true,
+      columnCount: 2,
+      ...(overrides.columns || {})
+    },
+    spacing: {
+      ...defaults.spacing,
+      ...(overrides.spacing || {})
+    },
+    styling: {
+      ...defaults.styling,
+      ...(overrides.styling || {})
+    }
+  };
+};
+
+const buildGridLayout = (overrides = {}) => {
+  const defaults = getDefaultAdvancedLayout();
+
+  return {
+    ...defaults,
+    ...overrides,
+    layoutType: 'grid',
+    grid: {
+      ...defaults.grid,
+      enabled: true,
+      columns: 2,
+      ...(overrides.grid || {})
+    },
+    spacing: {
+      ...defaults.spacing,
+      ...(overrides.spacing || {})
+    },
+    styling: {
+      ...defaults.styling,
+      ...(overrides.styling || {})
+    }
+  };
+};
+
+const buildTableLayout = (columns, overrides = {}) => {
+  const defaults = getDefaultAdvancedLayout();
+
+  return {
+    ...defaults,
+    ...overrides,
+    layoutType: 'table',
+    table: {
+      ...defaults.table,
+      enabled: true,
+      columns,
+      ...(overrides.table || {})
+    },
+    spacing: {
+      ...defaults.spacing,
+      ...(overrides.spacing || {})
+    },
+    styling: {
+      ...defaults.styling,
+      ...(overrides.styling || {})
+    }
+  };
+};
+
+const createBusinessPdfStyle = ({
+  subtitle,
+  footerContent,
+  footerTemplate = 'contact',
+  showShift = true,
+  showPhoneNumber = true,
+  showSocialIcons = true
+} = {}) => ({
+  header: {
+    showCompanyName: true,
+    showCompanyAddress: true,
+    showDate: true,
+    ...(subtitle ? {
+      showSubtitle: true,
+      subtitle
+    } : {})
+  },
+  footer: {
+    enabled: true,
+    template: footerTemplate,
+    showCompanyInfo: true,
+    showPageNumbers: true,
+    showPhoneNumber,
+    showSocialIcons,
+    ...(footerContent ? { content: footerContent } : {})
+  },
+  metadata: {
+    enabled: true,
+    showFormId: true,
+    showDate: true,
+    showShift,
+    showDepartment: true,
+    showFilledBy: true,
+    showSubmittedOn: true,
+    showApprovedBy: true,
+    showApprovalDate: true
+  },
+  signature: {
+    enabled: true,
+    showPreparedBy: true,
+    showApprovedBy: true
+  }
+});
+
+const buildStarterTemplate = (base, {
+  title,
+  description,
+  sections,
+  pdfStyle = {},
+  layout = {},
+  ...overrides
+}) => ({
+  ...base,
+  ...overrides,
+  title,
+  description,
+  sections: reindexSections(sections),
+  layout: {
+    ...base.layout,
+    ...layout,
+    margins: {
+      ...base.layout.margins,
+      ...(layout.margins || {})
+    },
+    sectionOrder: sections.map((section) => section.id)
+  },
+  pdfStyle
+});
+
 export const STARTER_TEMPLATES = [
   {
     id: 'blank',
-    name: { en: 'Blank Builder', ar: 'منشئ فارغ' },
+    name: { en: 'Blank Business Template', ar: 'قالب أعمال فارغ' },
     description: {
-      en: 'Start empty and build section by section',
-      ar: 'ابدأ من الصفر وأنشئ الأقسام خطوة بخطوة'
+      en: 'Start with your current branding and build a professional template from scratch',
+      ar: 'ابدأ بهوية منظمتك الحالية وأنشئ قالباً احترافياً من الصفر'
     },
-    template: (branding) => getDefaultTemplate(branding)
+    template: (branding) => ({
+      ...getDefaultTemplate(branding),
+      pdfStyle: {}
+    })
   },
   {
-    id: 'inspection',
-    name: { en: 'Inspection Report', ar: 'تقرير تفتيش' },
+    id: 'operations_review',
+    name: { en: 'Daily Operations Review', ar: 'مراجعة العمليات اليومية' },
     description: {
-      en: 'Good for audit, checklist, and verification PDFs',
-      ar: 'مناسب لتقارير التدقيق والقوائم والفحص'
+      en: 'Structured shift handover with KPIs, action items, notes, and leadership review',
+      ar: 'تسليم وردية منظم مع مؤشرات أداء وبنود متابعة وملاحظات ومراجعة إدارية'
     },
     template: (branding) => {
       const base = getDefaultTemplate(branding);
       const sections = [
-        createSectionFromPreset('columns'),
-        createSectionFromPreset('simple'),
-        createSectionFromPreset('table'),
-        createSectionFromPreset('notes'),
-        createSectionFromPreset('signatures')
+        {
+          ...createSectionFromPreset('columns'),
+          label: createStarterLabel('Shift Overview', 'ملخص الوردية'),
+          fields: [
+            createStarterField('Prepared by', 'أعده', { width: 'half' }),
+            createStarterField('Department lead', 'مسؤول القسم', { width: 'half' }),
+            createStarterField('Location / branch', 'الموقع / الفرع', { width: 'half' }),
+            createStarterField('Review date', 'تاريخ المراجعة', { type: 'date', width: 'half' }),
+            createStarterField('Shift status', 'حالة الوردية', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('On track', 'تسير كما ينبغي'),
+                createStarterLabel('Needs attention', 'تحتاج متابعة'),
+                createStarterLabel('Escalated', 'تم التصعيد')
+              ]
+            }),
+            createStarterField('Key focus', 'المحور الرئيسي', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('grid'),
+          label: createStarterLabel('Operational Snapshot', 'لقطة تشغيلية'),
+          fields: [
+            createStarterField('Customer volume', 'حجم العملاء', { type: 'number' }),
+            createStarterField('Staffing level', 'مستوى التغطية', {
+              type: 'select',
+              options: [
+                createStarterLabel('Fully staffed', 'التغطية مكتملة'),
+                createStarterLabel('Tight coverage', 'التغطية محدودة'),
+                createStarterLabel('Understaffed', 'نقص في الطاقم')
+              ]
+            }),
+            createStarterField('Stock status', 'حالة المخزون', {
+              type: 'select',
+              options: [
+                createStarterLabel('Healthy', 'جيد'),
+                createStarterLabel('Watch list', 'بحاجة متابعة'),
+                createStarterLabel('Critical', 'حرج')
+              ]
+            }),
+            createStarterField('Equipment ready', 'جاهزية المعدات', { type: 'boolean' }),
+            createStarterField('Service blockers', 'معوقات الخدمة', { type: 'textarea' }),
+            createStarterField('Immediate priorities', 'الأولويات الفورية', { type: 'textarea' })
+          ],
+          advancedLayout: buildGridLayout({
+            grid: {
+              columns: 2,
+              gap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('table'),
+          label: createStarterLabel('Action Items', 'بنود الإجراءات'),
+          fields: [],
+          advancedLayout: buildTableLayout([
+            createStarterColumn('Action item', 'الإجراء المطلوب'),
+            createStarterColumn('Owner', 'المسؤول'),
+            createStarterColumn('Due date', 'تاريخ الاستحقاق', {
+              fieldType: 'date',
+              alignment: 'center'
+            }),
+            createStarterColumn('Status', 'الحالة', {
+              fieldType: 'text',
+              alignment: 'center'
+            }),
+            createStarterColumn('Notes', 'ملاحظات', {
+              fieldType: 'textarea'
+            })
+          ], {
+            table: {
+              numberOfRows: 5,
+              stripedRows: true
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('simple'),
+          label: createStarterLabel('Manager Notes', 'ملاحظات المدير'),
+          fields: [
+            createStarterField('Key observations', 'الملاحظات الرئيسية', { type: 'textarea', width: 'full' }),
+            createStarterField('Support needed', 'الدعم المطلوب', { type: 'textarea', width: 'full' }),
+            createStarterField('Supporting attachment', 'مرفق داعم', { type: 'file', width: 'full' })
+          ]
+        },
+        {
+          ...createSectionFromPreset('signatures'),
+          label: createStarterLabel('Leadership Review', 'مراجعة الإدارة'),
+          fields: [
+            createStarterField('Prepared by', 'أعد بواسطة', { width: 'half' }),
+            createStarterField('Reviewed by', 'راجع بواسطة', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 20
+            }
+          })
+        }
       ];
-      sections[0].label = { en: 'Inspection Details', ar: 'تفاصيل التفتيش' };
-      sections[1].label = { en: 'Findings', ar: 'الملاحظات' };
-      return {
-        ...base,
-        title: { en: 'Inspection Report', ar: 'تقرير تفتيش' },
-        description: { en: 'Inspection checklist and findings', ar: 'قائمة فحص وملاحظات' },
-        sections: reindexSections(sections),
-        layout: { ...base.layout, sectionOrder: sections.map((section) => section.id) }
-      };
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Daily Operations Review', 'مراجعة العمليات اليومية'),
+        description: createStarterLabel(
+          'Business-ready shift review with operational metrics, follow-up actions, and sign-off',
+          'مراجعة وردية جاهزة للأعمال مع مؤشرات تشغيلية وإجراءات متابعة واعتماد'
+        ),
+        sections,
+        pdfStyle: createBusinessPdfStyle({
+          subtitle: createStarterLabel(
+            'Operations handover and accountability log',
+            'سجل تسليم العمليات والمتابعة'
+          ),
+          footerTemplate: 'contact',
+          footerContent: createStarterLabel(
+            'Internal operations review. Track actions to closure.',
+            'مراجعة تشغيلية داخلية. تابع الإجراءات حتى الإغلاق.'
+          ),
+          showShift: true,
+          showPhoneNumber: true,
+          showSocialIcons: true
+        })
+      });
     }
   },
   {
-    id: 'table',
-    name: { en: 'Table Report', ar: 'تقرير جدولي' },
+    id: 'purchase_request',
+    name: { en: 'Purchase Request', ar: 'طلب شراء' },
     description: {
-      en: 'Fast starting point for printable tables with columns',
-      ar: 'بداية سريعة للجداول القابلة للطباعة'
-    },
-    template: (branding) => {
-      const base = getDefaultTemplate(branding);
-      const sections = [createSectionFromPreset('table'), createSectionFromPreset('signatures')];
-      sections[0].label = { en: 'Daily Entries', ar: 'إدخالات يومية' };
-      return {
-        ...base,
-        title: { en: 'Table Report', ar: 'تقرير جدولي' },
-        description: { en: 'Printable rows and approval area', ar: 'صفوف للطباعة مع مساحة اعتماد' },
-        sections: reindexSections(sections),
-        layout: { ...base.layout, sectionOrder: sections.map((section) => section.id) }
-      };
-    }
-  },
-  {
-    id: 'letter',
-    name: { en: 'Official Letter', ar: 'خطاب رسمي' },
-    description: {
-      en: 'Best for branded PDF letters and forms',
-      ar: 'مناسب للخطابات والنماذج الرسمية'
+      en: 'Formal request layout for materials or services with item lines and approvals',
+      ar: 'تنسيق رسمي لطلب المواد أو الخدمات مع بنود الشراء والاعتمادات'
     },
     template: (branding) => {
       const base = getDefaultTemplate(branding);
       const sections = [
-        createSectionFromPreset('simple'),
-        createSectionFromPreset('notes'),
-        createSectionFromPreset('signatures')
+        {
+          ...createSectionFromPreset('columns'),
+          label: createStarterLabel('Request Summary', 'ملخص الطلب'),
+          fields: [
+            createStarterField('Requestor name', 'اسم مقدم الطلب', { width: 'half' }),
+            createStarterField('Request date', 'تاريخ الطلب', { type: 'date', width: 'half' }),
+            createStarterField('Department', 'القسم', { width: 'half' }),
+            createStarterField('Needed by', 'مطلوب قبل', { type: 'date', width: 'half' }),
+            createStarterField('Cost center / project', 'مركز التكلفة / المشروع', { width: 'half' }),
+            createStarterField('Priority', 'الأولوية', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Routine', 'اعتيادية'),
+                createStarterLabel('High', 'مرتفعة'),
+                createStarterLabel('Urgent', 'عاجلة')
+              ]
+            }),
+            createStarterField('Preferred vendor', 'المورد المفضل', { width: 'half' }),
+            createStarterField('Delivery location', 'مكان التسليم', { width: 'half' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('simple'),
+          label: createStarterLabel('Business Justification', 'مبرر الطلب'),
+          fields: [
+            createStarterField('Business need', 'الحاجة التشغيلية', { type: 'textarea', width: 'full' }),
+            createStarterField('Estimated total', 'التكلفة التقديرية', { type: 'number', width: 'half' }),
+            createStarterField('Budget code', 'رمز الميزانية', { width: 'half' }),
+            createStarterField('Supporting quotation', 'عرض السعر المرفق', { type: 'file', width: 'full' })
+          ]
+        },
+        {
+          ...createSectionFromPreset('table'),
+          label: createStarterLabel('Requested Items', 'بنود الطلب'),
+          fields: [],
+          advancedLayout: buildTableLayout([
+            createStarterColumn('Item', 'البند'),
+            createStarterColumn('Specification', 'المواصفة'),
+            createStarterColumn('Qty', 'الكمية', {
+              fieldType: 'number',
+              alignment: 'center'
+            }),
+            createStarterColumn('Pricing', 'التسعير', {
+              alignment: 'center',
+              children: [
+                createStarterColumn('Unit cost', 'سعر الوحدة', {
+                  fieldType: 'number',
+                  alignment: 'right'
+                }),
+                createStarterColumn('Line total', 'إجمالي البند', {
+                  fieldType: 'number',
+                  alignment: 'right'
+                })
+              ]
+            }),
+            createStarterColumn('Needed by', 'مطلوب قبل', {
+              fieldType: 'date',
+              alignment: 'center'
+            })
+          ], {
+            table: {
+              numberOfRows: 6,
+              stripedRows: true
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('grid'),
+          label: createStarterLabel('Budget Summary', 'ملخص الميزانية'),
+          sectionType: 'totals',
+          fields: [
+            createStarterField('Requested amount', 'المبلغ المطلوب', { type: 'number' }),
+            createStarterField('Budget available', 'الميزانية متوفرة', { type: 'boolean' }),
+            createStarterField('Approval level', 'مستوى الاعتماد', {
+              type: 'select',
+              options: [
+                createStarterLabel('Department manager', 'مدير القسم'),
+                createStarterLabel('Finance', 'المالية'),
+                createStarterLabel('Executive', 'الإدارة التنفيذية')
+              ]
+            }),
+            createStarterField('Payment terms', 'شروط الدفع')
+          ],
+          advancedLayout: buildGridLayout({
+            grid: {
+              columns: 2,
+              gap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('columns'),
+          label: createStarterLabel('Approval Chain', 'سلسلة الاعتماد'),
+          fields: [
+            createStarterField('Requested by', 'مقدم الطلب', { width: 'half' }),
+            createStarterField('Department approval', 'اعتماد القسم', { width: 'half' }),
+            createStarterField('Finance approval', 'اعتماد المالية', { width: 'half' }),
+            createStarterField('Procurement reference', 'مرجع المشتريات', { width: 'half' }),
+            createStarterField('Final comments', 'ملاحظات نهائية', { type: 'textarea', width: 'full' })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 18
+            }
+          })
+        }
       ];
-      sections[0].label = { en: 'Recipient Details', ar: 'بيانات المستلم' };
-      sections[1].label = { en: 'Letter Body', ar: 'نص الخطاب' };
-      return {
-        ...base,
-        title: { en: 'Official Letter', ar: 'خطاب رسمي' },
-        description: { en: 'Branded letter layout', ar: 'تنسيق خطاب بعلامة تجارية' },
-        sections: reindexSections(sections),
-        layout: { ...base.layout, sectionOrder: sections.map((section) => section.id) }
-      };
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Purchase Request', 'طلب شراء'),
+        description: createStarterLabel(
+          'Procurement-ready request with line items, budget summary, and approval flow',
+          'طلب جاهز للمشتريات مع بنود تفصيلية وملخص ميزانية ومسار اعتماد'
+        ),
+        sections,
+        layout: {
+          orientation: 'landscape',
+          margins: {
+            left: 24,
+            right: 24
+          }
+        },
+        pdfStyle: createBusinessPdfStyle({
+          subtitle: createStarterLabel(
+            'Procurement and spend approval request',
+            'طلب مشتريات واعتماد إنفاق'
+          ),
+          footerTemplate: 'classic',
+          footerContent: createStarterLabel(
+            'Procurement request. Approval required before commitment.',
+            'طلب مشتريات. يلزم الاعتماد قبل الالتزام بالشراء.'
+          ),
+          showShift: false,
+          showPhoneNumber: false,
+          showSocialIcons: false
+        })
+      });
+    }
+  },
+  {
+    id: 'incident_report',
+    name: { en: 'Incident Report', ar: 'تقرير حادث' },
+    description: {
+      en: 'Capture incident details, evidence, corrective actions, and closure follow-up',
+      ar: 'توثيق تفاصيل الحادث والأدلة والإجراءات التصحيحية ومتابعة الإغلاق'
+    },
+    template: (branding) => {
+      const base = getDefaultTemplate(branding);
+      const sections = [
+        {
+          ...createSectionFromPreset('columns'),
+          label: createStarterLabel('Incident Overview', 'ملخص الحادث'),
+          fields: [
+            createStarterField('Reported by', 'أبلغ عنه', { width: 'half' }),
+            createStarterField('Incident date & time', 'تاريخ ووقت الحادث', { type: 'datetime', width: 'half' }),
+            createStarterField('Department', 'القسم', { width: 'half' }),
+            createStarterField('Location', 'الموقع', { width: 'half' }),
+            createStarterField('Incident type', 'نوع الحادث', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Safety', 'سلامة'),
+                createStarterLabel('Quality', 'جودة'),
+                createStarterLabel('Service', 'خدمة'),
+                createStarterLabel('Security', 'أمن'),
+                createStarterLabel('Other', 'أخرى')
+              ]
+            }),
+            createStarterField('Severity', 'الخطورة', {
+              type: 'select',
+              width: 'half',
+              options: [
+                createStarterLabel('Low', 'منخفضة'),
+                createStarterLabel('Moderate', 'متوسطة'),
+                createStarterLabel('High', 'مرتفعة'),
+                createStarterLabel('Critical', 'حرجة')
+              ]
+            })
+          ],
+          advancedLayout: buildColumnsLayout({
+            columns: {
+              columnCount: 2,
+              columnGap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('simple'),
+          label: createStarterLabel('Incident Description', 'وصف الحادث'),
+          fields: [
+            createStarterField('What happened', 'ماذا حدث', { type: 'textarea', width: 'full' }),
+            createStarterField('Immediate response', 'الإجراء الفوري', { type: 'textarea', width: 'full' }),
+            createStarterField('People involved', 'الأشخاص المعنيون', { width: 'half' }),
+            createStarterField('External impact', 'هل يوجد أثر خارجي', { type: 'boolean', width: 'half' })
+          ]
+        },
+        {
+          ...createSectionFromPreset('grid'),
+          label: createStarterLabel('Evidence and Impact', 'الأدلة والأثر'),
+          fields: [
+            createStarterField('Photo evidence', 'صور مرفقة', { type: 'image' }),
+            createStarterField('Supporting document', 'مستند داعم', { type: 'file' }),
+            createStarterField('Customer impact', 'أثر على العميل', {
+              type: 'select',
+              options: [
+                createStarterLabel('None', 'لا يوجد'),
+                createStarterLabel('Minor', 'محدود'),
+                createStarterLabel('Significant', 'كبير')
+              ]
+            }),
+            createStarterField('Estimated loss', 'الخسارة التقديرية', { type: 'number' })
+          ],
+          advancedLayout: buildGridLayout({
+            grid: {
+              columns: 2,
+              gap: 16
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('table'),
+          label: createStarterLabel('Corrective Actions', 'الإجراءات التصحيحية'),
+          fields: [],
+          advancedLayout: buildTableLayout([
+            createStarterColumn('Action', 'الإجراء'),
+            createStarterColumn('Owner', 'المسؤول'),
+            createStarterColumn('Due date', 'تاريخ الاستحقاق', {
+              fieldType: 'date',
+              alignment: 'center'
+            }),
+            createStarterColumn('Status', 'الحالة', {
+              fieldType: 'text',
+              alignment: 'center'
+            }),
+            createStarterColumn('Verification notes', 'ملاحظات التحقق', {
+              fieldType: 'textarea'
+            })
+          ], {
+            table: {
+              numberOfRows: 5,
+              stripedRows: true
+            }
+          })
+        },
+        {
+          ...createSectionFromPreset('simple'),
+          label: createStarterLabel('Follow-up Review', 'مراجعة المتابعة'),
+          fields: [
+            createStarterField('Root cause summary', 'ملخص السبب الجذري', { type: 'textarea', width: 'full' }),
+            createStarterField('Preventive action summary', 'ملخص الإجراء الوقائي', { type: 'textarea', width: 'full' }),
+            createStarterField('Reviewed by', 'راجع بواسطة', { width: 'half' }),
+            createStarterField('Closure date', 'تاريخ الإغلاق', { type: 'date', width: 'half' })
+          ]
+        }
+      ];
+
+      return buildStarterTemplate(base, {
+        title: createStarterLabel('Incident Report', 'تقرير حادث'),
+        description: createStarterLabel(
+          'Professional incident capture with evidence, corrective actions, and closure notes',
+          'توثيق احترافي للحوادث مع الأدلة والإجراءات التصحيحية وملاحظات الإغلاق'
+        ),
+        sections,
+        pdfStyle: createBusinessPdfStyle({
+          subtitle: createStarterLabel(
+            'Incident capture, response, and follow-up record',
+            'سجل توثيق الحادث والاستجابة والمتابعة'
+          ),
+          footerTemplate: 'minimal',
+          footerContent: createStarterLabel(
+            'Confidential incident documentation. Share on a need-to-know basis.',
+            'توثيق حادث سري. يشارك عند الحاجة فقط.'
+          ),
+          showShift: true,
+          showPhoneNumber: false,
+          showSocialIcons: false
+        })
+      });
     }
   }
 ];
