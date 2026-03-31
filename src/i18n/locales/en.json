@@ -1020,6 +1020,46 @@
       "noInvitations": "No invitations yet.",
       "notAvailable": "--"
     },
+    "emailNotifications": {
+      "title": "Organization Admin Activity Emails",
+      "description": "Send activity emails to organization admins for audited actions in this organization. You can switch everything off or control each category separately.",
+      "enabled": "Enable organization admin activity emails",
+      "enabledDescription": "When this is off, organization admins stop receiving email alerts for organization activity.",
+      "categories": {
+        "users": {
+          "title": "Users",
+          "description": "User creation, profile updates, role changes, password resets, and employee report emails."
+        },
+        "invitations": {
+          "title": "Invitations",
+          "description": "Invitation creation, acceptance, and cancellation activity."
+        },
+        "forms": {
+          "title": "Forms",
+          "description": "Template changes plus form creation, submission, update, and deletion events."
+        },
+        "attendance": {
+          "title": "Attendance",
+          "description": "QR token generation and attendance log updates."
+        },
+        "leaves": {
+          "title": "Leaves",
+          "description": "Leave request creation, updates, cancellation, and deletion activity."
+        },
+        "messages": {
+          "title": "Messages",
+          "description": "Direct messages, broadcasts, and message deletions inside the organization."
+        },
+        "organization": {
+          "title": "Organization",
+          "description": "Organization settings, branding, and profile changes."
+        },
+        "billing": {
+          "title": "Billing",
+          "description": "Subscription checkout and successful payment activity."
+        }
+      }
+    },
     "featureFlags": {
       "multiOrganization": "Multi Organization",
       "invitations": "Invitations",

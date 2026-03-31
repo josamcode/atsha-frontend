@@ -47,6 +47,87 @@ const buildDepartmentDraft = (index = 0) => ({
   sortOrder: index
 });
 
+const DEFAULT_EMAIL_NOTIFICATION_SETTINGS = {
+  enabled: true,
+  categories: {
+    users: true,
+    invitations: true,
+    forms: true,
+    attendance: true,
+    leaves: true,
+    messages: true,
+    organization: true,
+    billing: true
+  }
+};
+
+const EMAIL_NOTIFICATION_CATEGORY_FIELDS = [
+  {
+    key: 'users',
+    titleKey: 'organizationSettings.emailNotifications.categories.users.title',
+    titleDefault: 'Users',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.users.description',
+    descriptionDefault: 'User creation, profile updates, role changes, password resets, and employee report emails.'
+  },
+  {
+    key: 'invitations',
+    titleKey: 'organizationSettings.emailNotifications.categories.invitations.title',
+    titleDefault: 'Invitations',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.invitations.description',
+    descriptionDefault: 'Invitation creation, acceptance, and cancellation activity.'
+  },
+  {
+    key: 'forms',
+    titleKey: 'organizationSettings.emailNotifications.categories.forms.title',
+    titleDefault: 'Forms',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.forms.description',
+    descriptionDefault: 'Template changes plus form creation, submission, update, and deletion events.'
+  },
+  {
+    key: 'attendance',
+    titleKey: 'organizationSettings.emailNotifications.categories.attendance.title',
+    titleDefault: 'Attendance',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.attendance.description',
+    descriptionDefault: 'QR token generation and attendance log updates.'
+  },
+  {
+    key: 'leaves',
+    titleKey: 'organizationSettings.emailNotifications.categories.leaves.title',
+    titleDefault: 'Leaves',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.leaves.description',
+    descriptionDefault: 'Leave request creation, updates, cancellation, and deletion activity.'
+  },
+  {
+    key: 'messages',
+    titleKey: 'organizationSettings.emailNotifications.categories.messages.title',
+    titleDefault: 'Messages',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.messages.description',
+    descriptionDefault: 'Direct messages, broadcasts, and message deletions inside the organization.'
+  },
+  {
+    key: 'organization',
+    titleKey: 'organizationSettings.emailNotifications.categories.organization.title',
+    titleDefault: 'Organization',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.organization.description',
+    descriptionDefault: 'Organization settings, branding, and profile changes.'
+  },
+  {
+    key: 'billing',
+    titleKey: 'organizationSettings.emailNotifications.categories.billing.title',
+    titleDefault: 'Billing',
+    descriptionKey: 'organizationSettings.emailNotifications.categories.billing.description',
+    descriptionDefault: 'Subscription checkout and successful payment activity.'
+  }
+];
+
+const buildEmailNotificationSettings = (source) => ({
+  enabled: source?.enabled !== false,
+  categories: {
+    ...DEFAULT_EMAIL_NOTIFICATION_SETTINGS.categories,
+    ...(source?.categories || {})
+  }
+});
+
 const buildSettingsState = (source) => ({
   id: source?.id || source?._id || null,
   name: source?.name || '',
@@ -76,6 +157,7 @@ const buildSettingsState = (source) => ({
     approvalRequired: source?.leaveSettings?.approvalRequired !== false,
     defaultAnnualBalance: source?.leaveSettings?.defaultAnnualBalance || 0
   },
+  emailNotificationSettings: buildEmailNotificationSettings(source?.emailNotificationSettings),
   featureFlags: source?.featureFlags || {},
   subscription: source?.subscription || null,
   subscriptionConfig: source?.subscriptionConfig || {},
@@ -283,6 +365,29 @@ const OrganizationSettings = () => {
     }));
   };
 
+  const updateEmailNotificationSetting = (field, value) => {
+    setSettings((currentValue) => ({
+      ...currentValue,
+      emailNotificationSettings: {
+        ...(currentValue.emailNotificationSettings || DEFAULT_EMAIL_NOTIFICATION_SETTINGS),
+        [field]: value
+      }
+    }));
+  };
+
+  const updateEmailNotificationCategory = (categoryKey, enabled) => {
+    setSettings((currentValue) => ({
+      ...currentValue,
+      emailNotificationSettings: {
+        ...(currentValue.emailNotificationSettings || DEFAULT_EMAIL_NOTIFICATION_SETTINGS),
+        categories: {
+          ...(currentValue.emailNotificationSettings?.categories || DEFAULT_EMAIL_NOTIFICATION_SETTINGS.categories),
+          [categoryKey]: enabled
+        }
+      }
+    }));
+  };
+
   const addDepartment = () => {
     setSettings((currentValue) => ({
       ...currentValue,
@@ -319,6 +424,7 @@ const OrganizationSettings = () => {
           ...settings.leaveSettings,
           defaultAnnualBalance: Number(settings.leaveSettings.defaultAnnualBalance) || 0
         },
+        emailNotificationSettings: settings.emailNotificationSettings,
         departments: settings.departments
           .map((department, index) => {
             const code = normalizeDepartmentCode(department.code || department.nameEn);
@@ -561,6 +667,76 @@ const OrganizationSettings = () => {
                   </label>
                   <Input label={t('organizationSettings.fields.qrValiditySeconds')} type="number" value={settings.attendanceSettings.qrTokenValiditySeconds} onChange={(event) => updateGroupField('attendanceSettings', 'qrTokenValiditySeconds', event.target.value)} />
                   <Input label={t('organizationSettings.fields.defaultAnnualLeave')} type="number" value={settings.leaveSettings.defaultAnnualBalance} onChange={(event) => updateGroupField('leaveSettings', 'defaultAnnualBalance', event.target.value)} />
+                </div>
+
+                <div className="mt-8 border-t border-gray-200 pt-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FaEnvelope className="text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        {t('organizationSettings.emailNotifications.title', {
+                          defaultValue: 'Organization Admin Activity Emails'
+                        })}
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {t('organizationSettings.emailNotifications.description', {
+                          defaultValue: 'Send activity emails to organization admins for audited actions in this organization. You can switch everything off or control each category separately.'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-start justify-between gap-4 rounded-2xl border border-gray-200 px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {t('organizationSettings.emailNotifications.enabled', {
+                          defaultValue: 'Enable organization admin activity emails'
+                        })}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {t('organizationSettings.emailNotifications.enabledDescription', {
+                          defaultValue: 'When this is off, organization admins stop receiving email alerts for organization activity.'
+                        })}
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.emailNotificationSettings.enabled}
+                      onChange={(event) => updateEmailNotificationSetting('enabled', event.target.checked)}
+                      className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                    />
+                  </label>
+
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {EMAIL_NOTIFICATION_CATEGORY_FIELDS.map((category) => (
+                      <label
+                        key={category.key}
+                        className={`flex items-start justify-between gap-4 rounded-2xl border px-4 py-4 transition-colors ${
+                          settings.emailNotificationSettings.enabled
+                            ? 'cursor-pointer border-gray-200 hover:bg-gray-50'
+                            : 'cursor-not-allowed border-gray-100 bg-gray-50 opacity-70'
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {t(category.titleKey, { defaultValue: category.titleDefault })}
+                          </p>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {t(category.descriptionKey, { defaultValue: category.descriptionDefault })}
+                          </p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={settings.emailNotificationSettings.categories[category.key]}
+                          disabled={!settings.emailNotificationSettings.enabled}
+                          onChange={(event) => updateEmailNotificationCategory(category.key, event.target.checked)}
+                          className="mt-1 h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <div className={`mt-6 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
