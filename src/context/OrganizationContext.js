@@ -162,8 +162,7 @@ export const OrganizationProvider = ({ children }) => {
         fallbackSlug: getStoredOrganizationSlug()
       });
       const shouldSkipBootstrap = (
-        !searchSlug
-        && !getStoredAccessToken()
+        !getStoredAccessToken()
         && isPublicAuthRoute(location.pathname)
       );
 

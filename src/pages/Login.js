@@ -7,6 +7,7 @@ import { useOrganization } from '../context/OrganizationContext';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import {
+  buildPathWithOrganization,
   getDefaultAuthenticatedPath,
   getOrganizationSlugFromSearch
 } from '../utils/organization';
@@ -48,12 +49,16 @@ const Login = () => {
       const currentLanguage = localStorage.getItem('language') || 'ar';
       const userLanguage = result.user.languagePreference;
       const nextLanguage = currentLanguage || userLanguage || 'ar';
+      const authenticatedOrganizationSlug = result.organization?.slug || null;
+      const nextPath = redirectTarget
+        ? buildPathWithOrganization(redirectTarget, authenticatedOrganizationSlug)
+        : getDefaultAuthenticatedPath(result.user);
 
       i18n.changeLanguage(nextLanguage);
       localStorage.setItem('language', nextLanguage);
       document.documentElement.dir = nextLanguage === 'ar' ? 'rtl' : 'ltr';
 
-      navigate(redirectTarget || getDefaultAuthenticatedPath(result.user), { replace: true });
+      navigate(nextPath, { replace: true });
     } else {
       setError(result.message || t('auth.invalidCredentials'));
     }

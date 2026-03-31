@@ -133,18 +133,31 @@ export const AuthProvider = ({ children }) => {
     const requestedOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
 
     try {
-      const response = await api.post(
+      const loginWithOrganization = async (organizationSlug = null) => api.post(
         '/auth/login',
         {
           email,
           password,
-          organization: requestedOrganizationSlug || undefined
+          organization: organizationSlug || undefined
         },
-        {
-          organizationSlug: requestedOrganizationSlug || undefined,
-          skipOrganizationHeader: !requestedOrganizationSlug
-        }
+        organizationSlug
+          ? { organizationSlug }
+          : { skipOrganizationHeader: true }
       );
+
+      let response;
+
+      try {
+        response = await loginWithOrganization();
+      } catch (error) {
+        const needsScopedRetry = error.response?.status === 409 && requestedOrganizationSlug;
+
+        if (!needsScopedRetry) {
+          throw error;
+        }
+
+        response = await loginWithOrganization(requestedOrganizationSlug);
+      }
 
       const { user: nextUser, organization: nextOrganization, accessToken, refreshToken } = response.data.data;
 
