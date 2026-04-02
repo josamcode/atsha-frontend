@@ -12,6 +12,7 @@ import {
   FaGlobe,
   FaQrcode,
   FaTachometerAlt,
+  FaTasks,
   FaUmbrellaBeach,
   FaUserClock,
   FaUsers
@@ -89,6 +90,12 @@ const MobileBottomNav = () => {
       label: t('nav.settings'),
       icon: FaCog,
       roles: ['platform_admin', 'organization_admin']
+    },
+    {
+      path: '/tasks',
+      label: t('nav.tasks', { defaultValue: i18n.language === 'ar' ? 'المهام' : 'Tasks' }),
+      icon: FaTasks,
+      roles: ['platform_admin', 'organization_admin', 'employee']
     }
   ];
 

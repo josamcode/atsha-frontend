@@ -5,10 +5,13 @@ import { formatDateTime } from '../utils/dateUtils';
 import {
   FaBell,
   FaCheck,
+  FaCheckCircle,
   FaCheckDouble,
-  FaTrash,
   FaFileAlt,
+  FaExclamationTriangle,
   FaUserClock,
+  FaTasks,
+  FaTrash,
   FaUmbrellaBeach,
   FaUserPlus,
   FaFilter,
@@ -21,6 +24,7 @@ import Loading from '../components/Common/Loading';
 import ConfirmDialog from '../components/Common/ConfirmDialog';
 import api from '../utils/api';
 import { showSuccess, showError } from '../utils/toast';
+import { usePolling } from '../hooks/usePolling';
 
 const Notifications = () => {
   const { t, i18n } = useTranslation();
@@ -33,6 +37,14 @@ const Notifications = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const isInitialLoad = React.useRef(true);
+
+  const getLocalizedField = React.useCallback((value) => {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return i18n.language === 'ar' ? (value?.ar || value?.en || '') : (value?.en || value?.ar || '');
+  }, [i18n.language]);
 
   // Fetch notifications
   const fetchNotifications = React.useCallback(async (showLoading = false) => {
@@ -78,13 +90,13 @@ const Notifications = () => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(n =>
-        n.title.toLowerCase().includes(term) ||
-        n.message.toLowerCase().includes(term)
+        getLocalizedField(n.title).toLowerCase().includes(term) ||
+        getLocalizedField(n.message).toLowerCase().includes(term)
       );
     }
 
     setFilteredNotifications(filtered);
-  }, [notifications, filter, searchTerm]);
+  }, [filter, getLocalizedField, notifications, searchTerm]);
 
   // Mark as read
   const markAsRead = async (notificationId) => {
@@ -178,6 +190,14 @@ const Notifications = () => {
       case 'leave_approved':
       case 'leave_rejected':
         return <FaUmbrellaBeach className={iconClass} />;
+      case 'task_assigned':
+      case 'task_accepted':
+      case 'task_rejected':
+        return <FaTasks className={iconClass} />;
+      case 'task_completed':
+        return <FaCheckCircle className={iconClass} />;
+      case 'task_overdue':
+        return <FaExclamationTriangle className={iconClass} />;
       case 'user_created':
         return <FaUserPlus className={iconClass} />;
       default:
@@ -196,6 +216,8 @@ const Notifications = () => {
       navigate(`/forms/view/${notification.data.formId}`);
     } else if (notification.data?.leaveId) {
       navigate(`/leaves/${notification.data.leaveId}`);
+    } else if (notification.data?.taskId) {
+      navigate(`/tasks?taskId=${notification.data.taskId}`);
     } else if (notification.data?.userId) {
       navigate(`/users/${notification.data.userId}/analytics`);
     }
@@ -205,6 +227,18 @@ const Notifications = () => {
   React.useEffect(() => {
     fetchNotifications(true); // true = show loading spinner on initial load
   }, [fetchNotifications]);
+
+  usePolling(
+    async () => {
+      await fetchNotifications(false);
+    },
+    30000,
+    {
+      enabled: true,
+      immediate: false,
+      onError: () => {}
+    }
+  );
 
   return (
     <Layout>
@@ -335,18 +369,14 @@ const Notifications = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="text-base font-semibold text-gray-900">
-                            {typeof notification.title === 'object'
-                              ? (i18n.language === 'ar' ? notification.title.ar : notification.title.en)
-                              : notification.title}
+                            {getLocalizedField(notification.title)}
                           </h3>
                           {!notification.read && (
                             <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
                           )}
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
-                          {typeof notification.message === 'object'
-                            ? (i18n.language === 'ar' ? notification.message.ar : notification.message.en)
-                            : notification.message}
+                          {getLocalizedField(notification.message)}
                         </p>
                         <p className="text-xs text-gray-400 mt-2">
                           {formatNotificationTime(notification.createdAt)}

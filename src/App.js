@@ -30,6 +30,7 @@ const AttendAction = lazy(() => import('./pages/Public/AttendAction'));
 const LeavesList = lazy(() => import('./pages/Leaves/LeavesList'));
 const NewLeave = lazy(() => import('./pages/Leaves/NewLeave'));
 const ViewLeaveRequest = lazy(() => import('./pages/Leaves/ViewLeaveRequest'));
+const TasksPage = lazy(() => import('./pages/Tasks/TasksPage'));
 const UsersList = lazy(() => import('./pages/Users/UsersList'));
 const UserAnalytics = lazy(() => import('./pages/Users/UserAnalytics'));
 const EmployeeReportPDF = lazy(() => import('./pages/Users/Employeereportpdf'));
@@ -251,6 +252,15 @@ function AppContent() {
           />
 
           <Route
+            path="/tasks"
+            element={(
+              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin', 'employee']}>
+                <TasksPage />
+              </ProtectedRoute>
+            )}
+          />
+
+          <Route
             path="/users"
             element={(
               <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin', 'supervisor']}>
@@ -335,7 +345,7 @@ function AppContent() {
           <Route
             path="/notifications"
             element={(
-              <ProtectedRoute allowedRoles={['platform_admin', 'organization_admin']}>
+              <ProtectedRoute>
                 <Notifications />
               </ProtectedRoute>
             )}

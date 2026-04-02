@@ -8,6 +8,7 @@ import {
   FaCreditCard,
   FaFileAlt,
   FaTachometerAlt,
+  FaTasks,
   FaTimes,
   FaUmbrellaBeach,
   FaUserClock,
@@ -53,6 +54,12 @@ const MobileSidebar = ({ isOpen, onClose }) => {
       label: t('nav.leaves'),
       icon: FaUmbrellaBeach,
       roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+    },
+    {
+      path: '/tasks',
+      label: t('nav.tasks', { defaultValue: i18n.language === 'ar' ? 'المهام' : 'Tasks' }),
+      icon: FaTasks,
+      roles: ['platform_admin', 'organization_admin', 'employee']
     },
     {
       path: '/users',

@@ -14,6 +14,7 @@ import {
   FaFileAlt,
   FaQrcode,
   FaTachometerAlt,
+  FaTasks,
   FaUmbrellaBeach,
   FaUserClock,
   FaUsers
@@ -66,6 +67,12 @@ const Sidebar = () => {
       label: t('nav.leaves'),
       icon: FaUmbrellaBeach,
       roles: ['platform_admin', 'organization_admin', 'supervisor', 'employee']
+    },
+    {
+      path: '/tasks',
+      label: t('nav.tasks', { defaultValue: i18n.language === 'ar' ? 'المهام' : 'Tasks' }),
+      icon: FaTasks,
+      roles: ['platform_admin', 'organization_admin', 'employee']
     },
     {
       path: '/users',

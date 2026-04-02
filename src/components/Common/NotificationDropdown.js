@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { FaBell, FaCheck, FaCheckDouble, FaTrash, FaFileAlt, FaUserClock, FaUmbrellaBeach, FaUserPlus } from 'react-icons/fa';
+import {
+  FaBell,
+  FaCheck,
+  FaCheckCircle,
+  FaCheckDouble,
+  FaExclamationTriangle,
+  FaFileAlt,
+  FaTasks,
+  FaTrash,
+  FaUmbrellaBeach,
+  FaUserClock,
+  FaUserPlus
+} from 'react-icons/fa';
 import api from '../../utils/api';
 import { showSuccess, showError } from '../../utils/toast';
 import { formatDate } from '../../utils/dateUtils';
+import { usePolling } from '../../hooks/usePolling';
 import Loading from './Loading';
 
 const NotificationDropdown = () => {
@@ -17,6 +30,14 @@ const NotificationDropdown = () => {
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef(null);
   const isRTL = i18n.language === 'ar';
+
+  const getLocalizedField = useCallback((value) => {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return i18n.language === 'ar' ? (value?.ar || value?.en || '') : (value?.en || value?.ar || '');
+  }, [i18n.language]);
 
   // Fetch notifications - memoized with useCallback
   const fetchNotifications = useCallback(async (showLoading = false) => {
@@ -123,6 +144,14 @@ const NotificationDropdown = () => {
       case 'leave_approved':
       case 'leave_rejected':
         return <FaUmbrellaBeach className={iconClass} />;
+      case 'task_assigned':
+      case 'task_accepted':
+      case 'task_rejected':
+        return <FaTasks className={iconClass} />;
+      case 'task_completed':
+        return <FaCheckCircle className={iconClass} />;
+      case 'task_overdue':
+        return <FaExclamationTriangle className={iconClass} />;
       case 'user_created':
         return <FaUserPlus className={iconClass} />;
       default:
@@ -142,6 +171,8 @@ const NotificationDropdown = () => {
       navigate(`/forms/view/${notification.data.formId}`);
     } else if (notification.data?.leaveId) {
       navigate(`/leaves/${notification.data.leaveId}`);
+    } else if (notification.data?.taskId) {
+      navigate(`/tasks?taskId=${notification.data.taskId}`);
     } else if (notification.data?.userId) {
       navigate(`/users/${notification.data.userId}/analytics`);
     } else {
@@ -170,6 +201,18 @@ const NotificationDropdown = () => {
   useEffect(() => {
     fetchNotifications(true);
   }, [fetchNotifications]);
+
+  usePolling(
+    async () => {
+      await fetchNotifications(false);
+    },
+    30000,
+    {
+      enabled: true,
+      immediate: false,
+      onError: () => {}
+    }
+  );
 
   // Check screen size for mobile
   useEffect(() => {
@@ -267,14 +310,10 @@ const NotificationDropdown = () => {
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
                               <p className="text-sm font-semibold text-gray-900 line-clamp-1">
-                                {typeof notification.title === 'object'
-                                  ? (i18n.language === 'ar' ? notification.title.ar : notification.title.en)
-                                  : notification.title}
+                                {getLocalizedField(notification.title)}
                               </p>
                               <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                {typeof notification.message === 'object'
-                                  ? (i18n.language === 'ar' ? notification.message.ar : notification.message.en)
-                                  : notification.message}
+                                {getLocalizedField(notification.message)}
                               </p>
                               <p className="text-xs text-gray-400 mt-1">
                                 {formatNotificationTime(notification.createdAt)}

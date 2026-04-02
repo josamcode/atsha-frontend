@@ -22,7 +22,7 @@ const Navbar = () => {
   const languageRef = useRef(null);
   const isRTL = i18n.language === 'ar';
   const platformAdminView = isPlatformAdmin(user);
-  const showNotifications = roleMatches(user, ['platform_admin', 'organization_admin']);
+  const showNotifications = Boolean(user);
   const showSettingsLink = roleMatches(user, ['platform_admin', 'organization_admin']);
 
   const changeLanguage = (language) => {
