@@ -50,8 +50,11 @@ const TasksPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [completionTask, setCompletionTask] = useState(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [completionNotes, setCompletionNotes] = useState('');
   const isInitialLoad = useRef(true);
 
   const tt = useCallback((key, defaultValue, options = {}) => (
@@ -181,7 +184,7 @@ const TasksPage = () => {
     {
       enabled: true,
       immediate: false,
-      onError: () => {}
+      onError: () => { }
     }
   );
 
@@ -313,6 +316,12 @@ const TasksPage = () => {
     setShowRejectModal(true);
   };
 
+  const openCompleteModal = (task) => {
+    setCompletionTask(task);
+    setCompletionNotes('');
+    setShowCompleteModal(true);
+  };
+
   const handleRejectTask = async (event) => {
     event.preventDefault();
 
@@ -344,11 +353,22 @@ const TasksPage = () => {
     }
   };
 
-  const handleCompleteTask = async (taskId) => {
+  const handleCompleteTask = async (event) => {
+    event.preventDefault();
+
+    if (!completionTask?._id) {
+      return;
+    }
+
     try {
       setSubmitting(true);
-      await api.put(`/tasks/${taskId}/complete`);
+      await api.put(`/tasks/${completionTask._id}/complete`, {
+        notes: completionNotes.trim() || undefined
+      });
       showSuccess(tt('tasks.completedSuccessfully', 'Task marked as finished.'));
+      setShowCompleteModal(false);
+      setCompletionTask(null);
+      setCompletionNotes('');
       await fetchTasks(true);
     } catch (error) {
       showError(error.response?.data?.message || tt('tasks.errorCompleting', 'Unable to complete the task.'));
@@ -428,7 +448,7 @@ const TasksPage = () => {
             return (
               <Card
                 key={card.key}
-                className={`border bg-gradient-to-br ${card.className}`}
+                className={`bg-gradient-to-br ${card.className}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -486,13 +506,12 @@ const TasksPage = () => {
                 return (
                   <div
                     key={task._id}
-                    className={`rounded-2xl border p-5 transition-all ${
-                      isHighlighted
-                        ? 'border-primary bg-primary/5 shadow-md'
-                        : overdue
-                          ? 'border-red-200 bg-red-50/40'
-                          : 'border-slate-200 bg-white'
-                    }`}
+                    className={`rounded-2xl border p-5 transition-all ${isHighlighted
+                      ? 'border-primary bg-primary/5 shadow-md'
+                      : overdue
+                        ? 'border-red-200 bg-red-50/40'
+                        : 'border-slate-200 bg-white'
+                      }`}
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 flex-1">
@@ -616,7 +635,7 @@ const TasksPage = () => {
 
                           {task.status === 'accepted' && (
                             <Button
-                              onClick={() => handleCompleteTask(task._id)}
+                              onClick={() => openCompleteModal(task)}
                               icon={FaCheckCircle}
                               variant="success"
                               disabled={submitting}
@@ -769,6 +788,56 @@ const TasksPage = () => {
             </Button>
             <Button type="submit" variant="danger" disabled={submitting}>
               {tt('tasks.rejectTask', 'Reject Task')}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={showCompleteModal}
+        onClose={() => {
+          setShowCompleteModal(false);
+          setCompletionTask(null);
+          setCompletionNotes('');
+        }}
+        title={tt('tasks.finishTaskModalTitle', 'Finish Task')}
+        size="md"
+      >
+        <form onSubmit={handleCompleteTask} className="space-y-4">
+          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+            <p className="font-semibold text-slate-800">{completionTask?.title}</p>
+            <p className="mt-2">
+              {tt('tasks.finishTaskHelp', 'Add notes about what was completed before sending the finished status to your admin.')}
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              {tt('tasks.completionNotes', 'Completion Notes')} ({tt('common.optional', 'Optional')})
+            </label>
+            <textarea
+              value={completionNotes}
+              onChange={(event) => setCompletionNotes(event.target.value)}
+              rows={5}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2.5 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder={tt('tasks.completionNotesPlaceholder', 'Add any completion details you want your admin to receive')}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowCompleteModal(false);
+                setCompletionTask(null);
+                setCompletionNotes('');
+              }}
+            >
+              {tt('common.cancel', 'Cancel')}
+            </Button>
+            <Button type="submit" variant="success" disabled={submitting}>
+              {tt('tasks.confirmFinishTask', 'Send Finished Status')}
             </Button>
           </div>
         </form>
