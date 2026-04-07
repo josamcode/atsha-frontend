@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ararm</string>
+    <string name="title_activity_main">Ararm</string>
+    <string name="package_name">com.ararmsai.app</string>
+    <string name="custom_url_scheme">com.ararmsai.app</string>
+</resources>

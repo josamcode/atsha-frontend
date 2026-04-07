@@ -430,6 +430,18 @@ const PlatformOrganizationManager = ({ mode = 'browse' }) => {
           description={`${descriptionText} ${organizationCountLabel}`}
         />
 
+        {!isManagementMode && (
+          <Button
+            onClick={() => navigate('/users/organizations/new')}
+            icon={FaPlus}
+            className="w-full lg:w-auto"
+          >
+            {t('users.createOrganizationAccount', {
+              defaultValue: isRTL ? 'إنشاء حساب مؤسسة' : 'Create Organization Account'
+            })}
+          </Button>
+        )}
+
         {isManagementMode && (
           <Button onClick={openCreateModal} icon={FaPlus} className="w-full lg:w-auto">
             {isRTL ? 'إضافة مؤسسة' : 'Add Organization'}
