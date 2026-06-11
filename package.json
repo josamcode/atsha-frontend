@@ -12,6 +12,7 @@
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.6.2",
+    "eslint-config-react-app": "7.0.1",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.12.1",
     "i18next": "^23.7.6",

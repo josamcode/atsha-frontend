@@ -47,8 +47,39 @@ const PrintForm = () => {
     try {
       const element = printRef.current;
 
-      // Wait a bit for any images/fonts to load
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // ── Step 1: Pre-load all external images via the backend proxy ──
+      // html2canvas cannot capture cross-origin images from media.arascreen.ai
+      // because that domain does not send CORS headers. We pre-fetch every
+      // external image through our own /api/media/proxy-image endpoint
+      // (which DOES send Access-Control-Allow-Origin: *), convert each to a
+      // base64 data URI, then swap the src in the cloned DOM before capture.
+      const proxiedImageMap = new Map(); // originalSrc → dataUrl
+      const allImages = element.querySelectorAll('img');
+
+      for (const img of allImages) {
+        const originalSrc = img.getAttribute('src') || '';
+        if (!originalSrc || originalSrc.startsWith('data:')) continue;
+
+        // Only proxy cross-origin (HTTPS) images — skip same-origin / relative
+        if (!/^https?:\/\//i.test(originalSrc)) continue;
+
+        try {
+          const response = await api.get('/media/proxy-image', {
+            params: { url: originalSrc },
+            responseType: 'blob'
+          });
+          const blob = response.data;
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          proxiedImageMap.set(originalSrc, dataUrl);
+        } catch (err) {
+          console.warn(`[PDF Export] Failed to proxy image ${originalSrc}:`, err.message);
+        }
+      }
 
       // Hide the action buttons temporarily
       const actionBar = document.querySelector('[data-action-bar]');
@@ -60,11 +91,11 @@ const PrintForm = () => {
       const scrollWidth = element.scrollWidth;
       const scrollHeight = element.scrollHeight;
 
-      // Create canvas with high quality settings
+      // ── Step 2: Capture with html2canvas — swap images in cloned DOM ──
       const canvas = await html2canvas(element, {
-        scale: 3, // Higher scale for better quality
+        scale: 3,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: '#ffffff',
         logging: false,
         width: scrollWidth,
@@ -75,13 +106,24 @@ const PrintForm = () => {
         scrollY: 0,
         x: 0,
         y: 0,
-        // Force rendering of all elements
         onclone: (clonedDoc) => {
           const clonedElement = clonedDoc.querySelector('[data-print-content]');
           if (clonedElement) {
             clonedElement.style.display = 'block';
             clonedElement.style.opacity = '1';
             clonedElement.style.visibility = 'visible';
+          }
+
+          // Replace external image srcs with pre-loaded base64 data URIs
+          if (proxiedImageMap.size > 0) {
+            const clonedImages = (clonedElement || clonedDoc).querySelectorAll('img');
+            clonedImages.forEach((img) => {
+              const src = img.getAttribute('src') || '';
+              const dataUrl = proxiedImageMap.get(src);
+              if (dataUrl) {
+                img.src = dataUrl;
+              }
+            });
           }
         }
       });
