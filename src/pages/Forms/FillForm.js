@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
@@ -7,7 +7,6 @@ import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
 import Button from '../../components/Common/Button';
 import { showSuccess, showError, showWarning } from '../../utils/toast';
-import { getLeafTableColumns } from './templateBuilderUtils';
 import {
   FaFileAlt,
   FaSave,
@@ -18,6 +17,14 @@ import {
   FaPlus,
   FaTrash
 } from 'react-icons/fa';
+
+const {
+  resolveTemplateContract,
+  getSemanticSections,
+  getVisibleFields,
+  isTableSection,
+  getLeafColumns: getLeafTableColumns
+} = require('../../document/templateContract');
 
 const FillForm = () => {
   const { templateId } = useParams();
@@ -40,6 +47,25 @@ const FillForm = () => {
   const [imageUploads, setImageUploads] = useState({});
   const [imagePreviews, setImagePreviews] = useState({});
   const imagePreviewUrlsRef = useRef({});
+
+  /**
+   * The data-entry screen consumes the SAME semantic contract as the printed
+   * document: identical section ordering, identical field ordering, identical
+   * visibility. Only the presentation differs — entry stays responsive and is
+   * never forced into paper coordinates.
+   */
+  const contract = useMemo(
+    () => (template ? resolveTemplateContract(template) : { ok: false }),
+    [template]
+  );
+  const orderedSections = useMemo(
+    () => (contract.ok ? getSemanticSections(contract) : []),
+    [contract]
+  );
+  const fieldsToRender = useCallback(
+    (section) => (isTableSection(section) ? [] : getVisibleFields(section)),
+    []
+  );
 
   useEffect(() => {
     fetchTemplate();
@@ -69,40 +95,33 @@ const FillForm = () => {
     try {
       resetImageSelections();
       const response = await api.get(`/form-templates/${templateId}`);
-      setTemplate(response.data.data);
+      const loadedTemplate = response.data.data;
+      setTemplate(loadedTemplate);
 
-      // Initialize values with default empty values
+      // Seed values through the shared contract so entry order, visibility and
+      // field types match the document exactly.
+      const loadedContract = resolveTemplateContract(loadedTemplate);
+      const sections = loadedContract.ok ? getSemanticSections(loadedContract) : [];
+
       const initialValues = {};
-      response.data.data.sections.forEach(section => {
-        // Initialize regular fields
-        section.fields.forEach(field => {
-          const key = `${section.id}.${field.key}`;
-          initialValues[key] = getDefaultValue(field.type);
-        });
-
-        // Initialize table cells if section uses table layout
-        // Start with only 1 row, user can add more
-        if (section.advancedLayout?.layoutType === 'table' &&
-          section.advancedLayout?.table?.enabled &&
-          section.advancedLayout?.table?.columns) {
-          const tableColumns = getLeafTableColumns(section.advancedLayout.table.columns);
-          // Initialize only first row
-          tableColumns.forEach((col, colIdx) => {
-            const cellKey = `${section.id}.row_0.col_${col.id || `col${colIdx + 1}`}`;
-            initialValues[cellKey] = '';
-          });
-        }
-      });
-      setFormData(prev => ({ ...prev, values: initialValues }));
-
-      // Initialize row counts - start with 1 row per table section
       const initialRowCounts = {};
-      response.data.data.sections.forEach(section => {
-        if (section.advancedLayout?.layoutType === 'table' &&
-          section.advancedLayout?.table?.enabled) {
-          initialRowCounts[section.id] = 1; // Start with 1 row
+
+      sections.forEach((section) => {
+        if (isTableSection(section)) {
+          const tableColumns = getLeafTableColumns(section.advancedLayout.table.columns);
+          tableColumns.forEach((col, colIdx) => {
+            initialValues[`${section.id}.row_0.col_${col.id || `col${colIdx + 1}`}`] = '';
+          });
+          initialRowCounts[section.id] = 1;
+          return;
         }
+
+        getVisibleFields(section).forEach((field) => {
+          initialValues[`${section.id}.${field.key}`] = getDefaultValue(field.type);
+        });
       });
+
+      setFormData(prev => ({ ...prev, values: initialValues }));
       setTableRowCounts(initialRowCounts);
     } catch (error) {
       console.error('Error fetching template:', error);
@@ -234,25 +253,40 @@ const FillForm = () => {
     return false;
   };
 
+  /**
+   * Validate only what the user can actually see and edit.
+   *
+   * The previous implementation walked every section's `fields`, including
+   * hidden fields and the (never rendered) fields of table-layout sections, so a
+   * required field the user could not reach made the form permanently
+   * unsubmittable. Driving validation from the same visible-field list that is
+   * rendered removes that whole class of dead ends.
+   */
   const validateForm = () => {
     const newErrors = {};
 
-    template.sections.forEach(section => {
-      section.fields.forEach(field => {
-        if (field.required && field.type !== 'static_text') {
-          const key = `${section.id}.${field.key}`;
-          const value = formData.values[key];
+    if (!contract.ok) {
+      showError(isRTL ? 'تعذر فتح هذا النموذج' : 'This form could not be opened');
+      return false;
+    }
 
-          if (field.type === 'image') {
-            if (!hasImageValue(key)) {
-              newErrors[key] = t('common.required');
-            }
-            return;
-          }
+    orderedSections.forEach((section) => {
+      fieldsToRender(section).forEach((field) => {
+        if (!field.required || field.type === 'static_text') {
+          return;
+        }
+        const key = `${section.id}.${field.key}`;
+        const value = formData.values[key];
 
-          if (value === undefined || value === null || value === '') {
+        if (field.type === 'image') {
+          if (!hasImageValue(key)) {
             newErrors[key] = t('common.required');
           }
+          return;
+        }
+
+        if (value === undefined || value === null || value === '') {
+          newErrors[key] = t('common.required');
         }
       });
     });
@@ -564,8 +598,25 @@ const FillForm = () => {
           </div>
         </div>
 
-        {/* Form Sections */}
-        {template.sections.map((section, sectionIdx) => (
+        {/*
+          A template this build cannot interpret must say so. Rendering an empty
+          but submittable form would let someone file a blank record.
+        */}
+        {!contract.ok && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+            <p className="font-semibold">
+              {isRTL ? 'تعذر فتح هذا النموذج' : 'This form could not be opened'}
+            </p>
+            <p className="mt-1 text-sm">
+              {isRTL
+                ? (contract.error?.messageAr || 'إصدار تخطيط المستند غير مدعوم.')
+                : (contract.error?.message || 'Unsupported document layout version.')}
+            </p>
+          </div>
+        )}
+
+        {/* Form sections, in the document's own reading order */}
+        {orderedSections.map((section, sectionIdx) => (
           <div key={section.id} className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-bold text-gray-800">
@@ -745,13 +796,13 @@ const FillForm = () => {
                   {t('forms.noFieldsForSection') || 'This section does not require fields'}
                 </div>
               ) : (
-                // Render regular fields
-                section.fields.length > 0 ? (
-                  section.fields.map((field, fieldIdx) => (
+                // Regular fields, in the same reading order as the document
+                fieldsToRender(section).length > 0 ? (
+                  fieldsToRender(section).map((field) => (
                     <div key={field.key}>
                       <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {isRTL ? field.label.ar : field.label.en}
-                        {field.required && <span className="text-primary mr-1">*</span>}
+                        {field.required && <span className={isRTL ? 'text-primary mr-1' : 'text-primary ml-1'}>*</span>}
                       </label>
                       {renderField(section, field)}
                       {errors[`${section.id}.${field.key}`] && (

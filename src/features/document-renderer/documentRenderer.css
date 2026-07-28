@@ -1,0 +1,132 @@
+/**
+ * Canonical document renderer styling.
+ *
+ * The renderer positions everything with inline millimetre coordinates coming
+ * from the shared layout engine, so this file only carries page chrome, print
+ * rules and the editor affordances. Nothing here may influence where a block
+ * lands — that would reintroduce the divergence between screen and PDF the
+ * redesign exists to remove.
+ */
+
+.doc-surface {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.doc-page {
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0 18px 45px -20px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  flex: none;
+  /* Text is pre-wrapped by the engine; never let the browser re-wrap it. */
+  font-kerning: none;
+  font-variant-ligatures: none;
+}
+
+.doc-page__content {
+  position: absolute;
+  inset: 0;
+}
+
+/* Margin guides — editor/preview only, never printed. */
+.doc-page__margins {
+  position: absolute;
+  border: 1px dashed rgba(1, 200, 83, 0.45);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.doc-page__grid {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+}
+
+.doc-page__number {
+  position: absolute;
+  bottom: -20px;
+  inset-inline-end: 0;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.doc-primitive {
+  position: absolute;
+  pointer-events: none;
+}
+
+.doc-text {
+  position: absolute;
+  white-space: pre;
+  overflow: visible;
+  pointer-events: none;
+  margin: 0;
+}
+
+.doc-placeholder {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.08),
+    rgba(148, 163, 184, 0.08) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  color: #94a3b8;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  text-align: center;
+  padding: 2px 6px;
+}
+
+.doc-placeholder--subtle {
+  border-style: dotted;
+  background: none;
+}
+
+.doc-image {
+  display: block;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  .doc-surface {
+    gap: 0;
+  }
+
+  .doc-page {
+    box-shadow: none !important;
+    break-after: page;
+    page-break-after: always;
+    margin: 0 !important;
+  }
+
+  .doc-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .doc-page__margins,
+  .doc-page__grid,
+  .doc-page__number,
+  .doc-print-hidden {
+    display: none !important;
+  }
+}
