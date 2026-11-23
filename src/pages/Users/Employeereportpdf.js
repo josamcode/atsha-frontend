@@ -7,6 +7,11 @@ import Layout from '../../components/Layout/Layout';
 import Loading from '../../components/Common/Loading';
 import { showError, showSuccess } from '../../utils/toast';
 import { getMediaUrl } from '../../utils/media';
+import {
+  buildDailyAttendance,
+  getLateMinutes,
+  getOvertimeMinutes
+} from '../../utils/attendanceMetrics';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import {
@@ -190,12 +195,7 @@ const EmployeeReportPDF = () => {
       }
     });
 
-    const attendanceMap = new Map();
-    attendance.forEach(a => {
-      if (a.date && a.checkin) {
-        attendanceMap.set(a.date, a);
-      }
-    });
+    const attendanceMap = buildDailyAttendance(attendance);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -209,6 +209,7 @@ const EmployeeReportPDF = () => {
     let totalWorkMinutes = 0;
     let totalOvertimeMinutes = 0;
     let completeDays = 0;
+    let overtimeDays = 0;
 
     for (let day = 1; day <= totalDaysInMonth; day++) {
       const date = new Date(selectedYear, selectedMonth, day);
@@ -218,6 +219,13 @@ const EmployeeReportPDF = () => {
       const dayStr = String(day).padStart(2, '0');
       const dateStr = `${year}-${month}-${dayStr}`;
       const isFutureDate = date > today;
+      const dayAttendance = attendanceMap.get(dateStr);
+
+      // Hours worked count even on days outside the schedule
+      if (dayAttendance && dayAttendance.workMinutes !== null) {
+        completeDays++;
+        totalWorkMinutes += dayAttendance.workMinutes;
+      }
 
       if (!isWorkDay(dayName, userWorkDays)) {
         nonWorkDays++;
@@ -230,29 +238,30 @@ const EmployeeReportPDF = () => {
         continue;
       }
 
-      const dayAttendance = attendanceMap.get(dateStr);
       if (dayAttendance && dayAttendance.checkin) {
         attendanceDays++;
-        const checkinTime = new Date(dayAttendance.checkin.timestamp);
         const daySchedule = getDaySchedule(dayName);
         const expectedStartMinutes = timeToMinutes(daySchedule.startTime);
-        const checkinMinutes = checkinTime.getHours() * 60 + checkinTime.getMinutes();
+        const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
+        const lateMinutes = getLateMinutes(
+          dayAttendance.checkin.timestamp,
+          expectedStartMinutes,
+          expectedEndMinutes
+        );
 
-        if (checkinMinutes > expectedStartMinutes) {
+        if (lateMinutes > 0) {
           lateCount++;
-          const lateMinutes = checkinMinutes - expectedStartMinutes;
           totalLateMinutes += lateMinutes;
         }
 
         if (dayAttendance.checkout) {
-          completeDays++;
-          const checkoutTime = new Date(dayAttendance.checkout.timestamp);
-          const checkoutMinutes = checkoutTime.getHours() * 60 + checkoutTime.getMinutes();
-          const workMinutes = checkoutMinutes - checkinMinutes;
-          totalWorkMinutes += workMinutes;
-          const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
-          const overtimeMinutes = checkoutMinutes - expectedEndMinutes;
-          totalOvertimeMinutes += overtimeMinutes;
+          overtimeDays++;
+          totalOvertimeMinutes += getOvertimeMinutes(
+            dayAttendance.checkin.timestamp,
+            dayAttendance.checkout.timestamp,
+            expectedStartMinutes,
+            expectedEndMinutes
+          );
         }
       } else {
         if (!isFutureDate) {
@@ -298,8 +307,8 @@ const EmployeeReportPDF = () => {
       },
       overtime: {
         totalMinutes: totalOvertimeMinutes,
-        averageMinutes: completeDays > 0 ? Math.round(totalOvertimeMinutes / completeDays) : 0,
-        completeDays: completeDays
+        averageMinutes: overtimeDays > 0 ? Math.round(totalOvertimeMinutes / overtimeDays) : 0,
+        completeDays: overtimeDays
       },
       paidDays
     });
@@ -609,13 +618,7 @@ const EmployeeReportPDF = () => {
   // Generate attendance calendar data similar to PDF format
   const generateAttendanceCalendar = () => {
     const calendar = [];
-    const attendanceMap = new Map();
-
-    attendanceData.forEach(a => {
-      if (a.date && a.checkin) {
-        attendanceMap.set(a.date, a);
-      }
-    });
+    const attendanceMap = buildDailyAttendance(attendanceData);
 
     // Create a map of leave dates with their types
     const leaveDatesMap = new Map();
@@ -686,12 +689,14 @@ const EmployeeReportPDF = () => {
         // Check attendance
         const dayAttendance = attendanceMap.get(dateStr);
         if (dayAttendance && dayAttendance.checkin) {
-          const checkinTime = new Date(dayAttendance.checkin.timestamp);
           const daySchedule = getDaySchedule(dayName);
-          const expectedStartMinutes = timeToMinutes(daySchedule.startTime);
-          const checkinMinutes = checkinTime.getHours() * 60 + checkinTime.getMinutes();
+          const lateMinutes = getLateMinutes(
+            dayAttendance.checkin.timestamp,
+            timeToMinutes(daySchedule.startTime),
+            timeToMinutes(daySchedule.endTime)
+          );
 
-          if (checkinMinutes > expectedStartMinutes) {
+          if (lateMinutes > 0) {
             status = 'TR'; // Late (متأخر)
             statusColor = 'bg-orange-500 text-white';
           } else {

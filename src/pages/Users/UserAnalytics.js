@@ -11,6 +11,12 @@ import Loading from '../../components/Common/Loading';
 import { showError } from '../../utils/toast';
 import { getMediaUrl } from '../../utils/media';
 import {
+  buildDailyAttendance,
+  getLateMinutes,
+  getOvertimeMinutes,
+  summarizeDayAttendance
+} from '../../utils/attendanceMetrics';
+import {
   FaArrowLeft,
   FaUser,
   FaCalendarAlt,
@@ -200,12 +206,7 @@ const UserAnalytics = () => {
     });
 
     // Build attendance map for quick lookup
-    const attendanceMap = new Map();
-    attendance.forEach(a => {
-      if (a.date && a.checkin) {
-        attendanceMap.set(a.date, a);
-      }
-    });
+    const attendanceMap = buildDailyAttendance(attendance);
 
     // Get today's date for comparison (only count past days as absent)
     const today = new Date();
@@ -221,6 +222,7 @@ const UserAnalytics = () => {
     let totalWorkMinutes = 0; // Total actual work time in minutes
     let totalOvertimeMinutes = 0; // Total minutes after end shift (positive = overtime, negative = early leave)
     let completeDays = 0; // Days with both check-in and check-out
+    let overtimeDays = 0;
 
     for (let day = 1; day <= totalDaysInMonth; day++) {
       const date = new Date(selectedYear, selectedMonth, day);
@@ -233,6 +235,13 @@ const UserAnalytics = () => {
 
       // Check if this date is in the future
       const isFutureDate = date > today;
+      const dayAttendance = attendanceMap.get(dateStr);
+
+      // Hours worked count even on days outside the schedule
+      if (dayAttendance && dayAttendance.workMinutes !== null) {
+        completeDays++;
+        totalWorkMinutes += dayAttendance.workMinutes;
+      }
 
       // Check if it's a work day
       if (!isWorkDay(dayName, userWorkDays)) {
@@ -249,35 +258,32 @@ const UserAnalytics = () => {
       }
 
       // Check attendance
-      const dayAttendance = attendanceMap.get(dateStr);
       if (dayAttendance && dayAttendance.checkin) {
         attendanceDays++;
-        const checkinTime = new Date(dayAttendance.checkin.timestamp);
         const daySchedule = getDaySchedule(dayName);
         const expectedStartMinutes = timeToMinutes(daySchedule.startTime);
-        const checkinMinutes = checkinTime.getHours() * 60 + checkinTime.getMinutes();
+        const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
+        const lateMinutes = getLateMinutes(
+          dayAttendance.checkin.timestamp,
+          expectedStartMinutes,
+          expectedEndMinutes
+        );
 
         // Check if late (after expected start time)
-        if (checkinMinutes > expectedStartMinutes) {
+        if (lateMinutes > 0) {
           lateCount++;
-          const lateMinutes = checkinMinutes - expectedStartMinutes;
           totalLateMinutes += lateMinutes;
         }
 
-        // Calculate actual work time and overtime/early leave if check-out exists
+        // Calculate overtime/early leave if check-out exists
         if (dayAttendance.checkout) {
-          completeDays++;
-          const checkoutTime = new Date(dayAttendance.checkout.timestamp);
-          const checkoutMinutes = checkoutTime.getHours() * 60 + checkoutTime.getMinutes();
-
-          // Calculate actual work time (check-out - check-in) in minutes
-          const workMinutes = checkoutMinutes - checkinMinutes;
-          totalWorkMinutes += workMinutes;
-
-          // Calculate minutes after end shift (check-out time - scheduled end time)
-          const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
-          const overtimeMinutes = checkoutMinutes - expectedEndMinutes;
-          totalOvertimeMinutes += overtimeMinutes;
+          overtimeDays++;
+          totalOvertimeMinutes += getOvertimeMinutes(
+            dayAttendance.checkin.timestamp,
+            dayAttendance.checkout.timestamp,
+            expectedStartMinutes,
+            expectedEndMinutes
+          );
         }
       } else {
         // Only count as absent if the day has already passed (not future)
@@ -328,8 +334,8 @@ const UserAnalytics = () => {
       },
       overtime: {
         totalMinutes: totalOvertimeMinutes,
-        averageMinutes: completeDays > 0 ? Math.round(totalOvertimeMinutes / completeDays) : 0,
-        completeDays: completeDays
+        averageMinutes: overtimeDays > 0 ? Math.round(totalOvertimeMinutes / overtimeDays) : 0,
+        completeDays: overtimeDays
       },
       paidDays
     });
@@ -850,7 +856,7 @@ const UserAnalytics = () => {
                   const isWorkDayToday = isWorkDay(dayName, user?.workDays);
                   const daySchedule = getDaySchedule(dayName);
                   // Find attendance for this date (userId filter is handled by backend, but double-check)
-                  const dayAttendance = attendanceData.find(a => {
+                  const dayAttendance = summarizeDayAttendance(attendanceData.filter(a => {
                     if (a.date !== dateStr) return false;
                     // If userId is present in the record, ensure it matches (for safety)
                     if (a.userId) {
@@ -858,7 +864,7 @@ const UserAnalytics = () => {
                       return recordUserId === user?._id || recordUserId === id;
                     }
                     return true; // If no userId in record, assume it's for this user (legacy data)
-                  });
+                  }));
 
                   // Check if this date is in the future
                   const today = new Date();
@@ -900,25 +906,23 @@ const UserAnalytics = () => {
                   // Calculate late time based on actual schedule
                   let isLate = false;
                   let lateMinutes = 0;
+                  const expectedStartMinutes = timeToMinutes(daySchedule.startTime);
+                  const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
                   if (checkinTime && isWorkDayToday) {
-                    const expectedStartMinutes = timeToMinutes(daySchedule.startTime);
-                    const checkinMinutes = checkinTime.getHours() * 60 + checkinTime.getMinutes();
-                    if (checkinMinutes > expectedStartMinutes) {
-                      isLate = true;
-                      lateMinutes = checkinMinutes - expectedStartMinutes;
-                    }
+                    lateMinutes = getLateMinutes(checkinTime, expectedStartMinutes, expectedEndMinutes);
+                    isLate = lateMinutes > 0;
                   }
 
                   // Calculate work time and overtime/early leave
-                  let workTimeMinutes = null;
+                  const workTimeMinutes = dayAttendance?.workMinutes ?? null;
                   let overtimeMinutes = null;
                   if (checkinTime && checkoutTime && isWorkDayToday) {
-                    const checkinMinutes = checkinTime.getHours() * 60 + checkinTime.getMinutes();
-                    const checkoutMinutes = checkoutTime.getHours() * 60 + checkoutTime.getMinutes();
-                    workTimeMinutes = checkoutMinutes - checkinMinutes;
-
-                    const expectedEndMinutes = timeToMinutes(daySchedule.endTime);
-                    overtimeMinutes = checkoutMinutes - expectedEndMinutes;
+                    overtimeMinutes = getOvertimeMinutes(
+                      checkinTime,
+                      checkoutTime,
+                      expectedStartMinutes,
+                      expectedEndMinutes
+                    );
                   }
 
                   return (
