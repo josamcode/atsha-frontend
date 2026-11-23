@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { showError } from './toast';
 import {
-  getLocalizedAuthenticationFailedMessage,
   getLocalizedRateLimitMessage,
   getLocalizedSessionExpiredMessage,
   localizeBackendPayload,
@@ -17,6 +16,7 @@ import {
   getStoredOrganization,
   getStoredOrganizationSlug,
   getStoredRefreshToken,
+  setAuthNotice,
   setStoredAccessToken,
   setStoredOrganization
 } from './organization';
@@ -26,12 +26,64 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 let isRefreshing = false;
 let failedQueue = [];
 
+const SESSION_ENDING_CODES = new Set([
+  'ACCOUNT_DEACTIVATED',
+  'ORGANIZATION_INACTIVE',
+  'ORGANIZATION_SUSPENDED',
+  'PASSWORD_CHANGED',
+  'REFRESH_TOKEN_INVALID',
+  'SESSION_ORGANIZATION_NOT_FOUND',
+  'SESSION_REVOKED',
+  'SESSION_ROLE_CHANGED',
+  'SESSION_USER_NOT_FOUND',
+  'TOKEN_INVALID',
+  'USER_NOT_IN_ORGANIZATION'
+]);
+
+const PUBLIC_AUTH_URLS = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/register',
+  '/auth/logout',
+  '/auth/organization',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/request-password-reset',
+  '/invitations/public',
+  '/invitations/accept'
+];
+
+const isPublicAuthRequest = (url = '') => PUBLIC_AUTH_URLS.some((entry) => url.includes(entry));
+
 const getActiveOrganizationSlug = () => {
-  return getResolvedOrganizationSlug({
+  const sessionOrganization = getStoredAccessToken() ? getStoredOrganization() : null;
+
+  return sessionOrganization?.slug || getResolvedOrganizationSlug({
     search: typeof window !== 'undefined' ? window.location.search : '',
     organization: getStoredOrganization(),
     fallbackSlug: getStoredOrganizationSlug()
   });
+};
+
+const endSession = (message) => {
+  const loginPath = buildLoginPath(
+    {
+      pathname: window.location.pathname,
+      search: window.location.search
+    },
+    getActiveOrganizationSlug()
+  );
+
+  clearStoredAuthSession({ preserveOrganization: false });
+  setAuthNotice(message || getLocalizedSessionExpiredMessage());
+
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.replace(loginPath);
+  }
+
+  const sessionError = new Error('Session expired');
+  sessionError.isSessionEnded = true;
+  return sessionError;
 };
 
 const processQueue = (error, token = null) => {
@@ -138,109 +190,47 @@ api.interceptors.response.use(
       return Promise.reject(rateLimitError);
     }
 
-    if (error.response?.status === 401) {
-      const requestUrl = originalRequest.url || '';
-      const isAuthEndpoint = requestUrl.includes('/auth/login') ||
-        requestUrl.includes('/auth/refresh') ||
-        requestUrl.includes('/auth/register');
+    const responseCode = error.response?.data?.code;
+    const isSessionFailure = error.response?.status === 401 || (
+      error.response?.status === 403 && SESSION_ENDING_CODES.has(responseCode)
+    );
 
-      if (isAuthEndpoint || originalRequest.skipAuthRedirect) {
+    if (isSessionFailure) {
+      if (isPublicAuthRequest(originalRequest.url) || originalRequest.skipAuthRedirect) {
         return Promise.reject(error);
       }
+
+      if (SESSION_ENDING_CODES.has(responseCode) || originalRequest._retry) {
+        return Promise.reject(endSession(error.response.data?.message));
+      }
+
+      originalRequest._retry = true;
+
+      const retryWithToken = (token) => {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      };
 
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (!originalRequest.headers) {
-              originalRequest.headers = {};
-            }
-
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch((queueError) => Promise.reject(queueError));
+        }).then(retryWithToken);
       }
 
-      if (originalRequest._retry) {
-        return Promise.reject(error);
-      }
-
-      originalRequest._retry = true;
       isRefreshing = true;
+      const refreshResult = await refreshAccessToken();
+      isRefreshing = false;
 
-      try {
-        const refreshToken = getStoredRefreshToken();
-        const organizationSlug = getActiveOrganizationSlug();
-
-        if (refreshToken) {
-          const response = await axios.post(
-            `${API_URL}/auth/refresh`,
-            {
-              refreshToken,
-              organization: organizationSlug || undefined
-            },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                ...buildOrganizationHeaders(organizationSlug)
-              }
-            }
-          );
-
-          if (response.data?.success && response.data.data?.accessToken) {
-            const accessToken = response.data.data.accessToken;
-            setStoredAccessToken(accessToken);
-
-            if (response.data.data.organization) {
-              setStoredOrganization(response.data.data.organization);
-            }
-
-            processQueue(null, accessToken);
-            isRefreshing = false;
-
-            if (!originalRequest.headers) {
-              originalRequest.headers = {};
-            }
-
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            originalRequest._retry = false;
-            return api(originalRequest);
-          }
-        }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        isRefreshing = false;
+      if (refreshResult.success) {
+        processQueue(null, refreshResult.accessToken);
+        return retryWithToken(refreshResult.accessToken);
       }
 
-      clearStoredAuthSession({ preserveOrganization: true });
-
-      const errorMessage = rawResponseMessage || 'Your session has expired';
-      if (
-        errorMessage === 'Token is not valid' ||
-        errorMessage.includes('expired') ||
-        errorMessage.includes('not valid') ||
-        errorMessage.includes('organization') ||
-        errorMessage === 'Not authorized to access this route'
-      ) {
-        showError(getLocalizedSessionExpiredMessage());
-      } else {
-        showError(getLocalizedAuthenticationFailedMessage());
-      }
-
-      setTimeout(() => {
-        const organizationSlug = getActiveOrganizationSlug();
-        window.location.href = buildLoginPath(
-          {
-            pathname: window.location.pathname,
-            search: window.location.search
-          },
-          organizationSlug
-        );
-      }, 1000);
-
-      return Promise.reject(new Error('Session expired'));
+      // A network failure is not a reason to sign the user out.
+      const failure = refreshResult.transient ? error : endSession(refreshResult.error);
+      processQueue(failure, null);
+      return Promise.reject(failure);
     }
 
     return Promise.reject(error);
@@ -293,19 +283,10 @@ export const refreshAccessToken = async () => {
   }
 
   try {
-    const organizationSlug = getActiveOrganizationSlug();
     const response = await axios.post(
       `${API_URL}/auth/refresh`,
-      {
-        refreshToken,
-        organization: organizationSlug || undefined
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...buildOrganizationHeaders(organizationSlug)
-        }
-      }
+      { refreshToken },
+      { headers: { 'Content-Type': 'application/json' } }
     );
 
     if (response.data?.success && response.data.data?.accessToken) {
@@ -324,11 +305,22 @@ export const refreshAccessToken = async () => {
 
     return { success: false, error: translateBackendMessage('Invalid response from server') };
   } catch (error) {
+    const status = error.response?.status;
+
+    if (status !== 401 && status !== 403) {
+      return {
+        success: false,
+        transient: true,
+        error: translateBackendMessage('Unable to connect to the server. Check your connection and try again.')
+      };
+    }
+
     clearStoredAuthSession({ preserveOrganization: true });
 
     return {
       success: false,
-      error: translateBackendMessage(error.response?.data?.message || error.message || 'Token refresh failed')
+      code: error.response?.data?.code,
+      error: translateBackendMessage(error.response?.data?.message || 'Token refresh failed')
     };
   }
 };

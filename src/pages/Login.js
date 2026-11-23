@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FaEnvelope, FaLock } from 'react-icons/fa';
@@ -8,8 +8,11 @@ import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import {
   buildPathWithOrganization,
+  clearAuthNotice,
+  getAuthNotice,
   getDefaultAuthenticatedPath,
-  getOrganizationSlugFromSearch
+  getOrganizationSlugFromSearch,
+  getSafeRedirectPath
 } from '../utils/organization';
 
 const Login = () => {
@@ -25,8 +28,13 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => getAuthNotice() || '');
+  const [organizationChoices, setOrganizationChoices] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    clearAuthNotice();
+  }, []);
 
   const handleChange = (event) => {
     setFormData((currentValue) => ({
@@ -34,15 +42,16 @@ const Login = () => {
       [event.target.name]: event.target.value
     }));
     setError('');
+    setOrganizationChoices([]);
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const submitLogin = async (selectedOrganizationSlug = null) => {
     setLoading(true);
     setError('');
 
     const result = await login(formData.email, formData.password, {
-      organizationSlug: requestedOrganizationSlug
+      organizationSlug: requestedOrganizationSlug,
+      selectedOrganizationSlug
     });
 
     if (result.success) {
@@ -50,8 +59,11 @@ const Login = () => {
       const userLanguage = result.user.languagePreference;
       const nextLanguage = currentLanguage || userLanguage || 'ar';
       const authenticatedOrganizationSlug = result.organization?.slug || null;
-      const nextPath = redirectTarget
-        ? buildPathWithOrganization(redirectTarget, authenticatedOrganizationSlug)
+      const safeRedirect = getSafeRedirectPath(redirectTarget);
+      const isSameOrganization = !requestedOrganizationSlug
+        || requestedOrganizationSlug === authenticatedOrganizationSlug;
+      const nextPath = safeRedirect && isSameOrganization
+        ? buildPathWithOrganization(safeRedirect, authenticatedOrganizationSlug)
         : getDefaultAuthenticatedPath(result.user);
 
       i18n.changeLanguage(nextLanguage);
@@ -59,11 +71,20 @@ const Login = () => {
       document.documentElement.dir = nextLanguage === 'ar' ? 'rtl' : 'ltr';
 
       navigate(nextPath, { replace: true });
+    } else if (result.code === 'ORGANIZATION_SELECTION_REQUIRED') {
+      setOrganizationChoices(result.organizations);
     } else {
-      setError(result.message || t('auth.invalidCredentials'));
+      setOrganizationChoices([]);
+      const message = result.message || t('auth.invalidCredentials');
+      setError(result.organizationName ? `${result.organizationName}: ${message}` : message);
     }
 
     setLoading(false);
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    submitLogin();
   };
 
   const changeLanguage = (language) => {
@@ -132,7 +153,25 @@ const Login = () => {
               <div className="auth-alert auth-alert-error">{error}</div>
             )}
 
-            {/* Form */}
+            {organizationChoices.length > 0 ? (
+              <div role="group" aria-label={t('auth.chooseOrganization')} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="auth-alert auth-alert-info">{t('auth.chooseOrganizationHint')}</div>
+                {organizationChoices.map((choice) => (
+                  <Button
+                    key={choice.slug}
+                    variant="outline"
+                    disabled={loading}
+                    fullWidth
+                    onClick={() => submitLogin(choice.slug)}
+                  >
+                    {choice.name || choice.slug}
+                  </Button>
+                ))}
+                <Button variant="secondary" disabled={loading} fullWidth onClick={() => setOrganizationChoices([])}>
+                  {t('auth.backToLogin')}
+                </Button>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <Input
                 label={t('auth.email')}
@@ -172,6 +211,7 @@ const Login = () => {
                 </Button>
               </div>
             </form>
+            )}
 
             {/* Footer */}
             <p className="auth-footer-text">

@@ -10,6 +10,7 @@ import {
   getResolvedOrganizationSlug,
   getStoredOrganization,
   getStoredOrganizationSlug,
+  getStoredRefreshToken,
   normalizeOrganizationSlug,
   setStoredOrganization,
   setStoredOrganizationSlug
@@ -156,17 +157,16 @@ export const OrganizationProvider = ({ children }) => {
 
     const loadOrganization = async () => {
       const searchSlug = getOrganizationSlugFromSearch(location.search);
-      const nextSlug = getResolvedOrganizationSlug({
+      const hasSession = Boolean(getStoredAccessToken() || getStoredRefreshToken());
+      const sessionOrganization = hasSession ? getStoredOrganization() : null;
+      const nextSlug = sessionOrganization?.slug || getResolvedOrganizationSlug({
         search: location.search,
         organization: getStoredOrganization(),
         fallbackSlug: getStoredOrganizationSlug()
       });
-      const shouldSkipBootstrap = (
-        !getStoredAccessToken()
-        && isPublicAuthRoute(location.pathname)
-      );
+      const shouldSkipBootstrap = !hasSession && isPublicAuthRoute(location.pathname);
 
-      if (searchSlug) {
+      if (searchSlug && !sessionOrganization) {
         setStoredOrganizationSlug(searchSlug);
       } else if (!nextSlug) {
         clearStoredOrganizationSlug();
@@ -188,10 +188,17 @@ export const OrganizationProvider = ({ children }) => {
 
       if (result.success) {
         applyOrganization(result.organization, nextSlug);
+      } else if (sessionOrganization) {
+        // /auth/me decides whether this session is still valid.
+        setOrganization(sessionOrganization);
+        setOrganizationSlug(normalizeOrganizationSlug(sessionOrganization.slug));
       } else {
         clearStoredOrganization();
         setOrganization(null);
-        setOrganizationSlug(normalizeOrganizationSlug(nextSlug));
+        setOrganizationSlug(searchSlug);
+        if (!searchSlug) {
+          clearStoredOrganizationSlug();
+        }
         setError(result.message);
       }
 

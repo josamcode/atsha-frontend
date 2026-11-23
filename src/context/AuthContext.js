@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api, { isTokenExpired, refreshAccessToken } from '../utils/api';
+import { translateBackendMessage } from '../utils/backendMessageTranslations';
 import { useOrganization } from './OrganizationContext';
 import {
   clearStoredAuthSession,
@@ -7,8 +8,8 @@ import {
   getStoredOrganization,
   getStoredRefreshToken,
   getStoredUser,
-  getTokenOrganizationId,
   normalizeOrganizationSlug,
+  setAuthNotice,
   syncStoredAuthSession
 } from '../utils/organization';
 
@@ -19,16 +20,24 @@ export const AuthProvider = ({ children }) => {
     organization,
     organizationSlug,
     loading: organizationLoading,
-    setOrganizationContext
+    setOrganizationContext,
+    clearOrganizationContext
   } = useOrganization();
   const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
+  const [signedOut, setSignedOut] = useState(false);
   const resolvedOrganizationId = organization?.id || null;
 
   const clearSession = (preserveOrganization = true) => {
     clearStoredAuthSession({ preserveOrganization });
     setUser(null);
   };
+
+  useEffect(() => {
+    if (user) {
+      setSignedOut(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     let ignore = false;
@@ -41,24 +50,6 @@ export const AuthProvider = ({ children }) => {
       const storedUser = getStoredUser();
       const accessToken = getStoredAccessToken();
       const refreshToken = getStoredRefreshToken();
-      const sessionOrganizationId =
-        getTokenOrganizationId(accessToken) || getTokenOrganizationId(refreshToken);
-
-      if (!resolvedOrganizationId && (accessToken || refreshToken)) {
-        clearSession(true);
-        if (!ignore) {
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (resolvedOrganizationId && sessionOrganizationId && resolvedOrganizationId !== sessionOrganizationId) {
-        clearSession(true);
-        if (!ignore) {
-          setLoading(false);
-        }
-        return;
-      }
 
       if (!accessToken && !refreshToken) {
         if (storedUser) {
@@ -76,12 +67,19 @@ export const AuthProvider = ({ children }) => {
 
         if (!nextAccessToken || isTokenExpired(nextAccessToken)) {
           if (!refreshToken || isTokenExpired(refreshToken)) {
-            throw new Error('Session expired');
+            if (!ignore) {
+              clearSession(true);
+            }
+            return;
           }
 
           const refreshResult = await refreshAccessToken();
           if (!refreshResult.success) {
-            throw new Error(refreshResult.error || 'Unable to refresh session');
+            if (!ignore && !refreshResult.transient) {
+              setAuthNotice(refreshResult.error);
+              clearSession(true);
+            }
+            return;
           }
 
           nextAccessToken = refreshResult.accessToken;
@@ -91,7 +89,7 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-        const response = await api.get('/auth/me');
+        const response = await api.get('/auth/me', { skipAuthRedirect: true });
         const nextUser = response.data?.data?.user || storedUser || null;
         const nextOrganization = response.data?.data?.organization || getStoredOrganization() || null;
 
@@ -112,7 +110,10 @@ export const AuthProvider = ({ children }) => {
 
         setUser(nextUser);
       } catch (error) {
-        if (!ignore) {
+        const status = error.response?.status;
+
+        if (!ignore && (status === 401 || status === 403)) {
+          setAuthNotice(error.response.data?.message);
           clearSession(true);
         }
       } finally {
@@ -130,7 +131,8 @@ export const AuthProvider = ({ children }) => {
   }, [organizationLoading, resolvedOrganizationId, setOrganizationContext]);
 
   const login = async (email, password, options = {}) => {
-    const requestedOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
+    const urlOrganizationSlug = normalizeOrganizationSlug(options.organizationSlug);
+    const selectedOrganizationSlug = normalizeOrganizationSlug(options.selectedOrganizationSlug);
 
     try {
       const loginWithOrganization = async (organizationSlug = null) => api.post(
@@ -148,15 +150,18 @@ export const AuthProvider = ({ children }) => {
       let response;
 
       try {
-        response = await loginWithOrganization();
+        response = await loginWithOrganization(selectedOrganizationSlug);
       } catch (error) {
-        const needsScopedRetry = error.response?.status === 409 && requestedOrganizationSlug;
+        const choices = error.response?.data?.organizations || [];
+        const urlChoice = error.response?.data?.code === 'ORGANIZATION_SELECTION_REQUIRED'
+          ? choices.find((choice) => choice.slug === urlOrganizationSlug)
+          : null;
 
-        if (!needsScopedRetry) {
+        if (!urlChoice) {
           throw error;
         }
 
-        response = await loginWithOrganization(requestedOrganizationSlug);
+        response = await loginWithOrganization(urlChoice.slug);
       }
 
       const { user: nextUser, organization: nextOrganization, accessToken, refreshToken } = response.data.data;
@@ -182,7 +187,12 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        code: error.response?.data?.code || null,
+        organizations: error.response?.data?.organizations || [],
+        organizationName: error.response?.data?.organizationName || null,
+        message: error.response
+          ? (error.response.data?.message || translateBackendMessage('Login failed'))
+          : translateBackendMessage('Unable to connect to the server. Check your connection and try again.')
       };
     }
   };
@@ -325,12 +335,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    const refreshToken = getStoredRefreshToken();
+
+    setSignedOut(true);
+    clearSession(false);
+    clearOrganizationContext({ clearSlug: true });
+
     try {
-      await api.post('/auth/logout');
+      await api.post(
+        '/auth/logout',
+        { refreshToken },
+        { skipOrganizationHeader: true, skipAuthRedirect: true }
+      );
     } catch (error) {
-      // Logout should still clear local session state.
-    } finally {
-      clearSession(true);
+      // The local session is already gone.
     }
   };
 
@@ -351,6 +369,7 @@ export const AuthProvider = ({ children }) => {
     organization,
     organizationSlug,
     loading: loading || organizationLoading,
+    signedOut,
     login,
     registerOrganization,
     sendOrganizationVerificationCode,

@@ -94,6 +94,8 @@
     "forgotPassword": "Forgot password?",
     "rememberMe": "Remember me",
     "invalidCredentials": "Invalid email or password",
+    "chooseOrganization": "Choose an organization",
+    "chooseOrganizationHint": "This account belongs to more than one organization. Choose the one you want to sign in to.",
     "loginSuccess": "Login successful!",
     "logoutSuccess": "Logged out successfully",
     "forgotPasswordTitle": "Forgot Password",

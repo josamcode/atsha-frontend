@@ -1,6 +1,7 @@
 const ORGANIZATION_QUERY_PARAM = 'organization';
 const ORGANIZATION_SLUG_STORAGE_KEY = 'organizationSlug';
 const ORGANIZATION_STORAGE_KEY = 'organization';
+const AUTH_NOTICE_STORAGE_KEY = 'authNotice';
 
 export const AUTH_STORAGE_KEYS = {
   user: 'user',
@@ -257,6 +258,38 @@ export const buildLoginPath = (locationLike, organizationSlug) => {
   });
 };
 
+export const getSafeRedirectPath = (value) => (
+  typeof value === 'string' && /^\/(?![/\\])/.test(value) ? value : null
+);
+
+export const setAuthNotice = (message) => {
+  if (!message || typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(AUTH_NOTICE_STORAGE_KEY, message);
+  } catch (error) {
+    // Ignore storage write failures.
+  }
+};
+
+export const getAuthNotice = () => {
+  try {
+    return window.sessionStorage.getItem(AUTH_NOTICE_STORAGE_KEY);
+  } catch (error) {
+    return null;
+  }
+};
+
+export const clearAuthNotice = () => {
+  try {
+    window.sessionStorage.removeItem(AUTH_NOTICE_STORAGE_KEY);
+  } catch (error) {
+    // Ignore storage removal failures.
+  }
+};
+
 export const buildOrganizationHeaders = (organizationSlug) => {
   const normalizedSlug = normalizeOrganizationSlug(organizationSlug);
 
@@ -280,7 +313,8 @@ export const decodeJwtPayload = (token) => {
       return null;
     }
 
-    return JSON.parse(atob(segments[1]));
+    const base64 = segments[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
   } catch (error) {
     return null;
   }

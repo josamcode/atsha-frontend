@@ -18,14 +18,14 @@ const ProtectedRoute = ({
   requiredFeatures = []
 }) => {
   const location = useLocation();
-  const { user, organization, organizationSlug, loading } = useAuth();
+  const { user, organization, organizationSlug, loading, signedOut } = useAuth();
 
   if (loading) {
     return <Loading />;
   }
 
   if (!organization || !user) {
-    return <Navigate to={buildLoginPath(location, organizationSlug)} replace />;
+    return <Navigate to={signedOut ? '/login' : buildLoginPath(location, organizationSlug)} replace />;
   }
 
   const qrManagerCanUseQr = (

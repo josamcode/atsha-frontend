@@ -92,6 +92,8 @@
     "forgotPassword": "نسيت كلمة المرور؟",
     "rememberMe": "تذكرني",
     "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "chooseOrganization": "اختر المؤسسة",
+    "chooseOrganizationHint": "هذا الحساب مسجل في أكثر من مؤسسة. اختر المؤسسة التي تريد الدخول إليها.",
     "loginSuccess": "تم تسجيل الدخول بنجاح!",
     "logoutSuccess": "تم تسجيل الخروج بنجاح",
     "forgotPasswordTitle": "نسيت كلمة المرور",
