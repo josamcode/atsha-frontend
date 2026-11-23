@@ -1,6 +1,30 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  FiArrowLeft,
+  FiArrowRight,
+  FiBriefcase,
+  FiCalendar,
+  FiCheck,
+  FiClipboard,
+  FiCoffee,
+  FiDroplet,
+  FiFileText,
+  FiGitBranch,
+  FiGlobe,
+  FiGrid,
+  FiHeart,
+  FiLayers,
+  FiMenu,
+  FiMessageCircle,
+  FiPlus,
+  FiShield,
+  FiShoppingBag,
+  FiUser,
+  FiUsers,
+  FiX
+} from 'react-icons/fi';
 import {
   FEATURE_FIELDS,
   LIMIT_FIELDS,
@@ -10,72 +34,44 @@ import {
   getPlanName
 } from '../components/Platform/planUtils';
 import billingService from '../services/billingService';
+import {
+  ActivityFeed,
+  FeatureVisual,
+  HeroDashboard,
+  HeroToast,
+  NewWayVisual,
+  OldWayVisual,
+  ReportDocument
+} from './LandingVisuals';
 import './LandingPage.css';
 
-/* ─── SVG Icon Components ─── */
-const IconGrid = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
-);
-const IconQR = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3m4 0v-3h-3m0 6h3m-7 0h1" /></svg>
-);
-const IconForms = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-);
-const IconLeave = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-);
-const IconMsg = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-);
-const IconReport = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path d="M11 3v5a2 2 0 002 2h5M9 17v-4m4 4v-6m4 6v-2" /></svg>
-);
-const IconShield = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-);
-const IconHierarchy = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 00-9.288 0M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-);
-const IconBranding = () => (
-  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-);
-const IconChevron = () => (
-  <svg className="lp-faq-chevron" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-);
-const IconMenu = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-);
-const IconClose = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 18L18 6M6 6l12 12" /></svg>
-);
-const IconCheck = () => (
-  <svg width="16" height="16" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth="2">
-    <path d="M3.5 8.5 6.5 11.5 12.5 4.5" />
-  </svg>
-);
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ─── Scroll Reveal Hook ─── */
 function useScrollReveal() {
   const ref = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const root = ref.current;
+
+    if (!root || prefersReducedMotion() || !('IntersectionObserver' in window)) {
+      return undefined;
+    }
+
+    root.classList.add('lp-motion');
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
+            entry.target.classList.add('is-in');
+            observer.unobserve(entry.target);
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -60px 0px' }
+      { threshold: 0.04, rootMargin: '0px 0px -4% 0px' }
     );
 
-    const el = ref.current;
-    if (el) {
-      const items = el.querySelectorAll('.lp-reveal');
-      items.forEach((item) => observer.observe(item));
-    }
+    root.querySelectorAll('.lp-reveal').forEach((item) => observer.observe(item));
 
     return () => observer.disconnect();
   }, []);
@@ -83,14 +79,124 @@ function useScrollReveal() {
   return ref;
 }
 
-/* ═══════════════════════════════════════════
-   LANDING PAGE COMPONENT
-   ═══════════════════════════════════════════ */
+const PlatformStack = ({ modules, tryLabel, Arrow }) => {
+  const [active, setActive] = useState(0);
+  const anchorsRef = useRef([]);
+  const firstItemRef = useRef(null);
+
+  const getStickyTop = useCallback(() => {
+    const value = firstItemRef.current ? parseFloat(getComputedStyle(firstItemRef.current).top) : NaN;
+    return Number.isFinite(value) ? value : 136;
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const line = getStickyTop() + 140;
+      let next = 0;
+
+      anchorsRef.current.forEach((anchor, index) => {
+        if (anchor && anchor.getBoundingClientRect().top <= line) {
+          next = index;
+        }
+      });
+
+      setActive(next);
+    };
+
+    const onScroll = () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [getStickyTop]);
+
+  const goTo = (index) => {
+    const anchor = anchorsRef.current[index];
+
+    if (anchor) {
+      window.scrollTo({
+        top: anchor.getBoundingClientRect().top + window.scrollY - getStickyTop(),
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth'
+      });
+    }
+  };
+
+  return (
+    <>
+      <nav className="lp-tabs" style={{ '--active': active }}>
+        <ol>
+          {modules.map((module, index) => (
+            <li key={module.key}>
+              <button
+                type="button"
+                aria-current={index === active ? 'true' : undefined}
+                onClick={() => goTo(index)}
+              >
+                {module.icon}
+                <span>{module.tab}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <div className="lp-stack">
+        {modules.map((module, index) => (
+          <React.Fragment key={module.key}>
+            <span
+              className="lp-stack-anchor"
+              ref={(element) => { anchorsRef.current[index] = element; }}
+            />
+            <article
+              className={`lp-stack-item lp-tone-${index + 1}`}
+              ref={index === 0 ? firstItemRef : undefined}
+            >
+              <div className="lp-stack-visual">
+                <FeatureVisual type={module.key} />
+              </div>
+              <div className="lp-stack-copy">
+                <span className="lp-stack-icon">{module.icon}</span>
+                <span className="lp-script">{module.tab}</span>
+                <h3>{module.title}</h3>
+                <p>{module.description}</p>
+                <ul className="lp-checks">
+                  {module.points.map((point) => (
+                    <li key={point}><span className="lp-tick"><FiCheck /></span>{point}</li>
+                  ))}
+                </ul>
+                <Link to="/register" className="lp-text-link">
+                  {tryLabel}
+                  <Arrow />
+                </Link>
+              </div>
+            </article>
+          </React.Fragment>
+        ))}
+      </div>
+    </>
+  );
+};
+
 const LandingPage = ({ initialSection = null }) => {
   const { t, i18n } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
+  const [openFaq, setOpenFaq] = useState(1);
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [plansData, setPlansData] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
@@ -98,12 +204,14 @@ const LandingPage = ({ initialSection = null }) => {
   const pageRef = useScrollReveal();
   const isArabic = i18n.language === 'ar';
   const locale = isArabic ? 'ar-SA' : 'en-US';
+  const Arrow = isArabic ? FiArrowLeft : FiArrowRight;
 
   const handleScroll = useCallback(() => {
     setScrolled(window.scrollY > 20);
   }, []);
 
   useEffect(() => {
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
@@ -116,7 +224,7 @@ const LandingPage = ({ initialSection = null }) => {
     const timer = window.setTimeout(() => {
       const el = document.getElementById(initialSection);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
       }
     }, 120);
 
@@ -168,7 +276,15 @@ const LandingPage = ({ initialSection = null }) => {
   const scrollToSection = (id) => {
     setMobileMenuOpen(false);
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  };
+
+  const switchLanguage = () => {
+    const nextLanguage = isArabic ? 'en' : 'ar';
+    i18n.changeLanguage(nextLanguage);
+    localStorage.setItem('language', nextLanguage);
+    document.documentElement.dir = nextLanguage === 'ar' ? 'rtl' : 'ltr';
+    setMobileMenuOpen(false);
   };
 
   const pricingText = isArabic ? {
@@ -297,468 +413,349 @@ const LandingPage = ({ initialSection = null }) => {
     return plan.checkout?.[selectedCheckoutKey] ? pricingText.checkoutReady : pricingText.contactUs;
   };
 
-  const featuresData = [
-    { icon: <IconGrid />, color: 'green', titleKey: 'landing.features.f1Title', descKey: 'landing.features.f1Desc' },
-    { icon: <IconQR />, color: 'blue', titleKey: 'landing.features.f2Title', descKey: 'landing.features.f2Desc' },
-    { icon: <IconForms />, color: 'amber', titleKey: 'landing.features.f3Title', descKey: 'landing.features.f3Desc' },
-    { icon: <IconLeave />, color: 'purple', titleKey: 'landing.features.f4Title', descKey: 'landing.features.f4Desc' },
-    { icon: <IconMsg />, color: 'rose', titleKey: 'landing.features.f5Title', descKey: 'landing.features.f5Desc' },
-    { icon: <IconReport />, color: 'teal', titleKey: 'landing.features.f6Title', descKey: 'landing.features.f6Desc' },
+  const modules = useMemo(() => {
+    const copy = isArabic ? {
+      org: { tab: 'المنظمات', points: ['بيانات معزولة لكل منظمة', 'علامة تجارية مخصصة', 'أقسام ونطاقات مستقلة'] },
+      qr: { tab: 'الحضور', points: ['رموز QR محدودة الوقت', 'تسجيل بدون تلاعب', 'بدون أجهزة إضافية'] },
+      forms: { tab: 'النماذج', points: ['قوائم تحقق وتقارير فحص', 'نماذج امتثال', 'مراجعة وموافقة المشرفين'] },
+      leave: { tab: 'الإجازات', points: ['مرضية أو سنوية أو طارئة', 'موافقة في ثوانٍ', 'من لوحة التحكم مباشرة'] },
+      messages: { tab: 'المراسلات', points: ['إعلانات عامة', 'رسائل مباشرة', 'كل شيء داخل المنصة'] },
+      reports: { tab: 'التقارير', points: ['تقارير PDF', 'وثائق امتثال', 'بهوية المنظمة'] }
+    } : {
+      org: { tab: 'Organizations', points: ['Isolated data for each organization', 'Custom branding', 'Separate departments and domains'] },
+      qr: { tab: 'Attendance', points: ['Time-limited QR codes', 'Tamper-resistant check-in', 'No extra hardware'] },
+      forms: { tab: 'Forms', points: ['Checklists and inspection reports', 'Compliance forms', 'Supervisor review and approval'] },
+      leave: { tab: 'Leave', points: ['Sick, annual, or emergency', 'Approve in seconds', 'Right from the dashboard'] },
+      messages: { tab: 'Messaging', points: ['Company-wide announcements', 'Direct messages', 'Everything stays on the platform'] },
+      reports: { tab: 'Reports', points: ['PDF reports', 'Compliance documents', 'Carrying your organization identity'] }
+    };
+
+    return [
+      { key: 'org', icon: <FiLayers />, number: 1 },
+      { key: 'qr', icon: <FiGrid />, number: 2 },
+      { key: 'forms', icon: <FiClipboard />, number: 3 },
+      { key: 'leave', icon: <FiCalendar />, number: 4 },
+      { key: 'messages', icon: <FiMessageCircle />, number: 5 },
+      { key: 'reports', icon: <FiFileText />, number: 6 }
+    ].map((module) => ({
+      ...module,
+      ...copy[module.key],
+      title: t(`landing.features.f${module.number}Title`),
+      description: t(`landing.features.f${module.number}Desc`)
+    }));
+  }, [isArabic, t]);
+
+  const industries = [
+    { key: 'restaurants', icon: <FiCoffee /> },
+    { key: 'retail', icon: <FiShoppingBag /> },
+    { key: 'clinics', icon: <FiHeart /> },
+    { key: 'franchises', icon: <FiGitBranch /> },
+    { key: 'multiBranch', icon: <FiBriefcase /> }
   ];
 
+  const useCases = [
+    { key: 'uc1', icon: <FiCoffee /> },
+    { key: 'uc2', icon: <FiLayers /> },
+    { key: 'uc3', icon: <FiUser /> },
+    { key: 'uc4', icon: <FiClipboard /> }
+  ];
+
+  const onboardingSteps = [
+    { n: 1, points: ['s1Field1', 's1Field2', 's1Field3'] },
+    { n: 2, points: ['s2Dept1', 's2Dept2', 's2Dept3'] },
+    { n: 3, points: ['s3Toggle1', 's3Toggle2', 's3Toggle3'] },
+    { n: 4, points: ['s4Action1', 's4Action2', 's4Action3'] }
+  ];
+
+  const marqueeItems = [1, 2, 3, 4, 5, 6].map((n) => t(`landing.replaces.after${n}`));
   const faqKeys = [1, 2, 3, 4, 5, 6];
+
+  const renderMarqueeGroup = (hidden) => (
+    <ul aria-hidden={hidden ? 'true' : undefined}>
+      {marqueeItems.map((item) => <li key={item}><FiCheck />{item}</li>)}
+    </ul>
+  );
 
   return (
     <div className="lp" ref={pageRef}>
+      <div className="lp-chrome">
+        <div className="lp-announce">
+          <span className="lp-script">{t('landing.hero.badge')}</span>
+          <span className="lp-announce-detail">{t('landing.cta.support')}</span>
+        </div>
 
-      {/* ──────────────── NAVBAR ──────────────── */}
-      <nav className={`lp-nav ${scrolled ? 'scrolled' : ''}`}>
-        <div className="lp-nav-inner">
-          <img src="/logo.png" alt="AraRM" className="lp-nav-logo" />
+        <div className="lp-header-wrap">
+          <header className={`lp-header ${scrolled ? 'is-scrolled' : ''}`}>
+            <Link to="/" className="lp-brand" aria-label="AraRM">
+              <img src="/logo.png" alt="AraRM" />
+            </Link>
 
-          <ul className="lp-nav-links">
-            {navItems.map((item) => (
-              <li key={item.id}>
-                <a href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+            <nav className="lp-nav" aria-label={t('landing.footer.product')}>
+              {navItems.map((item) => (
+                <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
                   {item.label}
                 </a>
-              </li>
-            ))}
-          </ul>
+              ))}
+            </nav>
 
-          <div className="lp-nav-right">
-            <Link to="/login" className="lp-nav-login">{t('landing.nav.login')}</Link>
-            <Link to="/register" className="lp-btn lp-btn-primary lp-btn-sm">{t('landing.nav.startFree')}</Link>
-            <button className="lp-hamburger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
-              {mobileMenuOpen ? <IconClose /> : <IconMenu />}
-            </button>
-          </div>
+            <div className="lp-header-actions">
+              <button type="button" className="lp-lang" onClick={switchLanguage}>
+                <FiGlobe />
+                <span>{isArabic ? 'English' : 'العربية'}</span>
+              </button>
+              <Link to="/login" className="lp-btn lp-btn-quiet lp-btn-sm lp-header-login">{t('landing.nav.login')}</Link>
+              <Link to="/register" className="lp-btn lp-btn-primary lp-btn-sm">{t('landing.nav.startFree')}</Link>
+              <button
+                type="button"
+                className="lp-menu-toggle"
+                aria-expanded={mobileMenuOpen}
+                aria-label="Menu"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <FiX /> : <FiMenu />}
+              </button>
+            </div>
+          </header>
         </div>
-      </nav>
 
-      {/* Mobile Menu */}
-      <div className={`lp-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-        {navItems.map((item) => (
-          <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
-            {item.label}
-          </a>
-        ))}
-        <Link to="/login" onClick={() => setMobileMenuOpen(false)}>{t('landing.nav.login')}</Link>
-        <Link to="/register" onClick={() => setMobileMenuOpen(false)}>{t('landing.nav.startFree')} →</Link>
+        <div className={`lp-mobile ${mobileMenuOpen ? 'is-open' : ''}`}>
+          {navItems.map((item) => (
+            <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+              {item.label}
+            </a>
+          ))}
+          <button type="button" onClick={switchLanguage}><FiGlobe />{isArabic ? 'English' : 'العربية'}</button>
+          <Link to="/login" onClick={() => setMobileMenuOpen(false)}>{t('landing.nav.login')}</Link>
+        </div>
       </div>
 
-      {/* ──────────────── HERO ──────────────── */}
-      <section className="lp-hero">
-        <div className="lp-container">
-          <div className="lp-hero-inner">
-            <div className="lp-hero-content lp-reveal">
-              <span className="lp-badge">{t('landing.hero.badge')}</span>
-              <h1>
-                {t('landing.hero.title1')} <span className="lp-hero-accent">{t('landing.hero.title2')}</span>
-              </h1>
-              <p className="lp-hero-sub">{t('landing.hero.subtitle')}</p>
-              <div className="lp-hero-cta">
-                <Link to="/register" className="lp-btn lp-btn-primary">{t('landing.hero.cta1')}</Link>
-                <a href="#how-it-works" className="lp-btn lp-btn-secondary" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}>{t('landing.hero.cta2')}</a>
-              </div>
-            </div>
-
-            {/* Hero Visual — Dashboard Preview */}
-            <div className="lp-hero-visual lp-reveal lp-reveal-delay-2">
-              <div className="lp-ui-dashboard">
-                <div className="lp-ui-dashboard-header">
-                  <div className="lp-ui-dashboard-welcome">
-                    <div className="lp-ui-avatar">👤</div>
-                    <div className="lp-ui-welcome-text">
-                      <h3>{t('landing.ui.welcomeName')}</h3>
-                      <p>{t('landing.ui.roleLabel')}</p>
-                    </div>
-                  </div>
-                  <div className="lp-ui-time-badge">{t('landing.ui.dateLabel')}</div>
-                </div>
-
-                <div className="lp-ui-stats-row">
-                  <div className="lp-ui-stat-card">
-                    <div>
-                      <p className="lp-ui-stat-label">{t('landing.ui.formsToday')}</p>
-                      <p className="lp-ui-stat-value">24</p>
-                    </div>
-                    <div className="lp-ui-stat-icon blue">📋</div>
-                  </div>
-                  <div className="lp-ui-stat-card">
-                    <div>
-                      <p className="lp-ui-stat-label">{t('landing.ui.present')}</p>
-                      <p className="lp-ui-stat-value">38</p>
-                    </div>
-                    <div className="lp-ui-stat-icon green">✓</div>
-                  </div>
-                  <div className="lp-ui-stat-card">
-                    <div>
-                      <p className="lp-ui-stat-label">{t('landing.ui.pendingLeaves')}</p>
-                      <p className="lp-ui-stat-value">5</p>
-                    </div>
-                    <div className="lp-ui-stat-icon purple">🏖</div>
-                  </div>
-                </div>
-
-                <div className="lp-ui-table">
-                  <div className="lp-ui-table-header">
-                    <span className="lp-ui-table-title">
-                      <span className="lp-ui-table-title-icon">📄</span>
-                      {t('landing.ui.recentForms')}
-                    </span>
-                    <span className="lp-ui-table-link">{t('landing.ui.viewAll')}</span>
-                  </div>
-                  <div className="lp-ui-row">
-                    <div className="lp-ui-row-left">
-                      <div className="lp-ui-row-icon">📄</div>
-                      <div>
-                        <div className="lp-ui-row-text">{t('landing.ui.form1')}</div>
-                        <div className="lp-ui-row-sub">{t('landing.ui.form1Sub')}</div>
-                      </div>
-                    </div>
-                    <span className="lp-ui-status approved">{t('landing.ui.approved')}</span>
-                  </div>
-                  <div className="lp-ui-row">
-                    <div className="lp-ui-row-left">
-                      <div className="lp-ui-row-icon">📄</div>
-                      <div>
-                        <div className="lp-ui-row-text">{t('landing.ui.form2')}</div>
-                        <div className="lp-ui-row-sub">{t('landing.ui.form2Sub')}</div>
-                      </div>
-                    </div>
-                    <span className="lp-ui-status pending">{t('landing.ui.pending')}</span>
-                  </div>
-                  <div className="lp-ui-row">
-                    <div className="lp-ui-row-left">
-                      <div className="lp-ui-row-icon">📄</div>
-                      <div>
-                        <div className="lp-ui-row-text">{t('landing.ui.form3')}</div>
-                        <div className="lp-ui-row-sub">{t('landing.ui.form3Sub')}</div>
-                      </div>
-                    </div>
-                    <span className="lp-ui-status submitted">{t('landing.ui.submitted')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <section className="lp-hero lp-round-b">
+        <div className="lp-container lp-hero-copy">
+          <span className="lp-script lp-enter">{t('landing.hero.badge')}</span>
+          <h1 className="lp-enter">
+            <span>{t('landing.hero.title1')}</span>
+            <span className="lp-mark">
+              {t('landing.hero.title2')}
+              <svg viewBox="0 0 400 14" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M398 7C310 3 228 10 150 8C96 6.5 48 7 2 11" />
+              </svg>
+            </span>
+          </h1>
+          <p className="lp-lead lp-enter">{t('landing.hero.subtitle')}</p>
+          <div className="lp-hero-cta lp-enter">
+            <Link to="/register" className="lp-btn lp-btn-primary">
+              {t('landing.hero.cta1')}
+              <Arrow />
+            </Link>
+            <a
+              href="#how-it-works"
+              className="lp-btn lp-btn-quiet"
+              onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}
+            >
+              {t('landing.hero.cta2')}
+            </a>
           </div>
+          <small className="lp-note lp-enter">{pricingText.noCardRequired}</small>
+        </div>
+
+        <div className="lp-hero-media lp-enter-media">
+          <HeroDashboard modules={modules} />
+          <HeroToast modules={modules} />
+        </div>
+
+        <div className="lp-container lp-industries lp-reveal">
+          <h2>{t('landing.builtFor.label')}</h2>
+          <ul>
+            {industries.map((item) => (
+              <li key={item.key}>{item.icon}{t(`landing.builtFor.${item.key}`)}</li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {/* ──────────────── BUILT FOR ──────────────── */}
-      <section className="lp-built-for">
+      <section className="lp-platform lp-under" id="features">
         <div className="lp-container">
-          <div className="lp-built-for-inner lp-reveal">
-            <span className="lp-built-for-label">{t('landing.builtFor.label')}</span>
-            <span className="lp-built-for-tag">🏪 {t('landing.builtFor.restaurants')}</span>
-            <span className="lp-built-for-tag">🏢 {t('landing.builtFor.retail')}</span>
-            <span className="lp-built-for-tag">🏥 {t('landing.builtFor.clinics')}</span>
-            <span className="lp-built-for-tag">🔗 {t('landing.builtFor.franchises')}</span>
-            <span className="lp-built-for-tag">🏗 {t('landing.builtFor.multiBranch')}</span>
+          <div className="lp-head lp-reveal">
+            <span className="lp-script">{t('landing.features.label')}</span>
+            <h2>{t('landing.features.title')}</h2>
+            <p className="lp-lead">{t('landing.features.subtitle')}</p>
+            <Link to="/register" className="lp-btn lp-btn-primary">
+              {t('landing.hero.cta1')}
+              <Arrow />
+            </Link>
           </div>
+
+          <PlatformStack
+            modules={modules}
+            tryLabel={t('landing.hero.cta1')}
+            Arrow={Arrow}
+          />
         </div>
       </section>
 
-      {/* ──────────────── POSITIONING ──────────────── */}
-      <section className="lp-positioning lp-section-sm">
+      <section className="lp-compare lp-round-t lp-round-b">
         <div className="lp-container">
-          <p className="lp-positioning-text lp-reveal" dangerouslySetInnerHTML={{ __html: t('landing.positioning') }} />
-        </div>
-      </section>
-
-      {/* ──────────────── WHAT AraRM REPLACES ──────────────── */}
-      <section className="lp-section lp-replaces">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.replaces.label')}</span>
-            <h2 className="lp-section-title">{t('landing.replaces.title')}</h2>
-            <p className="lp-section-subtitle">{t('landing.replaces.subtitle')}</p>
+          <div className="lp-head lp-reveal">
+            <span className="lp-script">{t('landing.replaces.label')}</span>
+            <h2>{t('landing.replaces.title')}</h2>
+            <p className="lp-lead">{t('landing.replaces.subtitle')}</p>
           </div>
 
-          <div className="lp-replaces-grid" style={{ marginTop: 48 }}>
-            <div className="lp-replaces-before lp-reveal lp-reveal-delay-1">
+          <div className="lp-compare-grid">
+            <article className="lp-compare-card is-old lp-reveal">
               <h3>{t('landing.replaces.beforeTitle')}</h3>
-              <ul className="lp-replaces-list">
-                <li><span className="lp-x-icon">✕</span> {t('landing.replaces.before1')}</li>
-                <li><span className="lp-x-icon">✕</span> {t('landing.replaces.before2')}</li>
-                <li><span className="lp-x-icon">✕</span> {t('landing.replaces.before3')}</li>
-                <li><span className="lp-x-icon">✕</span> {t('landing.replaces.before4')}</li>
-                <li><span className="lp-x-icon">✕</span> {t('landing.replaces.before5')}</li>
+              <ul className="lp-checks">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <li key={n}><span className="lp-tick is-x"><FiX /></span>{t(`landing.replaces.before${n}`)}</li>
+                ))}
               </ul>
-            </div>
+              <OldWayVisual />
+            </article>
 
-            <div className="lp-replaces-after lp-reveal lp-reveal-delay-2">
-              <h3>✦ {t('landing.replaces.afterTitle')}</h3>
-              <div className="lp-replaces-modules">
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">📊</span> {t('landing.replaces.after1')}</div>
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">📝</span> {t('landing.replaces.after2')}</div>
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">🏖️</span> {t('landing.replaces.after3')}</div>
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">💬</span> {t('landing.replaces.after4')}</div>
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">📄</span> {t('landing.replaces.after5')}</div>
-                <div className="lp-replaces-module"><span className="lp-replaces-module-icon">🏢</span> {t('landing.replaces.after6')}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────── FEATURES ──────────────── */}
-      <section className="lp-section" id="features">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.features.label')}</span>
-            <h2 className="lp-section-title">{t('landing.features.title')}</h2>
-            <p className="lp-section-subtitle">{t('landing.features.subtitle')}</p>
+            <article className="lp-compare-card is-new lp-reveal" style={{ '--delay': '90ms' }}>
+              <h3>{t('landing.replaces.afterTitle')}</h3>
+              <ul className="lp-checks">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <li key={n}><span className="lp-tick"><FiCheck /></span>{t(`landing.replaces.after${n}`)}</li>
+                ))}
+              </ul>
+              <NewWayVisual />
+            </article>
           </div>
 
-          <div className="lp-features-grid">
-            {featuresData.map((f, i) => (
-              <div key={i} className={`lp-feature-card lp-reveal lp-reveal-delay-${(i % 3) + 1}`}>
-                <div className={`lp-feature-icon ${f.color}`}>{f.icon}</div>
-                <h3>{t(f.titleKey)}</h3>
-                <p>{t(f.descKey)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────── HOW IT WORKS ──────────────── */}
-      <section className="lp-section lp-workflow" id="how-it-works">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.workflow.label')}</span>
-            <h2 className="lp-section-title">{t('landing.workflow.title')}</h2>
-            <p className="lp-section-subtitle">{t('landing.workflow.subtitle')}</p>
-          </div>
-
-          <div className="lp-timeline">
-            {/* Step 1 */}
-            <div className="lp-timeline-step lp-reveal">
-              <div className="lp-timeline-number">1</div>
-              <div className="lp-timeline-content">
-                <h3>{t('landing.workflow.s1Title')}</h3>
-                <p>{t('landing.workflow.s1Desc')}</p>
-              </div>
-              <div className="lp-ui-mini">
-                <div className="lp-ui-mini-header">
-                  <div className="lp-ui-mini-dot red" /><div className="lp-ui-mini-dot yellow" /><div className="lp-ui-mini-dot green" />
-                </div>
-                <div className="lp-ui-mini-body">
-                  <div className="lp-ui-mini-field">
-                    <span className="lp-ui-mini-label">{t('landing.workflow.s1Field1')}</span>
-                    <div className="lp-ui-mini-input">{t('landing.workflow.s1Value1')}</div>
-                  </div>
-                  <div className="lp-ui-mini-field">
-                    <span className="lp-ui-mini-label">{t('landing.workflow.s1Field2')}</span>
-                    <div className="lp-ui-mini-input">{t('landing.workflow.s1Value2')}</div>
-                  </div>
-                  <div className="lp-ui-mini-field">
-                    <span className="lp-ui-mini-label">{t('landing.workflow.s1Field3')}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="lp-ui-mini-color" style={{ background: '#059669' }} />
-                      <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>#059669</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="lp-solutions">
+            <div className="lp-head lp-reveal">
+              <span className="lp-script">{t('landing.problems.label')}</span>
+              <h2>{t('landing.problems.title')}</h2>
             </div>
-
-            {/* Step 2 */}
-            <div className="lp-timeline-step lp-reveal lp-reveal-delay-1">
-              <div className="lp-timeline-number">2</div>
-              <div className="lp-timeline-content">
-                <h3>{t('landing.workflow.s2Title')}</h3>
-                <p>{t('landing.workflow.s2Desc')}</p>
-              </div>
-              <div className="lp-ui-mini">
-                <div className="lp-ui-mini-header">
-                  <div className="lp-ui-mini-dot red" /><div className="lp-ui-mini-dot yellow" /><div className="lp-ui-mini-dot green" />
-                </div>
-                <div className="lp-ui-mini-body">
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontWeight: 600, color: '#1f2937', fontSize: '0.7rem' }}>{t('landing.workflow.s2Dept1')}</span>
-                    <span style={{ fontSize: '0.6rem', color: '#059669', fontWeight: 600 }}>{t('landing.workflow.s2Active')}</span>
+            <div className="lp-solution-list">
+              {[1, 2, 3, 4].map((n) => (
+                <div className="lp-solution-row lp-reveal" key={n}>
+                  <div className="is-problem">
+                    <small>{t('landing.ui.problem')}</small>
+                    <h3>{t(`landing.problems.p${n}Title`)}</h3>
+                    <p>{t(`landing.problems.p${n}Desc`)}</p>
                   </div>
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontWeight: 600, color: '#1f2937', fontSize: '0.7rem' }}>{t('landing.workflow.s2Dept2')}</span>
-                    <span style={{ fontSize: '0.6rem', color: '#059669', fontWeight: 600 }}>{t('landing.workflow.s2Active')}</span>
-                  </div>
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontWeight: 600, color: '#1f2937', fontSize: '0.7rem' }}>{t('landing.workflow.s2Dept3')}</span>
-                    <span style={{ fontSize: '0.6rem', color: '#059669', fontWeight: 600 }}>{t('landing.workflow.s2Active')}</span>
+                  <span className="lp-solution-arrow"><Arrow /></span>
+                  <div className="is-solution">
+                    <small>{t('landing.ui.solution')}</small>
+                    <h3>{t(`landing.problems.s${n}Title`)}</h3>
+                    <p>{t(`landing.problems.s${n}Desc`)}</p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="lp-timeline-step lp-reveal lp-reveal-delay-2">
-              <div className="lp-timeline-number">3</div>
-              <div className="lp-timeline-content">
-                <h3>{t('landing.workflow.s3Title')}</h3>
-                <p>{t('landing.workflow.s3Desc')}</p>
-              </div>
-              <div className="lp-ui-mini">
-                <div className="lp-ui-mini-header">
-                  <div className="lp-ui-mini-dot red" /><div className="lp-ui-mini-dot yellow" /><div className="lp-ui-mini-dot green" />
-                </div>
-                <div className="lp-ui-mini-body">
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontSize: '0.7rem', color: '#374151' }}>{t('landing.workflow.s3Toggle1')}</span>
-                    <div className="lp-ui-mini-toggle" />
-                  </div>
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontSize: '0.7rem', color: '#374151' }}>{t('landing.workflow.s3Toggle2')}</span>
-                    <div className="lp-ui-mini-toggle" />
-                  </div>
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontSize: '0.7rem', color: '#374151' }}>{t('landing.workflow.s3Toggle3')}</span>
-                    <div className="lp-ui-mini-toggle" />
-                  </div>
-                  <div className="lp-ui-mini-row">
-                    <span style={{ fontSize: '0.7rem', color: '#374151' }}>{t('landing.workflow.s3Toggle4')}</span>
-                    <div className="lp-ui-mini-toggle off" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="lp-timeline-step lp-reveal lp-reveal-delay-3">
-              <div className="lp-timeline-number">4</div>
-              <div className="lp-timeline-content">
-                <h3>{t('landing.workflow.s4Title')}</h3>
-                <p>{t('landing.workflow.s4Desc')}</p>
-              </div>
-              <div className="lp-ui-mini">
-                <div className="lp-ui-mini-header">
-                  <div className="lp-ui-mini-dot red" /><div className="lp-ui-mini-dot yellow" /><div className="lp-ui-mini-dot green" />
-                </div>
-                <div className="lp-ui-mini-body">
-                  <div className="lp-ui-mini-actions">
-                    <div className="lp-ui-mini-action">
-                      <span className="lp-ui-mini-action-icon" style={{ background: '#059669' }}>✏️</span>
-                      {t('landing.workflow.s4Action1')}
-                    </div>
-                    <div className="lp-ui-mini-action">
-                      <span className="lp-ui-mini-action-icon" style={{ background: '#10b981' }}>✓</span>
-                      {t('landing.workflow.s4Action2')}
-                    </div>
-                    <div className="lp-ui-mini-action">
-                      <span className="lp-ui-mini-action-icon" style={{ background: '#8b5cf6' }}>✈</span>
-                      {t('landing.workflow.s4Action3')}
-                    </div>
-                    <div className="lp-ui-mini-action">
-                      <span className="lp-ui-mini-action-icon" style={{ background: '#3b82f6' }}>📊</span>
-                      {t('landing.workflow.s4Action4')}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ──────────────── PROBLEMS → SOLUTIONS ──────────────── */}
-      <section className="lp-section">
+      <section className="lp-proof lp-under lp-round-b">
         <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.problems.label')}</span>
-            <h2 className="lp-section-title">{t('landing.problems.title')}</h2>
+          <div className="lp-proof-hero">
+            <div className="lp-proof-copy lp-reveal">
+              <span className="lp-script">{t('landing.architecture.label')}</span>
+              <p className="lp-proof-statement" dangerouslySetInnerHTML={{ __html: t('landing.positioning') }} />
+            </div>
+            <div className="lp-reveal"><ReportDocument /></div>
           </div>
 
-          <div className="lp-problems-grid">
-            {[1, 2, 3, 4].map((n) => (
-              <React.Fragment key={n}>
-                <div className="lp-problem-card lp-reveal">
-                  <span className="lp-problem-label problem">{t('landing.ui.problem')}</span>
-                  <h3>{t(`landing.problems.p${n}Title`)}</h3>
-                  <p>{t(`landing.problems.p${n}Desc`)}</p>
-                </div>
-                <div className="lp-problem-card lp-reveal lp-reveal-delay-1">
-                  <span className="lp-problem-label solution">{t('landing.ui.solution')}</span>
-                  <h3>{t(`landing.problems.s${n}Title`)}</h3>
-                  <p>{t(`landing.problems.s${n}Desc`)}</p>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────── USE CASES ──────────────── */}
-      <section className="lp-section lp-usecases" id="use-cases">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.useCases.label')}</span>
-            <h2 className="lp-section-title">{t('landing.useCases.title')}</h2>
-            <p className="lp-section-subtitle">{t('landing.useCases.subtitle')}</p>
-          </div>
-
-          <div className="lp-usecases-grid">
-            {[
-              { emoji: '🏪', key: 'uc1' },
-              { emoji: '🏢', key: 'uc2' },
-              { emoji: '👤', key: 'uc3' },
-              { emoji: '📋', key: 'uc4' },
-            ].map((uc, i) => (
-              <div key={i} className={`lp-usecase-card lp-reveal lp-reveal-delay-${i}`}>
-                <span className="lp-usecase-emoji">{uc.emoji}</span>
-                <h3>{t(`landing.useCases.${uc.key}Title`)}</h3>
-                <p>{t(`landing.useCases.${uc.key}Desc`)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────── MULTI-ORG CONTROL ──────────────── */}
-      <section className="lp-section">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.architecture.label')}</span>
-            <h2 className="lp-section-title">{t('landing.architecture.title')}</h2>
-            <p className="lp-section-subtitle">{t('landing.architecture.subtitle')}</p>
+          <div className="lp-split-head lp-reveal">
+            <h2>{t('landing.architecture.title')}</h2>
+            <p className="lp-lead">{t('landing.architecture.subtitle')}</p>
           </div>
 
           <div className="lp-control-grid">
-            <div className="lp-control-card lp-reveal">
-              <div className="lp-control-icon"><IconShield /></div>
+            <article className="lp-control-card is-primary lp-reveal">
+              <span className="lp-control-icon"><FiShield /></span>
               <h3>{t('landing.architecture.card1Title')}</h3>
               <p>{t('landing.architecture.card1Desc')}</p>
-            </div>
-
-            <div className="lp-control-card lp-reveal lp-reveal-delay-1">
-              <div className="lp-control-icon"><IconHierarchy /></div>
+            </article>
+            <article className="lp-control-card lp-reveal" style={{ '--delay': '80ms' }}>
+              <span className="lp-control-icon"><FiUsers /></span>
               <h3>{t('landing.architecture.card2Title')}</h3>
               <p>{t('landing.architecture.card2Desc')}</p>
-              <div className="lp-role-chain">
-                <div className="lp-role-item"><span className="lp-role-dot admin" />{t('landing.architecture.role1')}</div>
-                <div className="lp-role-item"><span className="lp-role-dot org" />{t('landing.architecture.role2')}</div>
-                <div className="lp-role-item"><span className="lp-role-dot sup" />{t('landing.architecture.role3')}</div>
-                <div className="lp-role-item"><span className="lp-role-dot emp" />{t('landing.architecture.role4')}</div>
-              </div>
-            </div>
-
-            <div className="lp-control-card lp-reveal lp-reveal-delay-2">
-              <div className="lp-control-icon"><IconBranding /></div>
+              <ol className="lp-role-list">
+                {[1, 2, 3, 4].map((n) => <li key={n}>{t(`landing.architecture.role${n}`)}</li>)}
+              </ol>
+            </article>
+            <article className="lp-control-card lp-reveal" style={{ '--delay': '160ms' }}>
+              <span className="lp-control-icon"><FiDroplet /></span>
               <h3>{t('landing.architecture.card3Title')}</h3>
               <p>{t('landing.architecture.card3Desc')}</p>
+            </article>
+          </div>
+
+          <div className="lp-split-head lp-reveal" id="use-cases">
+            <div>
+              <span className="lp-script">{t('landing.useCases.label')}</span>
+              <h2>{t('landing.useCases.title')}</h2>
             </div>
+            <p className="lp-lead">{t('landing.useCases.subtitle')}</p>
+          </div>
+
+          <div className="lp-usecases">
+            {useCases.map((item, index) => (
+              <article
+                className={`lp-usecase lp-usecase-${index + 1} lp-reveal`}
+                key={item.key}
+                style={{ '--delay': `${index * 70}ms` }}
+              >
+                <span className="lp-usecase-icon">{item.icon}</span>
+                <div>
+                  <h3>{t(`landing.useCases.${item.key}Title`)}</h3>
+                  <p>{t(`landing.useCases.${item.key}Desc`)}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="lp-marquee">
+          <div className="lp-marquee-track">
+            {renderMarqueeGroup(false)}
+            {renderMarqueeGroup(true)}
           </div>
         </div>
       </section>
 
-      {/* ──────────────── FAQ ──────────────── */}
-      <section className="lp-section lp-pricing" id="plans">
+      <section className="lp-onboarding lp-under" id="how-it-works">
         <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{pricingText.label}</span>
-            <h2 className="lp-section-title">{pricingText.title}</h2>
-            <p className="lp-section-subtitle">{pricingText.subtitle}</p>
+          <div className="lp-head lp-reveal">
+            <span className="lp-script">{t('landing.workflow.label')}</span>
+            <h2>{t('landing.workflow.title')}</h2>
+            <p className="lp-lead">{t('landing.workflow.subtitle')}</p>
+            <Link to="/register" className="lp-btn lp-btn-primary">
+              {t('landing.hero.cta1')}
+              <Arrow />
+            </Link>
+          </div>
+
+          <ol className="lp-steps">
+            {onboardingSteps.map((step, index) => (
+              <li className="lp-step lp-reveal" key={step.n} style={{ '--delay': `${index * 90}ms` }}>
+                <span className="lp-step-pill">{step.n}</span>
+                <span className="lp-step-dot" />
+                <div className={`lp-step-card lp-step-card-${step.n}`}>
+                  <h3>{t(`landing.workflow.s${step.n}Title`)}</h3>
+                  <p>{t(`landing.workflow.s${step.n}Desc`)}</p>
+                  <ul className="lp-checks">
+                    {step.points.map((point) => (
+                      <li key={point}><span className="lp-tick"><FiCheck /></span>{t(`landing.workflow.${point}`)}</li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="lp-pricing lp-round-t" id="plans">
+        <div className="lp-container">
+          <div className="lp-head lp-reveal">
+            <span className="lp-script">{pricingText.label}</span>
+            <h2>{pricingText.title}</h2>
+            <p className="lp-lead">{pricingText.subtitle}</p>
 
             <div className="lp-pricing-toggle" role="group" aria-label={pricingText.label}>
               <button
@@ -776,37 +773,29 @@ const LandingPage = ({ initialSection = null }) => {
                 onClick={() => setBillingCycle('yearly')}
               >
                 {pricingText.yearly}
-                <span className="lp-pricing-toggle-badge">{pricingText.yearlyBadge}</span>
+                <span>{pricingText.yearlyBadge}</span>
               </button>
             </div>
           </div>
 
-          <div className="lp-pricing-banner lp-reveal lp-reveal-delay-1">
+          <div className="lp-pricing-banner lp-reveal">
             <div>
-              <span className="lp-pricing-banner-eyebrow">{pricingText.bannerEyebrow}</span>
+              <span className="lp-script">{pricingText.bannerEyebrow}</span>
               <h3>{pricingText.bannerTitle}</h3>
               <p>{pricingText.bannerText}</p>
             </div>
-            <span className="lp-pricing-banner-market">
-              {pricingText.marketLabel}: SAR
-            </span>
+            <span className="lp-pricing-market">{pricingText.marketLabel}: SAR</span>
           </div>
 
-          <div className="lp-pricing-grid">
+          <div className="lp-pricing-grid" aria-busy={plansLoading}>
             {plansLoading ? (
               [1, 2, 3].map((card) => (
-                <article key={card} className="lp-plan-card lp-plan-card-loading">
-                  <div className="lp-plan-skeleton lp-plan-skeleton-sm" />
-                  <div className="lp-plan-skeleton lp-plan-skeleton-md" />
-                  <div className="lp-plan-skeleton lp-plan-skeleton-lg" />
-                  <div className="lp-plan-skeleton lp-plan-skeleton-btn" />
-                  <div className="lp-plan-skeleton-grid">
-                    {[1, 2, 3, 4].map((item) => <div key={item} className="lp-plan-skeleton lp-plan-skeleton-box" />)}
-                  </div>
+                <article key={card} className="lp-plan is-loading" aria-label={pricingText.loading}>
+                  <i /><i /><i /><i />
                 </article>
               ))
             ) : plansData.length > 0 ? (
-              plansData.map((plan, index) => {
+              plansData.map((plan) => {
                 const savingsPercent = getPlanSavingsPercent(plan);
                 const isFeatured = plan.code === 'plus';
                 const isPremium = plan.code === 'pro';
@@ -814,69 +803,61 @@ const LandingPage = ({ initialSection = null }) => {
                 return (
                   <article
                     key={plan.code}
-                    className={`lp-plan-card ${isFeatured ? 'featured' : ''} ${isPremium ? 'premium' : ''}`}
+                    className={`lp-plan ${isFeatured ? 'is-featured' : ''} ${isPremium ? 'is-premium' : ''}`}
                   >
                     <div className="lp-plan-top">
-                      <div>
-                        <div className="lp-plan-badges">
-                          <span className="lp-plan-code">{plan.code.toUpperCase()}</span>
-                          <span className="lp-plan-badge">{getPlanBadge(plan)}</span>
-                        </div>
-                        <h3>{getPlanName(plan, i18n.language)}</h3>
-                        <p>{getPlanDescription(plan, i18n.language)}</p>
+                      <div className="lp-plan-badges">
+                        <span>{plan.code.toUpperCase()}</span>
+                        <span>{getPlanBadge(plan)}</span>
                       </div>
-
                       <span className="lp-plan-market">
                         {plan.market?.primaryRegion} / {plan.market?.primaryCountry}
                       </span>
                     </div>
 
-                    <div className="lp-plan-price-block">
-                      <div className="lp-plan-price-row">
-                        <span className="lp-plan-price">{getPlanPrice(plan, billingCycle)}</span>
-                        <span className="lp-plan-price-cycle">
-                          {billingCycle === 'monthly' ? pricingText.perMonth : pricingText.perYear}
-                        </span>
+                    <h3>{getPlanName(plan, i18n.language)}</h3>
+                    <p className="lp-plan-desc">{getPlanDescription(plan, i18n.language)}</p>
+
+                    <div className="lp-plan-price">
+                      <div>
+                        <strong>{getPlanPrice(plan, billingCycle)}</strong>
+                        <span>{billingCycle === 'monthly' ? pricingText.perMonth : pricingText.perYear}</span>
                       </div>
-                      <p className="lp-plan-price-note">{getPlanPriceNote(plan)}</p>
+                      <p>{getPlanPriceNote(plan)}</p>
                       {billingCycle === 'yearly' && savingsPercent > 0 ? (
-                        <span className="lp-plan-savings">{pricingText.save} {savingsPercent}%</span>
+                        <em>{pricingText.save} {savingsPercent}%</em>
                       ) : null}
                     </div>
 
                     <div className="lp-plan-cta">
                       <Link
                         to="/register"
-                        className={`lp-btn ${plan.code === 'free' ? 'lp-btn-secondary' : 'lp-btn-primary'} lp-plan-btn`}
+                        className={`lp-btn ${plan.code === 'free' ? 'lp-btn-quiet' : 'lp-btn-primary'}`}
                       >
                         {plan.code === 'free' ? pricingText.startFree : pricingText.choosePlan}
                       </Link>
-                      <span className="lp-plan-checkout">{getPlanCheckoutHint(plan)}</span>
+                      <small>{getPlanCheckoutHint(plan)}</small>
                     </div>
 
                     <div className="lp-plan-limits">
                       {LIMIT_FIELDS.map((limit) => (
-                        <div key={limit.key} className="lp-plan-limit">
-                          <span className="lp-plan-limit-value">
-                            {formatLimitValue(plan.limits?.[limit.key], t, locale)}
-                          </span>
-                          <span className="lp-plan-limit-label">{t(limit.labelKey)}</span>
+                        <div key={limit.key}>
+                          <strong>{formatLimitValue(plan.limits?.[limit.key], t, locale)}</strong>
+                          <small>{t(limit.labelKey)}</small>
                         </div>
                       ))}
                     </div>
 
                     <div className="lp-plan-features">
                       <h4>{pricingText.included}</h4>
-                      <ul className="lp-plan-feature-list">
+                      <ul>
                         {FEATURE_FIELDS.map((feature) => {
                           const enabled = Boolean(plan.features?.[feature.key]);
 
                           return (
                             <li key={feature.key} className={enabled ? 'enabled' : 'disabled'}>
-                              <span className="lp-plan-feature-icon">
-                                {enabled ? <IconCheck /> : null}
-                              </span>
-                              <span>{t(feature.labelKey)}</span>
+                              <span>{enabled ? <FiCheck /> : <FiX />}</span>
+                              {t(feature.labelKey)}
                             </li>
                           );
                         })}
@@ -894,86 +875,101 @@ const LandingPage = ({ initialSection = null }) => {
         </div>
       </section>
 
-      <section className="lp-section lp-faq" id="faq">
-        <div className="lp-container">
-          <div className="lp-section-center lp-reveal">
-            <span className="lp-section-label">{t('landing.faq.label')}</span>
-            <h2 className="lp-section-title">{t('landing.faq.title')}</h2>
+      <section className="lp-faq lp-round-t" id="faq">
+        <div className="lp-container lp-faq-grid">
+          <div className="lp-faq-head lp-reveal">
+            <span className="lp-script">{t('landing.faq.label')}</span>
+            <h2>{t('landing.faq.title')}</h2>
           </div>
 
           <div className="lp-faq-list">
-            {faqKeys.map((n) => (
-              <div key={n} className={`lp-faq-item lp-reveal ${openFaq === n ? 'open' : ''}`}>
-                <button className="lp-faq-question" onClick={() => setOpenFaq(openFaq === n ? null : n)}>
-                  <span>{t(`landing.faq.q${n}`)}</span>
-                  <IconChevron />
-                </button>
-                <div className="lp-faq-answer">
-                  <p>{t(`landing.faq.a${n}`)}</p>
+            {faqKeys.map((n) => {
+              const isOpen = openFaq === n;
+
+              return (
+                <div key={n} className={`lp-faq-item ${isOpen ? 'is-open' : ''}`}>
+                  <h3>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      aria-controls={`lp-faq-${n}`}
+                      onClick={() => setOpenFaq(isOpen ? null : n)}
+                    >
+                      <span>{t(`landing.faq.q${n}`)}</span>
+                      <FiPlus />
+                    </button>
+                  </h3>
+                  <div className="lp-faq-answer" id={`lp-faq-${n}`}>
+                    <div><p>{t(`landing.faq.a${n}`)}</p></div>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <div className="lp-closing">
+        <section className="lp-cta">
+          <div className="lp-container lp-cta-grid">
+            <div>
+              <h2>
+                <span>{t('landing.cta.title1')}</span>
+                <span>{t('landing.cta.title2')}</span>
+              </h2>
+              <p>{t('landing.cta.subtitle')}</p>
+              <small>{t('landing.cta.support')}</small>
+              <div className="lp-cta-buttons">
+                <Link to="/register" className="lp-btn lp-btn-white">
+                  {t('landing.cta.cta1')}
+                  <Arrow />
+                </Link>
+                <a
+                  href="#features"
+                  className="lp-btn lp-btn-outline"
+                  onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}
+                >
+                  {t('landing.cta.cta2')}
+                </a>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ──────────────── FINAL CTA ──────────────── */}
-      <section className="lp-cta">
-        <div className="lp-container">
-          <div className="lp-cta-content lp-reveal">
-            <h2>{t('landing.cta.title1')}<br />{t('landing.cta.title2')}</h2>
-            <p className="lp-cta-sub">{t('landing.cta.subtitle')}</p>
-            <p className="lp-cta-support">{t('landing.cta.support')}</p>
-            <div className="lp-cta-btns">
-              <Link to="/register" className="lp-btn lp-btn-primary">{t('landing.cta.cta1')}</Link>
-              <a href="#features" className="lp-btn lp-btn-secondary" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }}>{t('landing.cta.cta2')}</a>
             </div>
+            <ActivityFeed />
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ──────────────── FOOTER ──────────────── */}
-      <footer className="lp-footer">
-        <div className="lp-container">
-          <div className="lp-footer-grid">
-            <div className="lp-footer-brand">
-              <img src="/logo.png" alt="AraRM" className="lp-footer-logo" />
-              <p>{t('landing.footer.tagline')}</p>
-            </div>
-            <div className="lp-footer-col">
-              <h4>{t('landing.footer.product')}</h4>
-              <ul>
+        <footer className="lp-footer">
+          <div className="lp-container">
+            <div className="lp-footer-grid">
+              <div className="lp-footer-brand">
+                <img src="/logo.png" alt="AraRM" />
+                <p>{t('landing.footer.tagline')}</p>
+              </div>
+              <nav aria-label={t('landing.footer.product')}>
+                <h4>{t('landing.footer.product')}</h4>
                 {navItems.map((item) => (
-                  <li key={item.id}>
-                    <a href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
-                      {item.label}
-                    </a>
-                  </li>
+                  <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); scrollToSection(item.id); }}>
+                    {item.label}
+                  </a>
                 ))}
-              </ul>
+              </nav>
+              <nav aria-label={t('landing.footer.access')}>
+                <h4>{t('landing.footer.access')}</h4>
+                <Link to="/login">{t('landing.nav.login')}</Link>
+                <Link to="/register">{t('common.register')}</Link>
+              </nav>
+              <nav aria-label={t('landing.footer.legal')}>
+                <h4>{t('landing.footer.legal')}</h4>
+                <a href="#privacy">{t('landing.footer.privacy')}</a>
+                <a href="#terms">{t('landing.footer.terms')}</a>
+              </nav>
             </div>
-            <div className="lp-footer-col">
-              <h4>{t('landing.footer.access')}</h4>
-              <ul>
-                <li><Link to="/login">{t('landing.nav.login')}</Link></li>
-                <li><Link to="/register">{t('common.register')}</Link></li>
-              </ul>
-            </div>
-            <div className="lp-footer-col">
-              <h4>{t('landing.footer.legal')}</h4>
-              <ul>
-                <li><a href="#privacy">{t('landing.footer.privacy')}</a></li>
-                <li><a href="#terms">{t('landing.footer.terms')}</a></li>
-              </ul>
+            <div className="lp-footer-bottom">
+              <span>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</span>
+              <span>{t('landing.footer.builtFor')}</span>
             </div>
           </div>
-          <div className="lp-footer-bottom">
-            <span>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</span>
-            <span>{t('landing.footer.builtFor')}</span>
-          </div>
-        </div>
-      </footer>
-
+        </footer>
+      </div>
     </div>
   );
 };
