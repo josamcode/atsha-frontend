@@ -6,7 +6,7 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message, confirmText
 
   const typeStyles = {
     warning: 'bg-yellow-100 text-yellow-600',
-    danger: 'bg-primary text-primary',
+    danger: 'bg-primary text-white',
     info: 'bg-blue-100 text-blue-600',
     success: 'bg-green-100 text-green-600'
   };

@@ -157,7 +157,7 @@ const ViewLeaveRequest = () => {
       case 'approved':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'rejected':
-        return 'bg-primary text-primary-darko border-primary';
+        return 'bg-primary text-white border-primary';
       case 'cancelled':
         return 'bg-gray-100 text-gray-800 border-gray-300';
       default:
@@ -617,7 +617,7 @@ const ApprovalModal = ({ leaveId, action, onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div className={`p-6 border-b border-gray-200 ${action === 'approved' ? 'bg-green-50' : 'bg-primary'
+        <div className={`p-6 border-b border-gray-200 ${action === 'approved' ? 'bg-green-50' : 'bg-primary/10'
           }`}>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             {action === 'approved' ? (

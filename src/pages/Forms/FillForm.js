@@ -668,7 +668,7 @@ const FillForm = () => {
                                 [section.id]: currentRowCount - 1
                               }));
                             }}
-                            className="p-1 text-primary hover:bg-primary rounded transition-colors"
+                            className="p-1 text-primary hover:bg-primary hover:text-white rounded transition-colors"
                             title={t('common.delete') || 'Delete Row'}
                           >
                             <FaTrash className="text-sm" />

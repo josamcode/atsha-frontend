@@ -139,7 +139,7 @@ const Dashboard = () => {
             : form.status === 'submitted'
               ? 'bg-amber-100 text-amber-800'
               : form.status === 'rejected'
-                ? 'bg-primary text-primary-darko'
+                ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-800'
             }`}
         >
@@ -455,7 +455,7 @@ const Dashboard = () => {
                               : form.status === 'submitted'
                                 ? 'bg-amber-100 text-amber-800'
                                 : form.status === 'rejected'
-                                  ? 'bg-primary text-primary-darko'
+                                  ? 'bg-primary text-white'
                                   : 'bg-gray-100 text-gray-800'
                               }`}
                           >

@@ -335,7 +335,7 @@ const NotificationDropdown = () => {
                             )}
                             <button
                               onClick={(e) => deleteNotification(notification._id, e)}
-                              className="p-1 text-gray-400 hover:text-primary hover:bg-primary rounded transition-colors"
+                              className="p-1 text-gray-400 hover:text-white hover:bg-primary rounded transition-colors"
                               title={t('notifications.delete')}
                             >
                               <FaTrash className="text-xs" />

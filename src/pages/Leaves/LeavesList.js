@@ -214,7 +214,7 @@ const LeavesList = () => {
             : leave.status === 'pending'
               ? 'bg-yellow-100 text-yellow-800'
               : leave.status === 'rejected'
-                ? 'bg-primary text-primary-darko'
+                ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-800'
             }`}
         >
@@ -525,7 +525,7 @@ const LeavesList = () => {
                               : leave.status === 'pending'
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : leave.status === 'rejected'
-                                  ? 'bg-primary text-primary-darko'
+                                  ? 'bg-primary text-white'
                                   : 'bg-gray-100 text-gray-800'
                               }`}
                           >

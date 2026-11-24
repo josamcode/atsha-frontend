@@ -162,7 +162,7 @@ const Navbar = () => {
                       setIsProfileOpen(false);
                       logout();
                     }}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-primary hover:bg-primary transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-primary hover:bg-primary hover:text-white transition-colors"
                   >
                     <FaSignOutAlt className="flex-shrink-0" />
                     <span>{t('common.logout')}</span>
