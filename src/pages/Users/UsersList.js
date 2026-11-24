@@ -249,7 +249,7 @@ const UsersList = () => {
       render: (user) => (
         <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive !== false
           ? 'bg-green-100 text-green-800'
-          : 'bg-primary text-primary-darko'
+          : 'bg-primary text-white'
           }`}>
           {user.isActive !== false ? t('users.active') : t('users.inactive')}
         </span>
@@ -293,7 +293,7 @@ const UsersList = () => {
               {user._id !== currentUser?._id && (
                 <button
                   onClick={() => handleDelete(user._id, user.name)}
-                  className="text-primary hover:text-primary p-2 rounded hover:bg-primary transition-colors"
+                  className="text-primary hover:text-white p-2 rounded hover:bg-primary transition-colors"
                   title={t('common.delete')}
                 >
                   <FaTrash />
@@ -619,6 +619,7 @@ const UserModal = ({ user, actor, organization, onClose, onSuccess }) => {
     department: user?.department || defaultDepartment,
     languagePreference: user?.languagePreference || 'ar',
     leaveBalance: user?.leaveBalance || 0,
+    canRecordAttendance: Boolean(user?.canRecordAttendance),
     workDays: user?.workDays || [],
     workSchedule: (() => {
       // Ensure workSchedule is always a proper object
@@ -678,6 +679,7 @@ const UserModal = ({ user, actor, organization, onClose, onSuccess }) => {
         department: user?.department || defaultDepartment,
         languagePreference: user?.languagePreference || 'ar',
         leaveBalance: user?.leaveBalance || 0,
+        canRecordAttendance: Boolean(user?.canRecordAttendance),
         workDays: Array.isArray(user?.workDays) ? user.workDays : [],
         workSchedule: cleanedSchedule,
         nationality: user?.nationality || '',
@@ -1029,6 +1031,19 @@ const UserModal = ({ user, actor, organization, onClose, onSuccess }) => {
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.canRecordAttendance}
+              onChange={(e) => setFormData({ ...formData, canRecordAttendance: e.target.checked })}
+              className="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-800">{t('users.canRecordAttendance')}</span>
+              <span className="block text-xs text-gray-500 mt-1">{t('users.canRecordAttendanceHint')}</span>
+            </span>
+          </label>
 
           {/* Work Days and Schedule */}
           <div className="pt-4 border-t border-gray-200">

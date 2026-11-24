@@ -60,8 +60,15 @@ const AttendancePage = () => {
   const [editingLog, setEditingLog] = useState(null);
   const [editFormData, setEditFormData] = useState({ timestamp: '', notes: '' });
   const [editLoading, setEditLoading] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualUsers, setManualUsers] = useState([]);
+  const [manualForm, setManualForm] = useState({ userId: '', type: 'checkin', timestamp: '', notes: '' });
+  const [manualSaving, setManualSaving] = useState(false);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'supervisor';
+  const canRecordManually = user?.role === 'admin'
+    || ['organization_admin', 'platform_admin'].includes(user?.organizationRole)
+    || user?.canRecordAttendance === true;
 
   // Derived values from filters
   const selectedMonth = parseInt(filters.month) || new Date().getMonth();
@@ -298,6 +305,66 @@ const AttendancePage = () => {
     }
   };
 
+  const openManualAttendance = async () => {
+    setManualForm({
+      userId: '',
+      type: 'checkin',
+      timestamp: getDateTimeInputValue(new Date()),
+      notes: ''
+    });
+    setManualOpen(true);
+
+    try {
+      const response = await api.get('/attendance/manual/users');
+      setManualUsers(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching employees for manual attendance:', error);
+      showError(error.response?.data?.message || t('attendance.manualFailed'));
+      setManualOpen(false);
+    }
+  };
+
+  const handleSaveManualAttendance = async () => {
+    if (!manualForm.userId || !manualForm.timestamp) return;
+
+    setManualSaving(true);
+    try {
+      await api.post('/attendance/manual', {
+        userId: manualForm.userId,
+        type: manualForm.type,
+        timestamp: convertDateTimeLocalToUTC(manualForm.timestamp),
+        notes: manualForm.notes
+      });
+      showSuccess(t('attendance.manualSaved'));
+      setManualOpen(false);
+
+      if (isAdmin) {
+        fetchAllAttendance();
+        fetchAttendanceStats();
+      } else {
+        fetchMyAttendance();
+      }
+    } catch (error) {
+      console.error('Error recording manual attendance:', error);
+      if (!error.isRateLimit) {
+        showError(error.response?.data?.message || t('attendance.manualFailed'));
+      }
+    } finally {
+      setManualSaving(false);
+    }
+  };
+
+  const renderManualBadge = (log) => (
+    log?.method === 'manual' ? (
+      <span
+        className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800"
+        title={log.recordedBy?.name ? t('attendance.manualAddedBy', { name: log.recordedBy.name }) : undefined}
+      >
+        {t('attendance.manualBadge')}
+      </span>
+    ) : null
+  );
+
   if (loading) return <Loading />;
 
   // Calculate statistics based on role
@@ -443,6 +510,7 @@ const AttendancePage = () => {
             <span className="text-sm text-gray-900">
               {formatTime(record.checkin.timestamp, i18n.language)}
             </span>
+            {renderManualBadge(record.checkin)}
             {user?.role === 'admin' && (
               <button
                 onClick={(e) => {
@@ -472,6 +540,7 @@ const AttendancePage = () => {
             <span className="text-sm text-gray-900">
               {formatTime(record.checkout.timestamp, i18n.language)}
             </span>
+            {renderManualBadge(record.checkout)}
             {user?.role === 'admin' && (
               <button
                 onClick={(e) => {
@@ -506,13 +575,15 @@ const AttendancePage = () => {
             ? 'bg-green-100 text-green-800'
             : record.checkin
               ? 'bg-amber-100 text-amber-800'
-              : 'bg-primary text-primary-darko'
+              : 'bg-primary text-white'
             }`}
         >
           {record.checkin && record.checkout ? (
             <><FaCheckCircle /> {t('templates.complete')}</>
           ) : record.checkin ? (
             <><FaClock /> {t('templates.checkedIn')}</>
+          ) : record.checkout ? (
+            <><FaClock /> {t('attendance.checkedOutOnly')}</>
           ) : (
             <><FaTimesCircle /> {t('attendance.absent')}</>
           )}
@@ -535,6 +606,15 @@ const AttendancePage = () => {
                 : t('attendance.trackYourAttendance')
             }
           />
+          {canRecordManually && (
+            <button
+              onClick={openManualAttendance}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium"
+            >
+              <FaUserClock />
+              <span>{t('attendance.addManual')}</span>
+            </button>
+          )}
         </div>
 
         {/* Filters and Sorting for Admin/Supervisor */}
@@ -864,7 +944,8 @@ const AttendancePage = () => {
                                 <FaClock className="text-green-500 flex-shrink-0 text-xs" />
                                 <span className="text-xs text-gray-600">{t('attendance.checkInTime')}</span>
                               </div>
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                                {renderManualBadge(record.checkin)}
                                 {record.checkin
                                   ? formatTime(record.checkin.timestamp, i18n.language)
                                   : '-'}
@@ -875,7 +956,8 @@ const AttendancePage = () => {
                                 <FaClock className="text-primary flex-shrink-0 text-xs" />
                                 <span className="text-xs text-gray-600">{t('attendance.checkOutTime')}</span>
                               </div>
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                                {renderManualBadge(record.checkout)}
                                 {record.checkout
                                   ? formatTime(record.checkout.timestamp, i18n.language)
                                   : '-'}
@@ -894,13 +976,15 @@ const AttendancePage = () => {
                                 ? 'bg-green-100 text-green-800'
                                 : record.checkin
                                   ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-primary text-primary-darko'
+                                  : 'bg-primary text-white'
                                 }`}
                             >
                               {record.checkin && record.checkout ? (
                                 <><FaCheckCircle /> {t('templates.complete')}</>
                               ) : record.checkin ? (
                                 <><FaClock /> {t('templates.checkedIn')}</>
+                              ) : record.checkout ? (
+                                <><FaClock /> {t('attendance.checkedOutOnly')}</>
                               ) : (
                                 <><FaTimesCircle /> {t('attendance.absent')}</>
                               )}
@@ -971,6 +1055,99 @@ const AttendancePage = () => {
                 className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editLoading ? (t('common.saving') || 'Saving...') : (t('common.save') || 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manualOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              {t('attendance.addManual')}
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('attendance.manualEmployee')}
+                </label>
+                <select
+                  value={manualForm.userId}
+                  onChange={(e) => setManualForm({ ...manualForm, userId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">{t('attendance.manualSelectEmployee')}</option>
+                  {manualUsers.map((employee) => (
+                    <option key={employee._id} value={employee._id}>
+                      {employee.name}{employee.department ? ` - ${employee.department}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('attendance.manualType')}
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['checkin', 'checkout'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setManualForm({ ...manualForm, type })}
+                      className={`px-4 py-2 rounded-lg border font-medium transition-colors ${manualForm.type === type
+                        ? 'bg-primary border-primary text-white'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                      {type === 'checkin' ? t('attendance.checkIn') : t('attendance.checkOut')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('attendance.manualTime')}
+                </label>
+                <input
+                  type="datetime-local"
+                  value={manualForm.timestamp}
+                  onChange={(e) => setManualForm({ ...manualForm, timestamp: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('attendance.notes') || 'Notes'} ({t('common.optional') || 'Optional'})
+                </label>
+                <textarea
+                  value={manualForm.notes}
+                  onChange={(e) => setManualForm({ ...manualForm, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder={t('attendance.notesPlaceholder') || 'Add notes...'}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setManualOpen(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={manualSaving}
+              >
+                {t('common.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={handleSaveManualAttendance}
+                disabled={manualSaving || !manualForm.userId || !manualForm.timestamp}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {manualSaving ? (t('common.saving') || 'Saving...') : (t('common.save') || 'Save')}
               </button>
             </div>
           </div>

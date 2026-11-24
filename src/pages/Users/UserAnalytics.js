@@ -443,7 +443,7 @@ const UserAnalytics = () => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-primary text-primary-darko',
+      rejected: 'bg-primary text-white',
       cancelled: 'bg-gray-100 text-gray-800'
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -743,7 +743,7 @@ const UserAnalytics = () => {
                 </p>
               </div>
               <div className={`w-16 h-16 rounded-full flex items-center justify-center ${stats.overtime.totalMinutes >= 0 ? 'bg-green-100' : 'bg-primary'}`}>
-                <FaClock className={`text-3xl ${stats.overtime.totalMinutes >= 0 ? 'text-green-600' : 'text-primary'}`} />
+                <FaClock className={`text-3xl ${stats.overtime.totalMinutes >= 0 ? 'text-green-600' : 'text-white'}`} />
               </div>
             </div>
           </Card>
@@ -759,7 +759,7 @@ const UserAnalytics = () => {
                 <p className="text-xs text-gray-500 mt-1">{t('users.perDay') || 'per day'}</p>
               </div>
               <div className={`w-16 h-16 rounded-full flex items-center justify-center ${stats.overtime.averageMinutes >= 0 ? 'bg-green-100' : 'bg-primary'}`}>
-                <FaChartLine className={`text-3xl ${stats.overtime.averageMinutes >= 0 ? 'text-green-600' : 'text-primary'}`} />
+                <FaChartLine className={`text-3xl ${stats.overtime.averageMinutes >= 0 ? 'text-green-600' : 'text-white'}`} />
               </div>
             </div>
           </Card>
@@ -938,6 +938,11 @@ const UserAnalytics = () => {
                           <div className="flex items-center gap-2">
                             <FaSignInAlt className="text-green-500" />
                             {formatTime(checkinTime)}
+                            {dayAttendance.checkin?.method === 'manual' && (
+                              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800">
+                                {t('attendance.manualBadge')}
+                              </span>
+                            )}
                           </div>
                         ) : '-'}
                       </td>
@@ -946,6 +951,11 @@ const UserAnalytics = () => {
                           <div className="flex items-center gap-2">
                             <FaSignOutAlt className="text-primary" />
                             {formatTime(checkoutTime)}
+                            {dayAttendance.checkout?.method === 'manual' && (
+                              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800">
+                                {t('attendance.manualBadge')}
+                              </span>
+                            )}
                           </div>
                         ) : '-'}
                       </td>

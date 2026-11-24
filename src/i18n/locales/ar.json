@@ -346,7 +346,17 @@
     "notesPlaceholder": "أضف ملاحظات...",
     "updatedSuccessfully": "تم تحديث الحضور بنجاح",
     "updateFailed": "فشل تحديث الحضور",
-    "errorUpdatingLog": "فشل تحديث سجل الحضور"
+    "errorUpdatingLog": "فشل تحديث سجل الحضور",
+    "addManual": "إضافة حضور / انصراف",
+    "manualEmployee": "الموظف",
+    "manualSelectEmployee": "اختر الموظف",
+    "manualType": "نوع التسجيل",
+    "manualTime": "الوقت",
+    "manualSaved": "تم تسجيل الحضور بنجاح",
+    "manualFailed": "فشل تسجيل الحضور",
+    "manualBadge": "يدوي",
+    "checkedOutOnly": "انصراف فقط",
+    "manualAddedBy": "أضافه {{name}}"
   },
   "leaves": {
     "title": "الإجازات",
@@ -480,6 +490,8 @@
     "passwordResetError": "فشل إعادة تعيين كلمة المرور",
     "workDays": "أيام العمل",
     "workSchedule": "جدول العمل",
+    "canRecordAttendance": "صلاحية تسجيل الحضور والانصراف يدويًا",
+    "canRecordAttendanceHint": "يقدر يضيف حضور أو انصراف لأي موظف، ولنفسه، في أي وقت من غير QR",
     "startTime": "وقت البدء",
     "endTime": "وقت الانتهاء",
     "monday": "الاثنين",

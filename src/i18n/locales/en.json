@@ -348,7 +348,17 @@
     "notesPlaceholder": "Add notes...",
     "updatedSuccessfully": "Attendance updated successfully",
     "updateFailed": "Failed to update attendance",
-    "errorUpdatingLog": "Failed to update attendance log"
+    "errorUpdatingLog": "Failed to update attendance log",
+    "addManual": "Add check-in / check-out",
+    "manualEmployee": "Employee",
+    "manualSelectEmployee": "Select employee",
+    "manualType": "Record type",
+    "manualTime": "Time",
+    "manualSaved": "Attendance recorded successfully",
+    "manualFailed": "Failed to record attendance",
+    "manualBadge": "Manual",
+    "checkedOutOnly": "Checked out only",
+    "manualAddedBy": "Added by {{name}}"
   },
   "leaves": {
     "title": "Leaves",
@@ -494,6 +504,8 @@
     "passwordResetError": "Failed to reset password",
     "workDays": "Work Days",
     "workSchedule": "Work Schedule",
+    "canRecordAttendance": "Can record attendance manually",
+    "canRecordAttendanceHint": "Can add a check-in or check-out for any employee, including themselves, at any time without a QR code",
     "startTime": "Start Time",
     "endTime": "End Time",
     "monday": "Monday",
